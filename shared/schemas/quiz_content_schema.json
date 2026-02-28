@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Quiz Content Schema",
+  "type": "object",
+  "properties": {
+    "quiz_id": {
+      "type": "string",
+      "description": "Unique identifier for the quiz"
+    },
+    "title": {
+      "type": "string",
+      "description": "Quiz title"
+    },
+    "topic": {
+      "type": "string",
+      "description": "Subject/topic area"
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": ["Beginner", "Intermediate", "Expert"]
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Teacher ID or 'bedrock' for AI-generated"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question_id": { "type": "string" },
+          "question_text": { "type": "string" },
+          "question_type": {
+            "type": "string",
+            "enum": ["mcq", "subjective", "true_false", "fill_blank"]
+          },
+          "options": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "For MCQ questions"
+          },
+          "correct_answer": { "type": "string" },
+          "explanation": { "type": "string" },
+          "marks": { "type": "number", "minimum": 0 },
+          "topic_tags": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["question_id", "question_text", "question_type", "correct_answer"]
+      }
+    },
+    "total_marks": {
+      "type": "number",
+      "minimum": 0
+    },
+    "time_limit_minutes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "assigned_to": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of student IDs, or empty for all"
+    }
+  },
+  "required": ["quiz_id", "title", "topic", "questions"]
+}

@@ -1,16 +1,21 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-
-# Virtual Environment
+# Environments
 studaxis-vtwo-env/
 venv/
 env/
 ENV/
 .venv
+env.bak/
+venv.bak/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.pyc
+*.pyo
+*.pyd
 
 # IDE
 .vscode/
@@ -18,21 +23,155 @@ ENV/
 *.swp
 *.swo
 *~
+.project
+.pydevproject
+.settings/
 
 # OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+desktop.ini
 
 # Distribution / packaging
 dist/
 build/
 *.egg-info/
+*.egg
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.manifest
+*.spec
 
 # Testing
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
+.tox/
+.nox/
+.hypothesis/
+*.cover
+*.py,cover
+.cache
+nosetests.xml
+coverage.xml
+*.coveragerc
 
-# Environment variables
+# Secrets
 .env
 .env.local
+.env.*.local
+.env.aws
+.env.production
+.env.development
+
+# Studaxis Specific - Data Files
+data/user_stats.json
+data/chromadb/
+data/backups/
+data/sample_textbooks/*.pdf
+data/*.json
+!data/.gitkeep
+
+# Studaxis Specific - Generated Content
+local-app/generated/
+aws-infra/generated/
+
+# Studaxis Specific - Documentation (exclude from commits)
+DAY1_PROGRESS.md
+GIT_SETUP.md
+NEXT_STEPS.md
+PROJECT_INIT.md
+QUICKSTART.md
+README.md
+STRUCTURE.md
+COMMIT_GUIDE.md
+requirements.md
+design.md
+
+# Streamlit
+.streamlit/
+.streamlit/secrets.toml
+
+# AWS
+.aws/
+*.pem
+*.key
+aws-exports.js
+
+# Logs
+*.log
+logs/
+*.log.*
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~.nib
+.cache/
+test_data/
+temp/
+tmp/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Database & AI Models
+chromadb/
+*.db
+*.sqlite
+*.sqlite3
+data/chromadb/
+
+# Compiled files
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Package files
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Documentation builds
+docs/_build/
+site/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/

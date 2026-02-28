@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "User Stats Schema",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Unique identifier for the student"
+    },
+    "last_sync_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of last successful sync"
+    },
+    "streak": {
+      "type": "object",
+      "properties": {
+        "current": { "type": "integer", "minimum": 0 },
+        "longest": { "type": "integer", "minimum": 0 },
+        "last_activity_date": { "type": "string", "format": "date" }
+      }
+    },
+    "quiz_stats": {
+      "type": "object",
+      "properties": {
+        "total_attempted": { "type": "integer", "minimum": 0 },
+        "total_correct": { "type": "integer", "minimum": 0 },
+        "average_score": { "type": "number", "minimum": 0, "maximum": 10 },
+        "by_topic": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "attempted": { "type": "integer" },
+              "correct": { "type": "integer" },
+              "avg_score": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
+    "flashcard_stats": {
+      "type": "object",
+      "properties": {
+        "total_reviewed": { "type": "integer", "minimum": 0 },
+        "mastered": { "type": "integer", "minimum": 0 },
+        "due_for_review": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "chat_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "timestamp": { "type": "string", "format": "date-time" },
+          "role": { "type": "string", "enum": ["user", "assistant"] },
+          "content": { "type": "string" },
+          "topic": { "type": "string" }
+        }
+      },
+      "maxItems": 50
+    },
+    "preferences": {
+      "type": "object",
+      "properties": {
+        "difficulty_level": { "type": "string", "enum": ["Beginner", "Intermediate", "Expert"] },
+        "theme": { "type": "string", "enum": ["dark", "light"] },
+        "language": { "type": "string", "enum": ["English", "Hinglish"] }
+      }
+    },
+    "hardware_info": {
+      "type": "object",
+      "properties": {
+        "ram_gb": { "type": "number" },
+        "cpu_model": { "type": "string" },
+        "disk_space_gb": { "type": "number" }
+      }
+    }
+  },
+  "required": ["user_id", "last_sync_timestamp"]
+}
