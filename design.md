@@ -172,7 +172,7 @@ Independent learners without teacher oversight. Hides "Pending Assignments" and 
 - **AI Flashcards**: Auto-generated Q&A pairs with spaced repetition
 - **Video Caching + RAG (Phase 2)**: H.265 videos with transcript indexing; MVP focuses on text/PDF RAG
 - **Streak System**: Daily engagement tracking with milestone badges
-- **Modern UI**: Clean Streamlit interface with custom CSS, dark/light theme toggle (default: dark), glassmorphic polish as time permits
+- **Modern UI**: Clean Streamlit interface with custom CSS, light/dark theme toggle (default: light), glassmorphic polish as time permits
 - **Solo Mode**: Independent learning with silent background sync, no teacher linkage required
 - **Delta Sync**: GraphQL-based minimal data transmission (<5KB delta / <50KB upper bound)
 - **Teacher Dashboard**: Streamlit-based progress view for MVP; receives summarized metrics, not raw answers. Phase 2 adds Amazon Q Copilot accessed via `qbusiness` boto3 API for NL analytics (S3 Data Lake). React version with Cognito RBAC also in Phase 2.

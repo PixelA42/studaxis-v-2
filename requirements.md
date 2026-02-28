@@ -380,7 +380,7 @@ Amazon Q Business is planned for Phase 2 integration into the Teacher Dashboard 
 **User Story:** As a student, I want a clean, modern interface that feels engaging to use, so that learning feels enjoyable rather than boring.
 
 - THE UI SHALL support both dark and light themes with a user-accessible toggle
-- THE system SHALL default to dark theme on first launch; user preference SHALL persist in User_Stats
+- THE system SHALL default to light theme on first launch; user preference SHALL persist in User_Stats
 - WHEN toggling themes, THE system SHALL switch all UI surfaces, cards, text, and accents without page reload (CSS variable swap via Streamlit custom CSS injection)
 - WHEN displaying interactive elements, THE system SHALL provide visual feedback (hover states, transitions)
 - WHEN displaying cards and panels, THE system SHALL use consistent styling with rounded corners
@@ -388,11 +388,11 @@ Amazon Q Business is planned for Phase 2 integration into the Teacher Dashboard 
 - THE system SHALL use a sidebar for navigation between features
 
 **Theme Specifications:**
+- **Light Theme (Default)**: Background #f8fafc, card surfaces with white fills and subtle shadows, deep blue accent (#2563eb), dark text (#1e293b)
 - **Dark Theme**: Background #0a0a0f, card surfaces with glassmorphic blur (rgba white overlays), electric blue accent (#3b82f6), light text (#e2e8f0)
-- **Light Theme**: Background #f8fafc, card surfaces with soft white/gray fills and subtle shadows, deep blue accent (#2563eb), dark text (#1e293b)
 - Both themes SHALL maintain WCAG AA contrast ratios (≥4.5:1 for body text)
 
-**MVP Scope:** Clean, functional Streamlit UI with custom CSS theming and light/dark toggle. Glassmorphic styling (blur effects, gradients, animations) is applied as time permits — visual polish is secondary to core functionality.
+**MVP Scope:** Clean, functional Streamlit UI with custom CSS theming and light/dark toggle. Light theme is default. Glassmorphic styling (blur effects, gradients, animations) is applied as time permits — visual polish is secondary to core functionality.
 
 
 **Req 13: Bento Grid Dashboard**
@@ -1238,7 +1238,7 @@ The following terms are used throughout this document. Items marked **(MVP)** wi
 - **Panic Mode**: Exam simulator with timed, distraction-free environment (MVP)
 - **Solo Mode**: Independent learning without teacher oversight (MVP)
 - **Red Pen Grading**: AI-generated text feedback identifying errors and corrections; visual markup (strikethrough, colors) planned for Phase 2 (MVP: text-based)
-- **Modern_UI**: Clean interface with Streamlit supporting dark and light themes via user toggle (default: dark); glassmorphic styling (blur, gradients) applied as time permits (MVP: functional styling with theme toggle)
+- **Modern_UI**: Clean interface with Streamlit supporting dark and light themes via user toggle (default: light); glassmorphic styling (blur, gradients) applied as time permits (MVP: functional styling with theme toggle)
 - **Hinglish**: Mixed Hindi-English language support (MVP)
 - **RAG**: Retrieval-Augmented Generation for grounded AI responses (MVP)
 - **Delta Sync**: Transmitting only changed data fields to minimize bandwidth; implemented via AppSync (MVP)
