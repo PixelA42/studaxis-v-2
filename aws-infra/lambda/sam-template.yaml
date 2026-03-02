@@ -1,0 +1,215 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >-
+  Studaxis Lambda Functions - SAM Template for Local Testing
+  Use with: sam local start-api
+
+Globals:
+  Function:
+    Timeout: 15
+    Memory: 256
+    Runtime: python3.11
+    Architectures:
+      - arm64
+    Environment:
+      Variables:
+        LOG_LEVEL: DEBUG
+        DYNAMODB_TABLE_NAME: studaxis-student-sync
+        QUIZ_INDEX_TABLE: studaxis-quiz-index
+        S3_BUCKET_NAME: studaxis-payloads
+        PRESIGNED_URL_EXPIRY_SECONDS: 3600
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  
+  LocalDynamoEndpoint:
+    Type: String
+    Default: http://localhost:8000
+    Description: DynamoDB Local endpoint (only used for SAM local testing)
+
+Conditions:
+  IsLocalDev: !Equals [!Ref Environment, dev]
+
+Resources:
+
+  # ═════════════════════════════════════════════════════════════════════════
+  # OFFLINE SYNC LAMBDA (AppSync → DynamoDB)
+  # ═════════════════════════════════════════════════════════════════════════
+  
+  OfflineSyncRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub studaxis-offline-sync-${Environment}-sam
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBWriteOnly
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                Resource:
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/studaxis-student-sync
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/studaxis-student-sync*
+
+  OfflineSyncFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub studaxis-offline-sync-${Environment}
+      Description: Handles offline sync mutations (quiz attempts, streak updates)
+      Handler: handler.lambda_handler
+      Runtime: python3.11
+      MemorySize: 256
+      Timeout: 10
+      Role: !GetAtt OfflineSyncRole.Arn
+      CodeUri: offline_sync/
+      Events:
+        AppSyncQuizAttempt:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AppSyncSimulator
+            Path: /recordQuizAttempt
+            Method: POST
+        AppSyncStreakUpdate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AppSyncSimulator
+            Path: /updateStreak
+            Method: POST
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: studaxis-student-sync
+          LOG_LEVEL: DEBUG
+          DYNAMODB_ENDPOINT: !If [IsLocalDev, !Ref LocalDynamoEndpoint, !Ref AWS::NoValue]
+
+  OfflineSyncLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/studaxis-offline-sync-${Environment}
+      RetentionInDays: 7
+
+  # ═════════════════════════════════════════════════════════════════════════
+  # CONTENT DISTRIBUTION LAMBDA (AppSync → DynamoDB + S3)
+  # ═════════════════════════════════════════════════════════════════════════
+  
+  ContentDistributionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub studaxis-content-distribution-${Environment}-sam
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBReadOnly
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource:
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/studaxis-student-sync
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/studaxis-quiz-index
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*/index/*
+        - PolicyName: S3PresignedOnly
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource:
+                  - arn:aws:s3:::studaxis-payloads/*
+
+  ContentDistributionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub studaxis-content-distribution-${Environment}
+      Description: Handles offline content fetching (quizzes, manifests)
+      Handler: handler.lambda_handler
+      Runtime: python3.11
+      MemorySize: 256
+      Timeout: 15
+      Role: !GetAtt ContentDistributionRole.Arn
+      CodeUri: content_distribution/
+      Events:
+        AppSyncFetchContent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AppSyncSimulator
+            Path: /fetchOfflineContent
+            Method: POST
+        AppSyncGetManifest:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AppSyncSimulator
+            Path: /getQuizManifest
+            Method: POST
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: studaxis-student-sync
+          QUIZ_INDEX_TABLE: studaxis-quiz-index
+          S3_BUCKET_NAME: studaxis-payloads
+          LOG_LEVEL: DEBUG
+          DYNAMODB_ENDPOINT: !If [IsLocalDev, !Ref LocalDynamoEndpoint, !Ref AWS::NoValue]
+
+  ContentDistributionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/studaxis-content-distribution-${Environment}
+      RetentionInDays: 7
+
+  # ═════════════════════════════════════════════════════════════════════════
+  # REST API FOR TESTING (Simulator for AppSync)
+  # ═════════════════════════════════════════════════════════════════════════
+
+  AppSyncSimulator:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub studaxis-appsync-simulator-${Environment}
+      StageName: !Ref Environment
+      TracingEnabled: true
+      Variables:
+        Environment: !Ref Environment
+
+Outputs:
+  OfflineSyncFunctionArn:
+    Description: ARN of the Offline Sync Lambda
+    Value: !GetAtt OfflineSyncFunction.Arn
+  
+  OfflineSyncFunctionName:
+    Description: Name of the Offline Sync Lambda
+    Value: !Ref OfflineSyncFunction
+  
+  ContentDistributionFunctionArn:
+    Description: ARN of the Content Distribution Lambda
+    Value: !GetAtt ContentDistributionFunction.Arn
+  
+  ContentDistributionFunctionName:
+    Description: Name of the Content Distribution Lambda
+    Value: !Ref ContentDistributionFunction
+  
+  ApiEndpoint:
+    Description: API Gateway endpoint for local testing
+    Value: !Sub https://${AppSyncSimulator}.execute-api.${AWS::Region}.amazonaws.com/${Environment}

@@ -127,7 +127,7 @@ S3_BUCKET_STUDENT = "studaxis-student-stats"
 S3_BUCKET_CONTENT = "studaxis-content"
 
 # Bedrock Configuration
-BEDROCK_MODEL_ID = "anthropic.claude-3-sonnet-20240229-v1:0"
+BEDROCK_MODEL_ID = "amazon.neo-lite-v2"
 BEDROCK_REGION = "us-east-1"
 
 # Quiz Types

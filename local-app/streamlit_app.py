@@ -12,6 +12,7 @@ sys.path.append(str(Path(__file__).parent))
 from hardware_validator import HardwareValidator
 from utils.local_storage import LocalStorage
 from utils.ollama_client import OllamaClient
+from utils.content_downloader import ContentDownloader
 
 
 # Page configuration
@@ -116,6 +117,7 @@ def initialize_session_state():
         st.session_state.initialized = False
         st.session_state.user_id = "student_001"  # TODO: Implement proper auth
         st.session_state.storage = LocalStorage()
+        st.session_state.downloader = ContentDownloader(base_path=".")
         st.session_state.current_page = "Dashboard"
         st.session_state.theme = "light"
         
@@ -260,13 +262,235 @@ def render_chat():
         st.write("Response will appear here")
 
 
-# Quiz page (placeholder)
+# Quiz page
 def render_quiz():
-    """Render quiz interface"""
+    """Render quiz interface with cloud download + offline quiz-taking."""
     st.title("📝 Quiz")
-    st.caption("Test your knowledge")
-    
-    st.info("🚧 Quiz engine coming soon! (Day 2)")
+    st.caption("Download assigned quizzes or take cached ones offline")
+
+    # ── Sync / Download section ─────────────────────────────────────────────
+    st.subheader("📥 Quiz Library")
+
+    sync_col, stats_col = st.columns([2, 1])
+
+    with stats_col:
+        cache_stats = st.session_state.downloader.get_cache_stats()
+        st.metric("Cached Quizzes", cache_stats["quiz_count"])
+        st.metric("Cache Size", f"{cache_stats['total_size_kb']} KB")
+
+    with sync_col:
+        if st.button("🔄 Sync Quizzes from Cloud", use_container_width=True):
+            with st.spinner("Connecting to cloud..."):
+                result = st.session_state.downloader.sync_quizzes(
+                    user_id=st.session_state.user_id
+                )
+                if result["downloaded"] > 0:
+                    st.success(
+                        f"✅ Downloaded {result['downloaded']} new quiz(es), "
+                        f"{result['cached']} already cached"
+                    )
+                elif result["cached"] > 0:
+                    st.info(f"📦 {result['cached']} quiz(es) available from cache (no new content)")
+                else:
+                    st.warning("No quizzes available. Ask your teacher to publish one!")
+
+        if st.button("🗑️ Clear Cache", use_container_width=True):
+            st.session_state.downloader.clear_cache()
+            st.success("Cache cleared")
+            st.rerun()
+
+    st.divider()
+
+    # ── Available quizzes list ──────────────────────────────────────────────
+    cached_quizzes = st.session_state.downloader.list_cached_quizzes()
+
+    if not cached_quizzes:
+        st.info(
+            "📭 No quizzes available yet. Click **Sync Quizzes from Cloud** "
+            "when you have internet, or ask your teacher to assign a quiz."
+        )
+        return
+
+    st.subheader("📋 Available Quizzes")
+
+    for i, quiz in enumerate(cached_quizzes):
+        quiz_id = quiz.get("quiz_id", f"quiz_{i}")
+        title = quiz.get("title", quiz.get("quiz_title", "Untitled Quiz"))
+        topic = quiz.get("topic", quiz.get("subject", "General"))
+        difficulty = quiz.get("difficulty", "Medium")
+        q_count = len(quiz.get("questions", []))
+
+        with st.expander(f"📖 {title}  —  {topic} · {difficulty} · {q_count}Q"):
+            st.write(f"**Quiz ID:** `{quiz_id}`")
+            st.write(f"**Subject:** {topic}")
+            st.write(f"**Difficulty:** {difficulty}")
+            st.write(f"**Questions:** {q_count}")
+
+            time_limit = quiz.get("time_limit_minutes", 0)
+            if time_limit:
+                st.write(f"**Time Limit:** {time_limit} minutes")
+
+            if st.button(f"▶️ Start Quiz", key=f"start_{quiz_id}", use_container_width=True):
+                st.session_state.active_quiz = quiz
+                st.session_state.quiz_answers = {}
+                st.session_state.quiz_submitted = False
+                st.session_state.current_page = "Quiz"
+                st.rerun()
+
+    st.divider()
+
+    # ── Active quiz-taking UI ───────────────────────────────────────────────
+    if "active_quiz" in st.session_state and not st.session_state.get("quiz_submitted", False):
+        quiz = st.session_state.active_quiz
+        title = quiz.get("title", quiz.get("quiz_title", "Untitled Quiz"))
+        questions = quiz.get("questions", [])
+
+        st.subheader(f"🎯 Taking: {title}")
+        st.progress(
+            len(st.session_state.quiz_answers) / max(len(questions), 1),
+            text=f"Answered {len(st.session_state.quiz_answers)}/{len(questions)}"
+        )
+
+        for idx, q in enumerate(questions):
+            q_text = q.get("question_text", q.get("question", ""))
+            q_type = q.get("question_type", "mcq")
+            q_key = f"q_{idx}"
+
+            st.markdown(f"**Q{idx + 1}.** {q_text}")
+
+            if q_type == "mcq":
+                options = q.get("options", [])
+                if options:
+                    answer = st.radio(
+                        f"Select answer for Q{idx + 1}",
+                        options,
+                        key=q_key,
+                        index=None,
+                        label_visibility="collapsed",
+                    )
+                    if answer:
+                        st.session_state.quiz_answers[q_key] = answer
+
+            elif q_type == "true_false":
+                answer = st.radio(
+                    f"Select answer for Q{idx + 1}",
+                    ["True", "False"],
+                    key=q_key,
+                    index=None,
+                    label_visibility="collapsed",
+                )
+                if answer:
+                    st.session_state.quiz_answers[q_key] = answer
+
+            elif q_type in ("subjective", "fill_blank"):
+                answer = st.text_input(
+                    f"Your answer for Q{idx + 1}",
+                    key=q_key,
+                    label_visibility="collapsed",
+                    placeholder="Type your answer...",
+                )
+                if answer:
+                    st.session_state.quiz_answers[q_key] = answer
+
+            st.markdown("---")
+
+        # Submit button
+        col_submit, col_cancel = st.columns(2)
+        with col_submit:
+            if st.button("✅ Submit Quiz", use_container_width=True, type="primary"):
+                st.session_state.quiz_submitted = True
+                st.rerun()
+        with col_cancel:
+            if st.button("❌ Cancel", use_container_width=True):
+                del st.session_state.active_quiz
+                st.session_state.quiz_answers = {}
+                st.rerun()
+
+    # ── Results display ─────────────────────────────────────────────────────
+    elif st.session_state.get("quiz_submitted", False) and "active_quiz" in st.session_state:
+        quiz = st.session_state.active_quiz
+        questions = quiz.get("questions", [])
+        answers = st.session_state.quiz_answers
+        quiz_id = quiz.get("quiz_id", "unknown")
+        topic = quiz.get("topic", quiz.get("subject", "General"))
+        title = quiz.get("title", quiz.get("quiz_title", "Untitled Quiz"))
+
+        # Grade the quiz
+        correct = 0
+        total = len(questions)
+        results = []
+
+        for idx, q in enumerate(questions):
+            q_key = f"q_{idx}"
+            student_answer = answers.get(q_key, "")
+            correct_answer = q.get("correct_answer", q.get("answer", ""))
+
+            # Simple string comparison for MCQ/true-false
+            is_correct = (
+                student_answer.strip().lower() == correct_answer.strip().lower()
+                if student_answer and correct_answer
+                else False
+            )
+            if is_correct:
+                correct += 1
+
+            results.append({
+                "question": q.get("question_text", q.get("question", "")),
+                "your_answer": student_answer,
+                "correct_answer": correct_answer,
+                "is_correct": is_correct,
+                "explanation": q.get("explanation", ""),
+            })
+
+        accuracy = round(correct / max(total, 1) * 100, 1)
+
+        # Save attempt
+        st.session_state.storage.record_quiz_attempt(
+            quiz_id=quiz_id,
+            score=correct,
+            total_questions=total,
+            topic=topic,
+            answers=answers,
+        )
+
+        # Display results
+        st.subheader(f"📊 Results: {title}")
+
+        r1, r2, r3 = st.columns(3)
+        r1.metric("Score", f"{correct}/{total}")
+        r2.metric("Accuracy", f"{accuracy}%")
+        r3.metric("Topic", topic)
+
+        # Colour-coded feedback
+        if accuracy >= 80:
+            st.success(f"🎉 Excellent! You scored {accuracy}%")
+        elif accuracy >= 60:
+            st.info(f"👍 Good effort! {accuracy}% — review the ones you missed.")
+        else:
+            st.warning(f"📚 Keep studying! {accuracy}% — review explanations below.")
+
+        # Question-by-question review
+        st.subheader("📝 Review Answers")
+        for idx, r in enumerate(results):
+            icon = "✅" if r["is_correct"] else "❌"
+            with st.expander(f"{icon} Q{idx + 1}: {r['question'][:80]}"):
+                st.write(f"**Your answer:** {r['your_answer'] or '(not answered)'}")
+                st.write(f"**Correct answer:** {r['correct_answer']}")
+                if r["explanation"]:
+                    st.info(f"💡 {r['explanation']}")
+
+        # Actions
+        col_retry, col_back = st.columns(2)
+        with col_retry:
+            if st.button("🔁 Retake Quiz", use_container_width=True):
+                st.session_state.quiz_answers = {}
+                st.session_state.quiz_submitted = False
+                st.rerun()
+        with col_back:
+            if st.button("📋 Back to Library", use_container_width=True):
+                for key in ("active_quiz", "quiz_answers", "quiz_submitted"):
+                    st.session_state.pop(key, None)
+                st.rerun()
 
 
 # Flashcards page (placeholder)

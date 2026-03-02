@@ -76,6 +76,7 @@ coverage.xml
 .env.aws
 .env.production
 .env.development
+aws-infra/teacher-dashboard/.env
 
 # Studaxis Specific - Data Files
 data/user_stats.json
@@ -90,16 +91,27 @@ local-app/generated/
 aws-infra/generated/
 
 # Studaxis Specific - Documentation (exclude from commits)
+AWS_SETUP_GUIDE.md
+LAMBDA_TESTING_COMPLETE.md
 DAY1_PROGRESS.md
 GIT_SETUP.md
 NEXT_STEPS.md
 PROJECT_INIT.md
 QUICKSTART.md
-README.md
-STRUCTURE.md
+/STRUCTURE.md
 COMMIT_GUIDE.md
-requirements.md
-design.md
+/requirements.md
+/design.md
+aws-infra/lambda/LAMBDA_TESTING_GUIDE.md
+aws-infra/lambda/TESTING_COMPLETE.md
+aws-infra/lambda/QUICK_REFERENCE.md
+
+# Studaxis Specific - Test data
+student_stats_test.json
+
+# Kiro - ignore config but keep specs and steering
+.kiro/specs/**/.config.kiro
+.kiro/specs/**/tasks.md
 
 # Streamlit
 .streamlit/
@@ -110,6 +122,19 @@ design.md
 *.pem
 *.key
 aws-exports.js
+
+# AWS Lambda Artifacts
+aws-infra/lambda/*.zip
+aws-infra/lambda/**/package/
+aws-infra/lambda/**/__pycache__/
+
+# AWS CloudFormation Outputs
+aws-infra/cloudformation/*.out
+aws-infra/cloudformation/samconfig.toml
+
+# Teacher Dashboard
+aws-infra/teacher-dashboard/__pycache__/
+aws-infra/teacher-dashboard/utils/__pycache__/
 
 # Logs
 *.log

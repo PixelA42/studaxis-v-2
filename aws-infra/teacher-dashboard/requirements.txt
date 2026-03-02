@@ -1,0 +1,8 @@
+streamlit==1.28.1
+boto3==1.28.85
+pandas==2.0.3
+plotly==5.17.0
+python-dateutil==2.8.2
+python-dotenv==1.0.0
+requests==2.31.0
+aws-cdk-lib==2.100.0

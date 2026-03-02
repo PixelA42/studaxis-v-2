@@ -219,6 +219,60 @@ class LocalStorage:
             "last_sync_timestamp": stats['last_sync_timestamp']
         }
 
+    def record_quiz_attempt(
+        self,
+        quiz_id: str,
+        score: int,
+        total_questions: int,
+        topic: str = "General",
+        answers: Optional[Dict] = None,
+    ) -> bool:
+        """Record a completed quiz attempt in user stats."""
+        stats = self.load_user_stats()
+        if not stats:
+            return False
+
+        # Update aggregate quiz stats
+        qs = stats["quiz_stats"]
+        qs["total_attempted"] += 1
+        qs["total_correct"] += score
+        qs["average_score"] = round(
+            qs["total_correct"] / max(qs["total_attempted"], 1), 1
+        )
+
+        # Update per-topic stats
+        topic_key = topic.lower().replace(" ", "_")
+        if topic_key not in qs.get("by_topic", {}):
+            qs.setdefault("by_topic", {})[topic_key] = {
+                "attempted": 0,
+                "correct": 0,
+                "average_score": 0.0,
+            }
+        t = qs["by_topic"][topic_key]
+        t["attempted"] += 1
+        t["correct"] += score
+        t["average_score"] = round(t["correct"] / max(t["attempted"], 1), 1)
+
+        # Store individual attempt
+        attempt = {
+            "quiz_id": quiz_id,
+            "score": score,
+            "total_questions": total_questions,
+            "accuracy": round(score / max(total_questions, 1) * 100, 1),
+            "topic": topic,
+            "completed_at": datetime.utcnow().isoformat(),
+            "answers": answers or {},
+        }
+        stats.setdefault("quiz_attempts", []).append(attempt)
+        # Keep only last 100 attempts
+        if len(stats["quiz_attempts"]) > 100:
+            stats["quiz_attempts"] = stats["quiz_attempts"][-100:]
+
+        # Update streak (counts as activity)
+        self.update_streak()
+
+        return self.save_user_stats(stats)
+
 
 # Standalone test
 if __name__ == "__main__":

@@ -1,0 +1,233 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Studaxis — Lambda Functions for Offline-First Platform
+  Two purpose-built Lambdas with least-privilege IAM roles:
+    1. OfflineSyncLambda   (AppSync → DynamoDB metadata writes)
+    2. ContentDistribution (AppSync → DynamoDB reads + S3 pre-signed URLs)
+
+# ─────────────────────────────────────────────────────────────────────────────
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+
+  DynamoDBSyncTable:
+    Type: String
+    Default: studaxis-student-sync
+
+  S3PayloadsBucket:
+    Type: String
+    Default: studaxis-payloads
+
+  QuizIndexTable:
+    Type: String
+    Default: studaxis-quiz-index
+
+  LogLevel:
+    Type: String
+    Default: INFO
+    AllowedValues: [DEBUG, INFO, WARNING, ERROR]
+
+  PresignedUrlExpiry:
+    Type: Number
+    Default: 3600
+    Description: Pre-signed URL TTL in seconds (default 1 hour)
+
+# ─────────────────────────────────────────────────────────────────────────────
+Resources:
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 1. OFFLINE SYNC LAMBDA  (AppSync → DynamoDB)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  OfflineSyncExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub studaxis-offline-sync-role-${Environment}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        # Basic Lambda execution (CloudWatch Logs)
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBWriteOnly
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                Resource:
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBSyncTable}
+
+  OfflineSyncLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub studaxis-offline-sync-${Environment}
+      Description: >-
+        Handles recordQuizAttempt / updateStreak mutations from AppSync.
+        Writes sync metadata to DynamoDB only — no S3 access.
+      Runtime: python3.11
+      Architectures: [arm64]    # Graviton2 — cheaper + faster
+      Handler: handler.lambda_handler
+      MemorySize: 256           # Lightweight metadata writes
+      Timeout: 10               # Must be fast (<200ms typical)
+      Role: !GetAtt OfflineSyncExecutionRole.Arn
+      Code:
+        S3Bucket: !Sub studaxis-lambda-artifacts-${Environment}
+        S3Key: lambda/offline_sync.zip
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBSyncTable
+          LOG_LEVEL: !Ref LogLevel
+      Tags:
+        - Key: Project
+          Value: Studaxis
+        - Key: Component
+          Value: OfflineSync
+        - Key: Environment
+          Value: !Ref Environment
+
+  OfflineSyncLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${OfflineSyncLambda}
+      RetentionInDays: 14
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 2. CONTENT DISTRIBUTION LAMBDA  (AppSync → DynamoDB + S3 pre-signed)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  ContentDistributionExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub studaxis-content-dist-role-${Environment}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBReadOnly
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                Resource:
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBSyncTable}
+              - Effect: Allow
+                Action:
+                  - dynamodb:Scan
+                  - dynamodb:Query
+                Resource:
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${QuizIndexTable}
+        - PolicyName: S3PreSignOnly
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource:
+                  - !Sub arn:aws:s3:::${S3PayloadsBucket}/quizzes/*
+
+  ContentDistributionLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub studaxis-content-distribution-${Environment}
+      Description: >-
+        Queries studaxis-quiz-index DynamoDB table for quiz metadata,
+        generates time-limited S3 pre-signed URLs, and returns a
+        lightweight manifest for offline caching on student devices.
+      Runtime: python3.11
+      Architectures: [arm64]
+      Handler: handler.lambda_handler
+      MemorySize: 256
+      Timeout: 15
+      Role: !GetAtt ContentDistributionExecutionRole.Arn
+      Code:
+        S3Bucket: !Sub studaxis-lambda-artifacts-${Environment}
+        S3Key: lambda/content_distribution.zip
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBSyncTable
+          QUIZ_INDEX_TABLE: !Ref QuizIndexTable
+          S3_BUCKET_NAME: !Ref S3PayloadsBucket
+          PRESIGNED_URL_EXPIRY_SECONDS: !Ref PresignedUrlExpiry
+          LOG_LEVEL: !Ref LogLevel
+      Tags:
+        - Key: Project
+          Value: Studaxis
+        - Key: Component
+          Value: ContentDistribution
+        - Key: Environment
+          Value: !Ref Environment
+
+  ContentDistributionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ContentDistributionLambda}
+      RetentionInDays: 14
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 3. QUIZ INDEX TABLE  (lightweight metadata written by bedrock-quiz-generator)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  QuizIndexDynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref QuizIndexTable
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      AttributeDefinitions:
+        - AttributeName: quiz_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: quiz_id
+          KeyType: HASH
+      Tags:
+        - Key: Project
+          Value: Studaxis
+        - Key: Component
+          Value: QuizIndex
+        - Key: Environment
+          Value: !Ref Environment
+
+# ─────────────────────────────────────────────────────────────────────────────
+Outputs:
+
+  OfflineSyncLambdaArn:
+    Description: ARN of the Offline Sync Lambda (use as AppSync data source)
+    Value: !GetAtt OfflineSyncLambda.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-OfflineSyncLambdaArn
+
+  ContentDistributionLambdaArn:
+    Description: ARN of the Content Distribution Lambda (use as AppSync data source)
+    Value: !GetAtt ContentDistributionLambda.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-ContentDistributionLambdaArn
+
+  OfflineSyncRoleArn:
+    Description: Execution role for Offline Sync Lambda
+    Value: !GetAtt OfflineSyncExecutionRole.Arn
+
+  ContentDistributionRoleArn:
+    Description: Execution role for Content Distribution Lambda
+    Value: !GetAtt ContentDistributionExecutionRole.Arn
