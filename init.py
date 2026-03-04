@@ -4,9 +4,9 @@ Validates environment and sets up initial configuration
 """
 
 import sys
-import os
 import subprocess
 from pathlib import Path
+from typing import List
 
 
 def check_python_version():
@@ -40,14 +40,14 @@ def check_ollama():
 
 def check_dependencies():
     """Check if required packages are installed"""
-    required = ['streamlit', 'chromadb', 'ollama', 'boto3', 'psutil']
-    missing = []
+    required: List[str] = ['streamlit', 'chromadb', 'ollama', 'boto3', 'psutil']
+    missing: List[str] = []
     
     for package in required:
         try:
             __import__(package)
             print(f"✅ {package}")
-        except ImportError:
+        except ImportError :
             missing.append(package)
             print(f"❌ {package} not installed")
     

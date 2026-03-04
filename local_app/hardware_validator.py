@@ -5,8 +5,7 @@ Checks system resources (RAM, CPU, disk) on app launch
 
 import psutil
 import platform
-import os
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Any, List
 
 
 class HardwareValidator:
@@ -20,7 +19,7 @@ class HardwareValidator:
     def __init__(self):
         self.specs = self._gather_specs()
     
-    def _gather_specs(self) -> Dict:
+    def _gather_specs(self) -> Dict[str, Any]:
         """Gather system specifications"""
         ram_gb = psutil.virtual_memory().total / (1024 ** 3)
         disk_gb = psutil.disk_usage('/').free / (1024 ** 3)
@@ -36,7 +35,7 @@ class HardwareValidator:
             'os_version': platform.version()
         }
     
-    def validate(self) -> Tuple[bool, str, Dict]:
+    def validate(self) -> Tuple[bool, str, Dict[str, Any]]:
         """
         Validate hardware against requirements
         
@@ -44,8 +43,8 @@ class HardwareValidator:
             Tuple of (is_valid, message, specs)
         """
         specs = self.specs
-        warnings = []
-        critical = []
+        warnings: List[str] = []
+        critical: List[str] = []
         
         # RAM check
         if specs['ram_gb'] < self.MIN_RAM_GB:
@@ -74,9 +73,9 @@ class HardwareValidator:
         message = "✅ System meets all recommended requirements"
         return True, message, specs
     
-    def get_optimization_tips(self) -> list:
+    def get_optimization_tips(self) -> List[str]:
         """Get optimization tips based on hardware"""
-        tips = []
+        tips: List[str] = []
         specs = self.specs
         
         if specs['ram_gb'] < self.RECOMMENDED_RAM_GB:
@@ -104,7 +103,7 @@ class HardwareValidator:
         else:
             return "Q2_K"    # Optimized for 4GB
     
-    def monitor_runtime_memory(self) -> Dict:
+    def monitor_runtime_memory(self) -> Dict[str, Any]:
         """Monitor memory usage during runtime"""
         mem = psutil.virtual_memory()
         return {

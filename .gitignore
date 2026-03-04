@@ -1,5 +1,6 @@
 # Environments
 studaxis-vtwo-env/
+env-studaxisvtwo/
 venv/
 env/
 ENV/
@@ -105,6 +106,7 @@ COMMIT_GUIDE.md
 aws-infra/lambda/LAMBDA_TESTING_GUIDE.md
 aws-infra/lambda/TESTING_COMPLETE.md
 aws-infra/lambda/QUICK_REFERENCE.md
+inspect_retriever.py
 
 # Studaxis Specific - Test data
 student_stats_test.json
