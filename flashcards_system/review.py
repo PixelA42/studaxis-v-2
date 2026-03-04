@@ -14,7 +14,7 @@ class ReviewEngine:
             print("No cards due.")
             return
 
-        data = self.storage.load_stats()
+        data = self.storage.load_user_stats()
 
         for card in due_cards:
 
@@ -32,4 +32,4 @@ class ReviewEngine:
 
             update_card(card, quality)
 
-        self.storage.save_stats(data)
+        self.storage.save_user_stats(data)

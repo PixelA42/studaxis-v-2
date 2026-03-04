@@ -3,7 +3,7 @@ class StudentModel:
         self.storage = storage
 
     def get_difficulty(self, topic: str):
-        stats = self.storage.load_stats()
+        stats = self.storage.load_user_stats()
 
         topic_stats = stats.get("topic_performance", {}).get(topic)
 
@@ -19,7 +19,7 @@ class StudentModel:
         return "medium"
 
     def update_topic_performance(self, topic, correct: bool):
-        stats = self.storage.load_stats()
+        stats = self.storage.load_user_stats()
 
         if "topic_performance" not in stats:
             stats["topic_performance"] = {}
@@ -41,4 +41,4 @@ class StudentModel:
 
         stats["topic_performance"][topic]["accuracy"] = c / (c + w)
 
-        self.storage.save_stats(stats)
+        self.storage.save_user_stats(stats)

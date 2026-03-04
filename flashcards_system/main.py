@@ -38,14 +38,12 @@ def main():
 
             topic = q.replace("flashcards", "").strip()
 
+            if not topic:
+                print("Please provide a topic.")
+                continue
+
             cards = generator.generate(topic)
-
-            print(f"\nGenerated {len(cards)} cards\n")
-
-            for c in cards:
-                print("Q:", c["question"])
-                print("A:", c["answer"])
-                print()
+            print_flashcards(cards)
 
         # Start review session
         elif q == "review":
@@ -63,6 +61,30 @@ def main():
             print("review")
             print("exit")
 
+
+def print_flashcards(cards):
+
+    if not cards:
+        print("No flashcards generated.")
+        return
+
+    print("\n" + "="*50)
+    print("FLASHCARDS")
+    print("="*50)
+
+    for i, card in enumerate(cards, start=1):
+
+        print(f"\nCard {i}")
+        print("-"*40)
+        print(f"Topic: {card['topic']}")
+        print(f"Type : {card.get('type','unknown')}")
+
+        print("\nQ:", card["question"])
+
+        input("\nPress ENTER to reveal answer...")
+
+        print("\nA:", card["answer"])
+        print("\n" + "-"*40)
 
 if __name__ == "__main__":
     main()
