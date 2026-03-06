@@ -34,6 +34,8 @@ from performance_ui import (
 from preferences import load_user_stats
 from profile_store import UserProfile, load_profile, save_profile
 from sync_manager import SyncManager
+from ui.components.glass_card import render_boot_card
+from ui.styles import inject_all_css
 
 
 APP_VERSION = "0.1.0"
@@ -73,6 +75,7 @@ def _inject_global_css() -> None:
     if css_path.exists():
         css = css_path.read_text(encoding="utf-8")
         st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+    inject_all_css()
 
 
 def _init_session_state() -> None:
@@ -283,25 +286,7 @@ def _run_storage_validation() -> None:
 
 def _render_boot_splash_shell(title: str, subtitle: str) -> None:
     """Shared splash shell with glass card layout."""
-    with st.container():
-        st.markdown(
-            """
-            <div class="boot-root">
-              <div class="boot-main">
-                <div class="boot-glass-card" role="status" aria-busy="true">
-                  <div class="boot-card-header">
-                    <h1 class="boot-title">{title}</h1>
-                    <p class="boot-subtitle">{subtitle}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            """.format(
-                title=title,
-                subtitle=subtitle,
-            ),
-            unsafe_allow_html=True,
-        )
+    render_boot_card(title, subtitle)
 
 
 def render_splash_screen() -> None:

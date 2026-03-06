@@ -1,17 +1,10 @@
 import streamlit as st
+from ui.components.page_chrome import render_background_blobs
 
 
 def show_auth() -> None:
     # Decorative background blobs
-    st.markdown(
-        """
-        <div class="page-blob-layer" aria-hidden="true">
-          <div class="page-blob page-blob--warm-tr"></div>
-          <div class="page-blob page-blob--blue-bl"></div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    render_background_blobs()
 
     # Glass card header
     st.markdown(

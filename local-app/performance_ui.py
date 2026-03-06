@@ -2,6 +2,14 @@ from __future__ import annotations
 
 import streamlit as st
 
+from ui.components.loading_skeleton import (
+    render_stats_skeleton as _new_render_stats_skeleton,
+    render_chart_skeleton as _new_render_chart_skeleton,
+    render_list_skeleton as _new_render_list_skeleton,
+    render_lazy_card as _new_render_lazy_card,
+)
+from ui.components.illustration_placeholder import render_illustration
+
 
 MEMORY_LIMIT = "[MEMORY_LIMIT]"
 MODEL_LOAD_TIME = "[MODEL_LOAD_TIME]"
@@ -450,72 +458,15 @@ def render_low_bandwidth_note() -> None:
 
 
 def render_dashboard_stats_skeleton() -> None:
-    st.markdown(
-        """
-        <div class="performance-skeleton-grid" role="status" aria-busy="true" aria-label="Loading dashboard statistics">
-          <div class="performance-skeleton-card">
-            <div class="performance-skeleton-row performance-skeleton-row--sm"></div>
-            <div class="performance-skeleton-row performance-skeleton-row--lg"></div>
-            <div class="performance-skeleton-row performance-skeleton-row--md"></div>
-          </div>
-          <div class="performance-skeleton-card">
-            <div class="performance-skeleton-row performance-skeleton-row--sm"></div>
-            <div class="performance-skeleton-row performance-skeleton-row--lg"></div>
-            <div class="performance-skeleton-row performance-skeleton-row--md"></div>
-          </div>
-          <div class="performance-skeleton-card">
-            <div class="performance-skeleton-row performance-skeleton-row--sm"></div>
-            <div class="performance-skeleton-row performance-skeleton-row--lg"></div>
-            <div class="performance-skeleton-row performance-skeleton-row--md"></div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    _new_render_stats_skeleton()
 
 
 def render_teacher_analytics_skeleton() -> None:
-    st.markdown(
-        """
-        <div class="performance-skeleton-chart" role="status" aria-busy="true" aria-label="Loading teacher analytics graphs">
-          <div class="performance-skeleton-row performance-skeleton-row--sm"></div>
-          <div class="performance-skeleton-row performance-skeleton-row--md"></div>
-          <div class="performance-skeleton-chart__plot"></div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    _new_render_chart_skeleton()
 
 
 def render_storage_list_skeleton() -> None:
-    st.markdown(
-        """
-        <div class="performance-skeleton-list" role="status" aria-busy="true" aria-label="Loading storage manager file list">
-          <div class="performance-skeleton-list__item">
-            <div class="performance-skeleton-avatar"></div>
-            <div>
-              <div class="performance-skeleton-row performance-skeleton-row--md"></div>
-              <div class="performance-skeleton-row performance-skeleton-row--sm"></div>
-            </div>
-          </div>
-          <div class="performance-skeleton-list__item">
-            <div class="performance-skeleton-avatar"></div>
-            <div>
-              <div class="performance-skeleton-row performance-skeleton-row--md"></div>
-              <div class="performance-skeleton-row performance-skeleton-row--sm"></div>
-            </div>
-          </div>
-          <div class="performance-skeleton-list__item">
-            <div class="performance-skeleton-avatar"></div>
-            <div>
-              <div class="performance-skeleton-row performance-skeleton-row--md"></div>
-              <div class="performance-skeleton-row performance-skeleton-row--sm"></div>
-            </div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    _new_render_list_skeleton()
 
 
 def render_lazy_loading_card(
@@ -523,26 +474,7 @@ def render_lazy_loading_card(
     description: str = "Loading data...",
     illustration_ratio: str = "4:3",
 ) -> None:
-    ratio_class = (
-        "performance-illustration--sixteen-nine"
-        if illustration_ratio == "16:9"
-        else "performance-illustration--four-three"
-    )
-    st.markdown(
-        f"""
-        <div class="performance-loading-card" role="status" aria-busy="true">
-          <div class="performance-loading-card__head">
-            <div>
-              <h3 class="performance-loading-card__title">{title}</h3>
-              <p class="performance-loading-card__desc">{description}</p>
-            </div>
-            <span class="performance-loading-spinner" aria-hidden="true"></span>
-          </div>
-          <div class="performance-illustration {ratio_class}" aria-hidden="true"></div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    _new_render_lazy_card(title, description, illustration_ratio)
 
 
 def render_model_initialization_screen() -> None:

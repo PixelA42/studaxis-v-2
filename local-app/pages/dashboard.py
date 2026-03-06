@@ -35,6 +35,10 @@ from performance_ui import (
     render_low_power_indicator,
 )
 from preferences import save_theme_preference
+from ui.components.feature_card import render_feature_card
+from ui.components.page_chrome import render_background_blobs, render_page_root_close, render_page_root_open
+from ui.components.stat_card import render_stat_card
+from ui.components.status_indicator import render_sync_monitor
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -269,71 +273,28 @@ def _render_stats_row(
     c1, c2, c3 = st.columns(3, gap="medium")
 
     with c1:
-        progress_bar_html = (
-            f'<div class="db-progress-track" role="progressbar" '
-            f'aria-valuenow="{streak_pct}" aria-valuemin="0" aria-valuemax="100">'
-            f'  <div class="db-progress-fill" style="width:{streak_pct}%"></div>'
-            f'</div>'
-            f'<div class="db-progress-label">{streak_milestone_label}</div>'
-        )
-        empty_streak = (
-            '<div class="db-empty-state">'
-            '  <div class="db-empty-state-text">Complete your first session<br>to start your streak</div>'
-            '</div>'
-            if is_fresh_start else ""
-        )
-        st.markdown(
-            f"""
-            <div class="dashboard-stat-card" role="region" aria-label="Streak">
-              <div class="db-icon-chip db-icon-chip--orange" aria-hidden="true">🔥</div>
-              <div class="dashboard-stat-number">{streak_current}</div>
-              <div class="dashboard-stat-label">Day Streak</div>
-              <div class="dashboard-stat-sub">Longest: {streak_longest} days</div>
-              {progress_bar_html}
-              {empty_streak}
-            </div>
-            """,
-            unsafe_allow_html=True,
+        render_stat_card(
+            icon="🔥", icon_color="orange",
+            value=str(streak_current), label="Day Streak",
+            sub=f"Longest: {streak_longest} days",
+            progress_pct=streak_pct, progress_label=streak_milestone_label,
+            empty_hint="Complete your first session to start your streak" if is_fresh_start else "",
         )
 
     with c2:
-        quiz_empty = (
-            '<div class="db-empty-state">'
-            '  <div class="db-empty-state-text">Take your first quiz<br>to see your score here</div>'
-            '</div>'
-            if is_fresh_start else ""
-        )
-        st.markdown(
-            f"""
-            <div class="dashboard-stat-card" role="region" aria-label="Quiz average">
-              <div class="db-icon-chip db-icon-chip--blue" aria-hidden="true">📊</div>
-              <div class="dashboard-stat-number">{quiz_avg}%</div>
-              <div class="dashboard-stat-label">Quiz Average</div>
-              <div class="dashboard-stat-sub">{quiz_attempted} attempt{"s" if quiz_attempted != 1 else ""} total</div>
-              {quiz_empty}
-            </div>
-            """,
-            unsafe_allow_html=True,
+        render_stat_card(
+            icon="📊", icon_color="blue",
+            value=f"{quiz_avg}%", label="Quiz Average",
+            sub=f"{quiz_attempted} attempt{'s' if quiz_attempted != 1 else ''} total",
+            empty_hint="Take your first quiz to see your score here" if is_fresh_start else "",
         )
 
     with c3:
-        fc_empty = (
-            '<div class="db-empty-state">'
-            '  <div class="db-empty-state-text">Review flashcards<br>to track mastery here</div>'
-            '</div>'
-            if is_fresh_start else ""
-        )
-        st.markdown(
-            f"""
-            <div class="dashboard-stat-card" role="region" aria-label="Flashcards mastered">
-              <div class="db-icon-chip db-icon-chip--green" aria-hidden="true">🃏</div>
-              <div class="dashboard-stat-number">{flashcards_mastered}</div>
-              <div class="dashboard-stat-label">Cards Mastered</div>
-              <div class="dashboard-stat-sub">{flashcards_due} due for review</div>
-              {fc_empty}
-            </div>
-            """,
-            unsafe_allow_html=True,
+        render_stat_card(
+            icon="🃏", icon_color="green",
+            value=str(flashcards_mastered), label="Cards Mastered",
+            sub=f"{flashcards_due} due for review",
+            empty_hint="Review flashcards to track mastery here" if is_fresh_start else "",
         )
 
     # Breathing room between stat row and feature grid
@@ -357,18 +318,11 @@ def _render_feature_grid(
     col_chat, col_quiz = st.columns([3, 2], gap="medium")
 
     with col_chat:
-        st.markdown(
-            """
-            <div class="dashboard-feature-card dashboard-feature-card--ai" role="region" aria-label="AI Tutor Chat">
-              <div class="db-icon-chip db-icon-chip--blue" aria-hidden="true">🤖</div>
-              <div class="dashboard-feature-title">AI Tutor Chat</div>
-              <div class="dashboard-feature-desc">
-                Ask questions from your textbooks and get curriculum-grounded answers — fully offline, no internet needed.
-              </div>
-              <div class="dashboard-feature-meta">Powered by Llama 3.2 · RAG-grounded</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        render_feature_card(
+            icon="🤖", icon_color="blue", title="AI Tutor Chat",
+            description="Ask questions from your textbooks and get curriculum-grounded answers — fully offline, no internet needed.",
+            meta="Powered by Llama 3.2 · RAG-grounded",
+            variant="ai",
         )
         if st.button(
             "Open Chat →",
@@ -381,18 +335,10 @@ def _render_feature_grid(
 
     with col_quiz:
         quiz_sub = f"{quiz_attempted} attempt{'s' if quiz_attempted != 1 else ''} · {difficulty}"
-        st.markdown(
-            f"""
-            <div class="dashboard-feature-card" role="region" aria-label="Quick Quiz">
-              <div class="db-icon-chip db-icon-chip--orange" aria-hidden="true">📝</div>
-              <div class="dashboard-feature-title">Quick Quiz</div>
-              <div class="dashboard-feature-desc">
-                Test your knowledge with AI-generated questions. Get instant grading and feedback.
-              </div>
-              <div class="dashboard-feature-meta">{quiz_sub}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        render_feature_card(
+            icon="📝", icon_color="orange", title="Quick Quiz",
+            description="Test your knowledge with AI-generated questions. Get instant grading and feedback.",
+            meta=quiz_sub,
         )
         if st.button(
             "Start Quiz →",
@@ -409,18 +355,11 @@ def _render_feature_grid(
 
     with col_flash:
         due_label = f"{flashcards_due} due" if flashcards_due > 0 else "All caught up"
-        st.markdown(
-            f"""
-            <div class="dashboard-feature-card dashboard-feature-card--flashcards" role="region" aria-label="Flashcards">
-              <div class="db-icon-chip db-icon-chip--green" aria-hidden="true">🃏</div>
-              <div class="dashboard-feature-title">Flashcards</div>
-              <div class="dashboard-feature-desc">
-                Spaced-repetition review of key concepts. Mark cards Easy or Hard to schedule the next review.
-              </div>
-              <div class="dashboard-feature-meta">{due_label} · AI-generated</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        render_feature_card(
+            icon="🃏", icon_color="green", title="Flashcards",
+            description="Spaced-repetition review of key concepts. Mark cards Easy or Hard to schedule the next review.",
+            meta=f"{due_label} · AI-generated",
+            variant="flashcards",
         )
         if st.button(
             "Review →",
@@ -432,19 +371,11 @@ def _render_feature_grid(
             st.rerun()
 
     with col_panic:
-        st.markdown(
-            """
-            <div class="dashboard-feature-card dashboard-feature-card--panic" role="region" aria-label="Panic Mode — exam simulator">
-              <div class="db-icon-chip db-icon-chip--red" aria-hidden="true">🚨</div>
-              <div class="dashboard-feature-title">Panic Mode</div>
-              <div class="dashboard-feature-desc">
-                Distraction-free exam simulator with a timer. AI assistance is hidden so you practice under real conditions.
-                Auto-graded on submission with Red Pen feedback.
-              </div>
-              <div class="dashboard-feature-meta">⏱ Timed · AI auto-graded · Full-screen</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        render_feature_card(
+            icon="🚨", icon_color="red", title="Panic Mode",
+            description="Distraction-free exam simulator with a timer. AI assistance is hidden so you practice under real conditions. Auto-graded on submission with Red Pen feedback.",
+            meta="⏱ Timed · AI auto-graded · Full-screen",
+            variant="panic",
         )
         if st.button(
             "Enter Panic Mode →",
@@ -468,43 +399,13 @@ def _render_sync_indicator(
     Sits between the header and stats row. Reads only placeholder
     session-state values — no actual cloud sync logic.
     """
-    pill_map: dict[str, tuple[str, str]] = {
-        "synced": ("synced", "Synced"),
-        "syncing": ("syncing", "Syncing…"),
-        "pending": ("pending", "Sync Pending"),
-        "offline": ("offline", "Offline"),
-    }
-    variant, label = pill_map.get(sync_status, ("none", sync_status or "Unknown"))
-
-    partial_html = ""
-    if partial_sync_status:
-        partial_html = (
-            f'<div class="sync-monitor__partial" role="note">'
-            f'  <span class="sync-monitor__partial-icon" aria-hidden="true">⚠</span>'
-            f'  <span>{partial_sync_status}</span>'
-            f'</div>'
-        )
-
     retry_count = st.session_state.get("sync_retry_count", "[SYNC_RETRY_COUNT]")
 
-    st.markdown(
-        f"""
-        <div class="sync-monitor" role="status" aria-label="Sync status indicator">
-          <div class="sync-monitor__left">
-            <div class="sync-monitor__pill sync-monitor__pill--{variant}" aria-live="polite">
-              <span class="sync-monitor__dot" aria-hidden="true"></span>
-              <span>Status: {label}</span>
-            </div>
-          </div>
-          <div class="sync-monitor__right">
-            <span class="sync-monitor__label">Last Sync:</span>
-            <span class="sync-monitor__time">{last_sync_time}</span>
-            <span class="sync-monitor__label" aria-label="Retry count">Retries: {retry_count}</span>
-          </div>
-          {partial_html}
-        </div>
-        """,
-        unsafe_allow_html=True,
+    render_sync_monitor(
+        status=sync_status,
+        last_sync_time=last_sync_time,
+        retry_count=str(retry_count),
+        partial_sync_status=partial_sync_status,
     )
     render_low_bandwidth_note()
 
@@ -589,23 +490,8 @@ def show_dashboard() -> None:
     # Inject dynamic CSS tokens for chosen theme
     _inject_dashboard_css(theme)
 
-    # Decorative background blobs (pointer-events: none, purely visual)
-    st.markdown(
-        """
-        <div class="page-blob-layer" aria-hidden="true">
-          <div class="page-blob page-blob--warm-tr"></div>
-          <div class="page-blob page-blob--blue-bl"></div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # Wrap everything in the .dashboard-root div for scoped CSS vars
-    theme_class = "theme-dark" if theme == "dark" else ""
-    st.markdown(
-        f'<div class="dashboard-root {theme_class}" id="studaxis-dashboard">',
-        unsafe_allow_html=True,
-    )
+    render_background_blobs()
+    render_page_root_open("dashboard", theme)
 
     _render_header(
         profile_name=profile_name,
@@ -662,4 +548,4 @@ def show_dashboard() -> None:
         last_sync_raw=last_sync,
     )
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    render_page_root_close()

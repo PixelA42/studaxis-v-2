@@ -1,0 +1,213 @@
+/* ═══════════════════════════════════════════════════════════════
+   Studaxis — Teacher Dashboard (Student Sync Table)
+   Glass card with per-student sync status rows.
+   ═══════════════════════════════════════════════════════════════ */
+
+.teacher-sync-card {
+    border-radius: var(--db-radius, 18px);
+    padding: 20px 24px;
+    background: var(--db-bg-card, rgba(255, 255, 255, 0.7));
+    border: 1px solid var(--db-border, #E2E8F0);
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    margin-bottom: 20px;
+    color: var(--db-text-main, #0F172A);
+}
+
+.teacher-sync-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--db-text-main, #0F172A);
+    margin: 0 0 4px 0;
+}
+
+.teacher-sync-subtitle {
+    font-size: 12px;
+    color: var(--db-text-muted, #64748B);
+    margin: 0 0 16px 0;
+}
+
+.teacher-sync-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+}
+
+.teacher-sync-table thead th {
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--db-text-muted, #64748B);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--db-border, #E2E8F0);
+}
+
+.teacher-sync-table tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+    color: var(--db-text-main, #0F172A);
+    vertical-align: middle;
+}
+
+.teacher-sync-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.teacher-sync-table tbody tr:hover td {
+    background: rgba(148, 163, 184, 0.04);
+}
+
+.teacher-sync-student {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.teacher-sync-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #00A8E8, #0091C7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.teacher-sync-name {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+/* Reuse sync-monitor__pill for teacher badges */
+.teacher-sync-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid;
+}
+
+.teacher-sync-badge--synced {
+    background: rgba(22, 163, 74, 0.08);
+    border-color: rgba(22, 163, 74, 0.28);
+    color: #15803D;
+}
+
+.teacher-sync-badge--pending {
+    background: rgba(251, 146, 60, 0.08);
+    border-color: rgba(251, 146, 60, 0.28);
+    color: #9A3412;
+}
+
+.teacher-sync-badge--stale {
+    background: rgba(251, 239, 118, 0.12);
+    border-color: rgba(251, 239, 118, 0.45);
+    color: #854D0E;
+}
+
+.teacher-sync-badge--none {
+    background: rgba(148, 163, 184, 0.08);
+    border-color: rgba(148, 163, 184, 0.3);
+    color: #475569;
+}
+
+.teacher-sync-badge--partial {
+    background: rgba(0, 168, 232, 0.08);
+    border-color: rgba(0, 168, 232, 0.28);
+    color: #0369A1;
+}
+
+.teacher-sync-badge__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.teacher-sync-badge--synced .teacher-sync-badge__dot { background: #16A34A; }
+.teacher-sync-badge--pending .teacher-sync-badge__dot { background: #fb923c; }
+.teacher-sync-badge--stale .teacher-sync-badge__dot { background: #EAB308; }
+.teacher-sync-badge--none .teacher-sync-badge__dot { background: #94A3B8; }
+.teacher-sync-badge--partial .teacher-sync-badge__dot { background: #00A8E8; }
+
+.teacher-sync-time {
+    font-size: 12px;
+    color: var(--db-text-muted, #64748B);
+}
+
+/* Tooltip container for teacher sync cells */
+.teacher-sync-tooltip {
+    position: relative;
+    cursor: help;
+}
+
+.teacher-sync-tooltip__text {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: #0F172A;
+    color: #E5E7EB;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.teacher-sync-tooltip__text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #0F172A;
+}
+
+.teacher-sync-tooltip:hover .teacher-sync-tooltip__text,
+.teacher-sync-tooltip:focus-within .teacher-sync-tooltip__text {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Dark mode teacher table */
+.dashboard-root.theme-dark .teacher-sync-card {
+    background: var(--db-bg-card);
+    border-color: var(--db-border);
+}
+
+.dashboard-root.theme-dark .teacher-sync-table tbody td {
+    border-color: rgba(148, 163, 184, 0.15);
+}
+
+.dashboard-root.theme-dark .teacher-sync-tooltip__text {
+    background: #E5E7EB;
+    color: #0F172A;
+}
+
+.dashboard-root.theme-dark .teacher-sync-tooltip__text::after {
+    border-top-color: #E5E7EB;
+}
+
+.dashboard-root.theme-dark .teacher-sync-badge--synced { color: #4ADE80; }
+.dashboard-root.theme-dark .teacher-sync-badge--pending { color: #FDBA74; }
+.dashboard-root.theme-dark .teacher-sync-badge--stale { color: #FDE047; }
+.dashboard-root.theme-dark .teacher-sync-badge--partial { color: #7DD3FC; }

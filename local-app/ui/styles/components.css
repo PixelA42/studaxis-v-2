@@ -1,0 +1,231 @@
+/* ═══════════════════════════════════════════════════════════════
+   Studaxis — Reusable Component Styles
+   Status pills, storage/skeleton bars, background blobs,
+   icon chips, streak progress, empty state, hover glows.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Status pills for connectivity & storage ─────────────────── */
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid #CBD5E1;
+    background: rgba(148, 163, 184, 0.08);
+    color: #0F172A;
+}
+
+.status-pill--online {
+    border-color: #16A34A; /* semantic-success */
+    background: rgba(22, 163, 74, 0.08);
+    color: #166534;
+}
+
+.status-pill--offline {
+    border-color: #CBD5E1;
+    background: rgba(148, 163, 184, 0.12);
+    color: #0F172A;
+}
+
+/* ── Simple loading skeletons for storage validation ─────────── */
+
+.storage-card {
+    margin-top: 16px;
+}
+
+.skeleton-bar {
+    height: 10px;
+    border-radius: 999px;
+    background: #E5E7EB;
+    overflow: hidden;
+    position: relative;
+}
+
+.skeleton-bar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(243, 244, 246, 0), rgba(243, 244, 246, 0.9), rgba(243, 244, 246, 0));
+    animation: skeleton-shimmer 1.4s infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Background Blob Decorations
+   Soft radial gradient blobs — position: fixed so they stay
+   behind all content as a page-level backdrop texture.
+   ═══════════════════════════════════════════════════════════════ */
+
+.page-blob-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.page-blob {
+    position: absolute;
+    border-radius: 999px;
+    pointer-events: none;
+}
+
+/* Top-right warm blob */
+.page-blob--warm-tr {
+    width: 520px;
+    height: 520px;
+    top: -160px;
+    right: -160px;
+    background: radial-gradient(circle at center, rgba(254, 194, 136, 0.55), rgba(250, 92, 92, 0.28), transparent 70%);
+    filter: blur(72px);
+    opacity: 0.6;
+}
+
+/* Bottom-left blue blob */
+.page-blob--blue-bl {
+    width: 400px;
+    height: 400px;
+    bottom: -100px;
+    left: -100px;
+    background: radial-gradient(circle at center, rgba(0, 168, 232, 0.3), transparent 65%);
+    filter: blur(80px);
+    opacity: 0.5;
+}
+
+/* Faint center warmth for landing */
+.page-blob--warm-center {
+    width: 600px;
+    height: 300px;
+    top: 40%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at center, rgba(251, 239, 118, 0.22), transparent 60%);
+    filter: blur(60px);
+    opacity: 0.7;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Icon Chip / Badge
+   Colored rounded backgrounds for emoji icons inside stat
+   and feature cards.
+   ═══════════════════════════════════════════════════════════════ */
+
+.db-icon-chip {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    margin-bottom: 8px;
+    flex-shrink: 0;
+}
+
+.db-icon-chip--blue {
+    background: rgba(0, 168, 232, 0.10);
+}
+
+.db-icon-chip--orange {
+    background: rgba(254, 138, 107, 0.12);
+}
+
+.db-icon-chip--green {
+    background: rgba(22, 163, 74, 0.10);
+}
+
+.db-icon-chip--red {
+    background: rgba(250, 92, 92, 0.10);
+}
+
+.db-icon-chip--yellow {
+    background: rgba(251, 239, 118, 0.18);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Streak Progress Bar
+   Thin 4 px track inside the streak stat card showing progress
+   toward the next milestone (7 → 30 → 100 days).
+   ═══════════════════════════════════════════════════════════════ */
+
+.db-progress-track {
+    height: 4px;
+    border-radius: 999px;
+    background: #E5E7EB;
+    overflow: hidden;
+    margin-top: 10px;
+    width: 100%;
+}
+
+.db-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #00A8E8, #00C6F8);
+    transition: width 0.4s ease-out;
+    min-width: 4px;
+}
+
+.db-progress-label {
+    font-size: 11px;
+    color: var(--db-text-muted, #64748B);
+    margin-top: 4px;
+}
+
+/* Dark mode progress track */
+.dashboard-root.theme-dark .db-progress-track {
+    background: rgba(148, 163, 184, 0.2);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Feature Card Hover Glow Variants
+   ═══════════════════════════════════════════════════════════════ */
+
+/* AI Chat — blue glow on hover */
+.dashboard-feature-card--ai:hover {
+    box-shadow: 0 24px 55px rgba(0, 168, 232, 0.18);
+    transform: translateY(-2px);
+}
+
+/* Flashcards — warm amber glow on hover */
+.dashboard-feature-card--flashcards:hover {
+    box-shadow: 0 24px 55px rgba(254, 194, 136, 0.22);
+    transform: translateY(-2px);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Empty State
+   Friendly centered placeholder for zero-stat / first-run states.
+   ═══════════════════════════════════════════════════════════════ */
+
+.db-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 20px 8px;
+    opacity: 0.82;
+    text-align: center;
+}
+
+.db-empty-state-icon {
+    font-size: 32px;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.db-empty-state-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--db-text-main, #0F172A);
+    line-height: 1.3;
+}
+
+.db-empty-state-text {
+    font-size: 12px;
+    color: var(--db-text-muted, #64748B);
+    line-height: 1.55;
+    max-width: 260px;
+}

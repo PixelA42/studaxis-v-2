@@ -22,6 +22,7 @@ from performance_ui import (
     render_performance_thresholds_caption,
     render_storage_list_skeleton,
 )
+from ui.components.page_chrome import render_page_root_close, render_page_root_open
 
 
 def _inject_settings_css() -> None:
@@ -486,9 +487,7 @@ def show_settings_page() -> None:
         st.error("Profile store not available")
         return
 
-    theme_class = "theme-dark" if st.session_state.get("theme", "light") == "dark" else ""
-
-    st.markdown(f'<div class="settings-root {theme_class}">', unsafe_allow_html=True)
+    render_page_root_open("settings", st.session_state.get("theme", "light"))
     st.markdown('<h1 class="settings-page-title">Settings</h1>', unsafe_allow_html=True)
     st.markdown(
         """
@@ -676,7 +675,7 @@ def show_settings_page() -> None:
         st.session_state.page = "landing"
         st.rerun()
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    render_page_root_close()
 
 
 if __name__ == "__main__":

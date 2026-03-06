@@ -15,6 +15,8 @@ from typing import Any
 import streamlit as st
 from ai_integration_layer import AIEngine, AITaskType
 from performance_ui import render_low_power_indicator
+from ui.components.page_chrome import render_page_root_open, render_page_root_close, render_back_button
+from ui.components.loading_skeleton import render_chat_typing_skeleton
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
@@ -167,19 +169,7 @@ def _render_header() -> None:
 
 
 def _render_skeleton() -> None:
-    st.markdown(
-        """
-        <div class="chat-skeleton-wrap" role="status" aria-busy="true" aria-label="AI Tutor is generating a response">
-          <div class="chat-skeleton-bubble">
-            <div class="chat-skeleton-line"></div>
-            <div class="chat-skeleton-line"></div>
-            <div class="chat-skeleton-line"></div>
-          </div>
-          <div class="chat-bubble-meta" style="margin-left:4px;margin-top:6px;">AI Tutor · thinking…</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    render_chat_typing_skeleton()
 
 
 def _render_message(msg: dict[str, Any], idx: int) -> None:
@@ -328,20 +318,15 @@ def show_chat() -> None:
         st.rerun()
 
     # ── Page root div ──────────────────────────────────────────────────────────
-    st.markdown(
-        f'<div class="chat-root {theme_class}">',
-        unsafe_allow_html=True,
-    )
+    render_page_root_open("chat", theme)
 
     # Back navigation
-    if st.button("← Back to Dashboard", key="chat_back_btn"):
-        st.session_state.page = "dashboard"
-        st.rerun()
+    render_back_button("dashboard", "← Back to Dashboard")
 
     _render_header()
     _render_messages()
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    render_page_root_close()
 
     # ── Chat input (Streamlit native — pins to bottom automatically) ───────────
     user_input = st.chat_input(

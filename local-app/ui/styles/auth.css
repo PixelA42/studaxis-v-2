@@ -1,0 +1,125 @@
+/* ═══════════════════════════════════════════════════════════════
+   Studaxis — Auth Page
+   Named classes for auth.py — glass card centered layout.
+   ═══════════════════════════════════════════════════════════════ */
+
+.auth-root {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+    background: #F8FAFC;
+    position: relative;
+    overflow: hidden;
+}
+
+.auth-card {
+    position: relative;
+    z-index: 1;
+    max-width: 440px;
+    width: 100%;
+    border-radius: 18px;
+    padding: 40px 36px 32px;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 24px 64px rgba(15, 23, 42, 0.09);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.auth-logo {
+    font-size: 32px;
+    text-align: center;
+    margin-bottom: 8px;
+    line-height: 1;
+}
+
+.auth-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #0F172A;
+    line-height: 1.2;
+    margin: 0 0 4px 0;
+    text-align: center;
+}
+
+.auth-subtitle {
+    font-size: 13px;
+    color: #64748B;
+    text-align: center;
+    margin: 0 0 28px 0;
+    line-height: 1.5;
+}
+
+/* Input field refinements */
+[data-testid="stTextInput"] input {
+    border-radius: 10px !important;
+    border: 1px solid #E2E8F0 !important;
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+    font-family: "Inter", system-ui, sans-serif !important;
+    transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+}
+
+[data-testid="stTextInput"] input:focus {
+    border-color: #00A8E8 !important;
+    box-shadow: 0 0 0 3px rgba(0, 168, 232, 0.15) !important;
+    outline: none !important;
+}
+
+/* Primary Sign In button inside auth */
+.auth-actions-primary div.stButton > button {
+    background: #00A8E8 !important;
+    color: #ffffff !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    padding: 0.65em 1.4em !important;
+    border: none !important;
+    box-shadow: 0 4px 14px rgba(0, 168, 232, 0.22) !important;
+    transition: background 0.16s ease-out, transform 0.15s ease-out, box-shadow 0.15s ease-out !important;
+}
+
+.auth-actions-primary div.stButton > button:hover {
+    background: #0091C7 !important;
+    transform: scale(1.02) !important;
+    box-shadow: 0 6px 20px rgba(0, 168, 232, 0.3) !important;
+}
+
+/* Secondary Back button inside auth */
+.auth-actions-secondary div.stButton > button {
+    background: transparent !important;
+    color: #64748B !important;
+    border-radius: 10px !important;
+    border: 1px solid #E2E8F0 !important;
+    font-weight: 500 !important;
+    font-size: 14px !important;
+}
+
+.auth-actions-secondary div.stButton > button:hover {
+    background: rgba(148, 163, 184, 0.08) !important;
+    border-color: #CBD5E1 !important;
+    color: #0F172A !important;
+}
+
+/* Dark mode — auth card */
+.theme-dark .auth-card {
+    background: rgba(15, 23, 42, 0.88);
+    border-color: rgba(148, 163, 184, 0.3);
+}
+
+.theme-dark .auth-title {
+    color: #E5E7EB;
+}
+
+.theme-dark .auth-subtitle {
+    color: #9CA3AF;
+}
+
+.theme-dark [data-testid="stTextInput"] input {
+    background: rgba(15, 23, 42, 0.7) !important;
+    border-color: rgba(148, 163, 184, 0.3) !important;
+    color: #E5E7EB !important;
+}
