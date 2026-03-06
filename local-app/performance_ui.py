@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from ui.components.loading_skeleton import (
     render_stats_skeleton as _new_render_stats_skeleton,
@@ -478,28 +479,282 @@ def render_lazy_loading_card(
 
 
 def render_model_initialization_screen() -> None:
-    st.markdown(
-        f"""
-        <div class="model-init-shell">
-          <div class="model-init-card" role="status" aria-busy="true" aria-live="polite">
-            <h1 class="model-init-title">Preparing AI engine...</h1>
-            <p class="model-init-subtitle">
-              This may take a moment on first launch.
-            </p>
-            <div class="performance-illustration performance-illustration--sixteen-nine" aria-hidden="true"></div>
-            <div class="model-init-progress">
-              <div class="model-init-progress__label">
-                Estimated model load window: {MODEL_LOAD_TIME} · Background task cap: {MAX_BACKGROUND_TASKS}
-              </div>
-              <div class="model-init-progress__track">
-                <div class="model-init-progress__fill"></div>
-              </div>
+    """Render the AI engine loading screen using an iframe so JS and 100vh layout work reliably."""
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        html, body {{
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }}
+        body {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }}
+        .model-init-shell {{
+            height: 100vh;
+            width: 100vw;
+            min-height: 100%;
+            min-width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            --init-bg-page: #F8FAFC;
+            --init-bg-surface: rgba(255, 255, 255, 0.7);
+            --init-text-main: #0F172A;
+            --init-text-muted: #64748B;
+            --init-border: #E2E8F0;
+            --init-accent: #00A8E8;
+            --init-track: rgba(0, 0, 0, 0.05);
+            background: var(--init-bg-page);
+        }}
+
+        .model-init-shell .ambient-glow {{
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(0, 168, 232, 0.07) 0%, transparent 70%);
+            filter: blur(80px);
+            z-index: 0;
+            animation: model-init-pulse-glow 8s infinite alternate ease-in-out;
+        }}
+
+        .model-init-shell .loading-container {{
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 600px;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            margin: 0 auto;
+        }}
+
+        .model-init-shell .glass-layer {{
+            position: relative;
+            background: var(--init-bg-surface);
+            backdrop-filter: blur(24px) saturate(150%);
+            -webkit-backdrop-filter: blur(24px) saturate(150%);
+            border: 1px solid var(--init-border);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+            overflow: hidden;
+            animation: model-init-layer-reveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }}
+
+        .model-init-shell .brand-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 8px;
+        }}
+
+        .model-init-shell .title {{
+            font-size: 0.85rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: var(--init-text-main);
+            font-family: 'Inter', sans-serif;
+        }}
+
+        .model-init-shell .percentage-wrap {{
+            position: relative;
+            height: 120px;
+            display: flex;
+            align-items: center;
+        }}
+
+        .model-init-shell .percentage {{
+            font-size: 8rem;
+            font-weight: 800;
+            line-height: 0.8;
+            letter-spacing: -0.04em;
+            z-index: 2;
+            color: var(--init-text-main);
+            font-family: 'JetBrains Mono', monospace;
+        }}
+
+        .model-init-shell .percentage-wrap .pct-suffix {{
+            font-size: 1.5rem;
+            font-weight: 300;
+            margin-top: 30px;
+            margin-left: 10px;
+            color: var(--init-text-muted);
+            font-family: 'Inter', sans-serif;
+        }}
+
+        .model-init-shell .status-meta {{
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            border-top: 1px solid var(--init-border);
+            padding-top: 20px;
+        }}
+
+        .model-init-shell .meta-item {{
+            font-size: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-family: 'Inter', sans-serif;
+        }}
+
+        .model-init-shell .meta-item .meta-label {{
+            opacity: 0.7;
+            font-size: 0.65rem;
+            color: var(--init-text-muted);
+        }}
+
+        .model-init-shell .meta-item .meta-value {{
+            font-weight: 600;
+            color: var(--init-text-main);
+            font-family: 'JetBrains Mono', monospace;
+        }}
+
+        .model-init-shell .progress-track {{
+            position: relative;
+            width: 100%;
+            height: 4px;
+            background: var(--init-track);
+            margin-top: 10px;
+            border-radius: 4px;
+        }}
+
+        .model-init-shell .progress-fill {{
+            position: absolute;
+            height: 100%;
+            width: 0%;
+            background: var(--init-accent);
+            box-shadow: 0 0 15px rgba(0, 168, 232, 0.5);
+            border-radius: 4px;
+            transition: width 0.4s cubic-bezier(0.1, 0.5, 0.5, 1);
+        }}
+
+        .model-init-shell .status-line {{
+            font-size: 0.75rem;
+            color: var(--init-text-muted);
+            margin-top: 8px;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+        }}
+
+        .model-init-shell .footer-note {{
+            font-size: 0.75rem;
+            opacity: 0.6;
+            text-align: center;
+            margin-top: 10px;
+            color: var(--init-text-muted);
+            font-family: 'Inter', sans-serif;
+        }}
+
+        @keyframes model-init-pulse-glow {{
+            0% {{ transform: scale(1) translate(0, 0); }}
+            100% {{ transform: scale(1.2) translate(5%, 5%); }}
+        }}
+
+        @keyframes model-init-layer-reveal {{
+            from {{ opacity: 0; transform: translateY(20px) scale(0.98); filter: blur(10px); }}
+            to {{ opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }}
+        }}
+
+        @media (prefers-reduced-motion: reduce) {{
+            .model-init-shell .ambient-glow {{
+                animation: none;
+            }}
+            .model-init-shell .glass-layer {{
+                animation: none;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="model-init-shell" role="status" aria-busy="true" aria-live="polite">
+        <div class="ambient-glow" aria-hidden="true"></div>
+        <main class="loading-container">
+            <div class="brand-header">
+                <span class="title">Preparing AI engine...</span>
             </div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+
+            <section class="glass-layer">
+                <div class="percentage-wrap">
+                    <span class="percentage" id="model-init-load-val">00</span>
+                    <span class="pct-suffix">%</span>
+                </div>
+
+                <div class="progress-track">
+                    <div class="progress-fill" id="model-init-bar-val"></div>
+                </div>
+
+                <p class="status-line" id="model-init-status-text">Allocating memory...</p>
+
+                <div class="status-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">ESTIMATED TIME</span>
+                        <span class="meta-value">{MODEL_LOAD_TIME}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">TASK CAP</span>
+                        <span class="meta-value">{MAX_BACKGROUND_TASKS}</span>
+                    </div>
+                </div>
+            </section>
+            <div class="footer-note">
+                This may take a moment on first launch.
+            </div>
+        </main>
+    </div>
+
+    <script>
+        (function() {{
+            var loadVal = document.getElementById('model-init-load-val');
+            var barVal = document.getElementById('model-init-bar-val');
+            var statusText = document.getElementById('model-init-status-text');
+            var statuses = [
+                "Allocating memory...",
+                "Loading Llama 3.2 weights...",
+                "Initializing ChromaDB...",
+                "Warming up inference engine...",
+                "System Ready."
+            ];
+            var progress = 0;
+
+            function updateLoader() {{
+                if (!loadVal || !barVal) return;
+                if (progress < 100) {{
+                    progress += Math.random() * 1.5;
+                    if (progress > 100) progress = 100;
+
+                    loadVal.textContent = Math.floor(progress).toString().padStart(2, '0');
+                    barVal.style.width = progress + '%';
+
+                    var statusIndex = Math.min(
+                        Math.floor((progress / 100) * statuses.length),
+                        statuses.length - 1
+                    );
+                    if (statusText) statusText.textContent = statuses[statusIndex];
+
+                    requestAnimationFrame(updateLoader);
+                }}
+            }}
+            setTimeout(updateLoader, 500);
+        }})();
+    </script>
+</body>
+</html>"""
+    components.html(html, height=800, scrolling=False)
 
 
 def render_performance_thresholds_caption() -> None:

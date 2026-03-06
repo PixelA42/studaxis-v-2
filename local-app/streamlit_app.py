@@ -918,6 +918,10 @@ def main() -> None:
         if _apply_page_from_url():
             st.rerun()
         page = _render_sidebar_and_get_page()
+        # Dev: reset AI loader so the model init screen can be shown again
+        if st.sidebar.button("🛠️ Dev: Reset AI Loader"):
+            st.session_state.model_loaded = False
+            st.rerun()
     
     if page == "landing":
         show_landing()
