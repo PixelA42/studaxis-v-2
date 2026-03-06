@@ -117,3 +117,73 @@ local-app/README_CONFLICT_RESOLUTION.md
 
 # Kiro config (privacy/security)
 .kiro/specs/aws-infrastructure-elevation/.config
+
+# Python cache and build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+*.log
+
+# Virtual environments
+env*/
+venv/
+.venv/
+env-studaxisvtwo/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE-specific files
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Node.js dependencies and build outputs
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Frontend build artifacts
+teacher-dashboard-web/dist/
+teacher-dashboard-web/build/
+teacher-dashboard-web/.cache/
+teacher-dashboard-web/.next/
+teacher-dashboard-web/.nuxt/
+
+# AWS/Cloud/Secrets
+*.env
+.env.*
+*.aws
+*.pem
+*.key
+*.crt
+*.secret
+aws-infra/lambda/test_events.py  # If contains secrets, otherwise remove
+
+# Database and generated data
+data/chromadb/
+data/backups/
+data/user_stats.json
+data/flashcards.json
+data/question_bank.json
+local-app/data/ai_request_log.jsonl
+
+# Miscellaneous
+*.sqlite3
+*.bak
+*.tmp
+
+# Ignore sample textbooks if not needed
+data/sample_textbooks/Class_12_maths_unzipped/
