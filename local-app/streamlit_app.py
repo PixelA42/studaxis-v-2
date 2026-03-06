@@ -9,6 +9,7 @@ when the device is at minimum specs.
 
 from pathlib import Path
 import os
+import time
 
 import streamlit as st
 
@@ -892,13 +893,40 @@ def main() -> None:
         st.session_state.model_loaded = False
 
     # --- LOADING BLOCK: run BEFORE sidebar or page content ---
-    if not st.session_state.model_loaded:
+    if not st.session_state.get("model_loaded", False):
         inject_performance_ui_css()
-        render_model_initialization_screen()
+        loader_ui = st.empty()
+
+        # Milestone 1: Hardware constraints
+        with loader_ui.container():
+            render_model_initialization_screen(15, "Verifying hardware constraints...")
+        try:
+            from pages.hardware_validator import HardwareValidator
+            validator = HardwareValidator()
+            validator.validate()
+        except Exception:
+            pass
+        time.sleep(0.5)
+
+        # Milestone 2: ChromaDB / vector store (stub; add real init when available)
+        with loader_ui.container():
+            render_model_initialization_screen(40, "Initializing ChromaDB Vector Store...")
+        time.sleep(0.5)
+
+        # Milestone 3: Load Ollama model (heavy blocking task)
+        with loader_ui.container():
+            render_model_initialization_screen(75, "Loading Llama 3.2 into memory...")
         success, error_msg = load_ollama_model()
         st.session_state.ollama_available = success
         st.session_state.ollama_error = error_msg
+
+        # Milestone 4: Ready
+        with loader_ui.container():
+            render_model_initialization_screen(100, "System Ready.")
+        time.sleep(0.5)
+
         st.session_state.model_loaded = True
+        loader_ui.empty()
         st.rerun()
         st.stop()
 

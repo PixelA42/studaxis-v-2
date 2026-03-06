@@ -88,6 +88,7 @@ imported-ui/
 imported-ui-one/
 docs/
 .kiro/specs/aws-infrastructure-elevation/tasks.md
+local-app/data/
 
 # Setup-related markdown files 
 AWS_SETUP_GUIDE.md

@@ -478,8 +478,14 @@ def render_lazy_loading_card(
     _new_render_lazy_card(title, description, illustration_ratio)
 
 
-def render_model_initialization_screen() -> None:
-    """Render the AI engine loading screen using an iframe so JS and 100vh layout work reliably."""
+def render_model_initialization_screen(
+    progress: int = 0,
+    status_text: str = "Preparing AI engine...",
+) -> None:
+    """Render the AI engine loading screen with milestone-based progress (no JS timer)."""
+    progress = max(0, min(100, progress))
+    pct_str = f"{progress:02d}"
+
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -550,7 +556,6 @@ def render_model_initialization_screen() -> None:
             padding: 40px;
             box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
             overflow: hidden;
-            animation: model-init-layer-reveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }}
 
         .model-init-shell .brand-header {{
@@ -636,7 +641,7 @@ def render_model_initialization_screen() -> None:
         .model-init-shell .progress-fill {{
             position: absolute;
             height: 100%;
-            width: 0%;
+            width: {progress}%;
             background: var(--init-accent);
             box-shadow: 0 0 15px rgba(0, 168, 232, 0.5);
             border-radius: 4px;
@@ -665,16 +670,8 @@ def render_model_initialization_screen() -> None:
             100% {{ transform: scale(1.2) translate(5%, 5%); }}
         }}
 
-        @keyframes model-init-layer-reveal {{
-            from {{ opacity: 0; transform: translateY(20px) scale(0.98); filter: blur(10px); }}
-            to {{ opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }}
-        }}
-
         @media (prefers-reduced-motion: reduce) {{
             .model-init-shell .ambient-glow {{
-                animation: none;
-            }}
-            .model-init-shell .glass-layer {{
                 animation: none;
             }}
         }}
@@ -690,7 +687,7 @@ def render_model_initialization_screen() -> None:
 
             <section class="glass-layer">
                 <div class="percentage-wrap">
-                    <span class="percentage" id="model-init-load-val">00</span>
+                    <span class="percentage" id="model-init-load-val">{pct_str}</span>
                     <span class="pct-suffix">%</span>
                 </div>
 
@@ -698,7 +695,7 @@ def render_model_initialization_screen() -> None:
                     <div class="progress-fill" id="model-init-bar-val"></div>
                 </div>
 
-                <p class="status-line" id="model-init-status-text">Allocating memory...</p>
+                <p class="status-line" id="model-init-status-text">{status_text}</p>
 
                 <div class="status-meta">
                     <div class="meta-item">
@@ -716,42 +713,6 @@ def render_model_initialization_screen() -> None:
             </div>
         </main>
     </div>
-
-    <script>
-        (function() {{
-            var loadVal = document.getElementById('model-init-load-val');
-            var barVal = document.getElementById('model-init-bar-val');
-            var statusText = document.getElementById('model-init-status-text');
-            var statuses = [
-                "Allocating memory...",
-                "Loading Llama 3.2 weights...",
-                "Initializing ChromaDB...",
-                "Warming up inference engine...",
-                "System Ready."
-            ];
-            var progress = 0;
-
-            function updateLoader() {{
-                if (!loadVal || !barVal) return;
-                if (progress < 100) {{
-                    progress += Math.random() * 1.5;
-                    if (progress > 100) progress = 100;
-
-                    loadVal.textContent = Math.floor(progress).toString().padStart(2, '0');
-                    barVal.style.width = progress + '%';
-
-                    var statusIndex = Math.min(
-                        Math.floor((progress / 100) * statuses.length),
-                        statuses.length - 1
-                    );
-                    if (statusText) statusText.textContent = statuses[statusIndex];
-
-                    requestAnimationFrame(updateLoader);
-                }}
-            }}
-            setTimeout(updateLoader, 500);
-        }})();
-    </script>
 </body>
 </html>"""
     components.html(html, height=800, scrolling=False)
