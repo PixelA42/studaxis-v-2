@@ -5,7 +5,8 @@ Checks system resources (RAM, CPU, disk) on app launch
 
 import psutil
 import platform
-from typing import Dict, Tuple, Any, List
+import os
+from typing import Dict, Tuple
 
 
 class HardwareValidator:
@@ -19,7 +20,7 @@ class HardwareValidator:
     def __init__(self):
         self.specs = self._gather_specs()
     
-    def _gather_specs(self) -> Dict[str, Any]:
+    def _gather_specs(self) -> Dict:
         """Gather system specifications"""
         ram_gb = psutil.virtual_memory().total / (1024 ** 3)
         disk_gb = psutil.disk_usage('/').free / (1024 ** 3)
@@ -35,7 +36,7 @@ class HardwareValidator:
             'os_version': platform.version()
         }
     
-    def validate(self) -> Tuple[bool, str, Dict[str, Any]]:
+    def validate(self) -> Tuple[bool, str, Dict]:
         """
         Validate hardware against requirements
         
@@ -43,8 +44,8 @@ class HardwareValidator:
             Tuple of (is_valid, message, specs)
         """
         specs = self.specs
-        warnings: List[str] = []
-        critical: List[str] = []
+        warnings = []
+        critical = []
         
         # RAM check
         if specs['ram_gb'] < self.MIN_RAM_GB:
@@ -73,9 +74,9 @@ class HardwareValidator:
         message = "✅ System meets all recommended requirements"
         return True, message, specs
     
-    def get_optimization_tips(self) -> List[str]:
+    def get_optimization_tips(self) -> list:
         """Get optimization tips based on hardware"""
-        tips: List[str] = []
+        tips = []
         specs = self.specs
         
         if specs['ram_gb'] < self.RECOMMENDED_RAM_GB:
@@ -103,7 +104,7 @@ class HardwareValidator:
         else:
             return "Q2_K"    # Optimized for 4GB
     
-    def monitor_runtime_memory(self) -> Dict[str, Any]:
+    def monitor_runtime_memory(self) -> Dict:
         """Monitor memory usage during runtime"""
         mem = psutil.virtual_memory()
         return {
@@ -115,24 +116,8 @@ class HardwareValidator:
 
 # Standalone test
 if __name__ == "__main__":
+    # Standalone invocation is kept for future CLI tools but avoids
+    # printing detailed hardware results to the terminal to keep
+    # Streamlit boot flow as the primary UX surface.
     validator = HardwareValidator()
-    is_valid, message, specs = validator.validate()
-    
-    print("=" * 50)
-    print("STUDAXIS HARDWARE VALIDATION")
-    print("=" * 50)
-    print(f"\n{message}\n")
-    
-    print("System Specifications:")
-    print(f"  RAM: {specs['ram_gb']}GB (Available: {specs['ram_available_gb']}GB)")
-    print(f"  CPU: {specs['cpu_model']} ({specs['cpu_count']} cores)")
-    print(f"  Disk: {specs['disk_free_gb']}GB free")
-    print(f"  OS: {specs['os']} {specs['os_version']}")
-    
-    print(f"\nRecommended Quantization: {validator.get_quantization_recommendation()}")
-    
-    tips = validator.get_optimization_tips()
-    if tips:
-        print("\nOptimization Tips:")
-        for tip in tips:
-            print(f"  {tip}")
+    validator.validate()

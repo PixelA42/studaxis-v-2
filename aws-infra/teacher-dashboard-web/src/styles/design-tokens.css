@@ -1,0 +1,82 @@
+/**
+ * Studaxis Design System Tokens
+ * 70/20/8/2 color balance | Glass cards | WCAG AA
+ * docs/design_system.md
+ */
+
+:root,
+.theme-light {
+  /* Backgrounds — 70% white / off-white */
+  --sd-bg-page: #F8FAFC;
+  --sd-bg-surface: #FFFFFF;
+  --sd-bg-glass: rgba(255, 255, 255, 0.7);
+  --sd-bg-glass-dark: rgba(15, 23, 42, 0.9);
+
+  /* Text */
+  --sd-text-main: #0F172A;
+  --sd-text-muted: #64748B;
+
+  /* Borders */
+  --sd-border-subtle: #E2E8F0;
+  --sd-border-strong: #CBD5E1;
+
+  /* Accent — 2% electric blue */
+  --sd-accent-blue: #00A8E8;
+  --sd-accent-blue-hover: #0091C7;
+  --sd-accent-blue-focus: rgba(0, 168, 232, 0.45);
+
+  /* Warm accents — 8% */
+  --sd-accent-warm-1: #FA5C5C;
+  --sd-accent-warm-2: #FD8A6B;
+  --sd-accent-warm-3: #FEC288;
+  --sd-accent-warm-4: #FBEF76;
+
+  /* Semantic */
+  --sd-semantic-success: #16A34A;
+  --sd-semantic-danger: #FA5C5C;
+  --sd-semantic-warn: #fb923c;
+
+  /* Shadows & elevation */
+  --sd-shadow-card: 0 18px 45px rgba(15, 23, 42, 0.08);
+  --sd-shadow-hover: 0 24px 55px rgba(15, 23, 42, 0.12);
+
+  /* Radius */
+  --sd-radius-primary: 18px;
+  --sd-radius-stat: 12px;
+
+  /* Spacing (8px base) */
+  --sd-space-1: 4px;
+  --sd-space-2: 8px;
+  --sd-space-3: 12px;
+  --sd-space-4: 16px;
+  --sd-space-5: 20px;
+  --sd-space-6: 24px;
+  --sd-space-8: 32px;
+  --sd-space-10: 40px;
+
+  /* Typography */
+  --sd-font-stack: "Inter", "Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --sd-text-h1: 28px;
+  --sd-text-h2: 20px;
+  --sd-text-h3: 16px;
+  --sd-text-body: 14px;
+  --sd-text-caption: 12px;
+
+  /* Skeleton */
+  --sd-skeleton-base: #E5E7EB;
+  --sd-skeleton-highlight: #F3F4F6;
+}
+
+.theme-dark {
+  --sd-bg-page: #020617;
+  --sd-bg-surface: rgba(15, 23, 42, 0.95);
+  --sd-bg-glass: rgba(15, 23, 42, 0.9);
+  --sd-text-main: #E5E7EB;
+  --sd-text-muted: #9CA3AF;
+  --sd-border-subtle: rgba(148, 163, 184, 0.35);
+  --sd-border-strong: rgba(148, 163, 184, 0.5);
+  --sd-shadow-card: 0 18px 45px rgba(0, 0, 0, 0.35);
+  --sd-shadow-hover: 0 24px 55px rgba(0, 0, 0, 0.5);
+  --sd-skeleton-base: #1F2937;
+  --sd-skeleton-highlight: #374151;
+}

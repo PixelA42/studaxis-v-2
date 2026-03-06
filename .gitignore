@@ -1,22 +1,50 @@
-# Environments
-studaxis-vtwo-env/
-env-studaxisvtwo/
-venv/
-env/
-ENV/
-.venv
-env.bak/
-venv.bak/
-
-# Python Cache
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-*.pyc
-*.pyo
-*.pyd
+venv/
+env/
+ENV/
+.venv
+studaxis-vtwo-env/
+local-app/__pycache__/
+local-app/tests/__pycache__/
+local-app/pages/__pycache__/
+local-app/utils/__pycache__/
+flashcards_system/__pycache__/
+ai_chat/__pycache__/
+aws-infra/lambda/__pycache__/
+aws-infra/lambda/quiz_generation/__pycache__/
+aws-infra/teacher-dashboard/__pycache__/
+
+# Streamlit
+.streamlit/
+
+# Data
+local-app/data/*.json
+local-app/data/backups/*.json
+local-app/data/conflict_log.jsonl
+local-app/data/device_id.json
+local-app/data/profile.json
+local-app/data/sync_queue.json
+local-app/data/sync_state.json
+local-app/data/user_stats.json
+local-app/data/quiz_cache/
+data/chromadb/*
+data/backups/
+!local-app/data/.gitkeep
+!local-app/data/backups/.gitkeep
+!data/chromadb/.gitkeep
+
+# Environment
+.env
+.env.local
+local-app/.env
+local-app/.env.example
+aws-infra/teacher-dashboard-web/.env
+aws-infra/teacher-dashboard-web/.env.example
 
 # IDE
 .vscode/
@@ -24,181 +52,72 @@ __pycache__/
 *.swp
 *.swo
 *~
-.project
-.pydevproject
-.settings/
 
 # OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
-desktop.ini
-
-# Distribution / packaging
-dist/
-build/
-*.egg-info/
-*.egg
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
-*.manifest
-*.spec
-
-# Testing
-.pytest_cache/
-.coverage
-.coverage.*
-htmlcov/
-.tox/
-.nox/
-.hypothesis/
-*.cover
-*.py,cover
-.cache
-nosetests.xml
-coverage.xml
-*.coveragerc
-
-# Secrets
-.env
-.env.local
-.env.*.local
-.env.aws
-.env.production
-.env.development
-aws-infra/teacher-dashboard/.env
-
-# Studaxis Specific - Data Files
-data/user_stats.json
-data/chromadb/
-data/backups/
-data/sample_textbooks/*.pdf
-data/*.json
-!data/.gitkeep
-
-# Studaxis Specific - Generated Content
-local-app/generated/
-aws-infra/generated/
-
-# Studaxis Specific - Documentation (exclude from commits)
-AWS_SETUP_GUIDE.md
-LAMBDA_TESTING_COMPLETE.md
-DAY1_PROGRESS.md
-GIT_SETUP.md
-NEXT_STEPS.md
-PROJECT_INIT.md
-QUICKSTART.md
-/STRUCTURE.md
-COMMIT_GUIDE.md
-/requirements.md
-/design.md
-aws-infra/lambda/LAMBDA_TESTING_GUIDE.md
-aws-infra/lambda/TESTING_COMPLETE.md
-aws-infra/lambda/QUICK_REFERENCE.md
-inspect_retriever.py
-
-# Studaxis Specific - Test data
-student_stats_test.json
-
-# Kiro - ignore config but keep specs and steering
-.kiro/specs/**/.config.kiro
-.kiro/specs/**/tasks.md
-
-# Streamlit
-.streamlit/
-.streamlit/secrets.toml
-
-# AWS
-.aws/
-*.pem
-*.key
-aws-exports.js
-
-# AWS Lambda Artifacts
-aws-infra/lambda/*.zip
-aws-infra/lambda/**/package/
-aws-infra/lambda/**/__pycache__/
-
-# AWS CloudFormation Outputs
-aws-infra/cloudformation/*.out
-aws-infra/cloudformation/samconfig.toml
-
-# Teacher Dashboard
-aws-infra/teacher-dashboard/__pycache__/
-aws-infra/teacher-dashboard/utils/__pycache__/
 
 # Logs
 *.log
-logs/
-*.log.*
-pip-log.txt
-pip-delete-this-directory.txt
+
+# Node.js (Teacher Dashboard)
+node_modules/
+dist/
+.cache/
+aws-infra/teacher-dashboard-web/dist/
+aws-infra/teacher-dashboard-web/node_modules/
+aws-infra/teacher-dashboard-web/tsconfig.node.tsbuildinfo
+aws-infra/teacher-dashboard-web/tsconfig.tsbuildinfo
+
+# AWS
+.aws-sam/
+samconfig.toml
+
+# Build artifacts
+*.egg-info/
+build/
+dist/
 
 # Temporary files
 *.tmp
 *.temp
-*.bak
-*.swp
-*~.nib
-.cache/
-test_data/
-temp/
-tmp/
 
-# Jupyter Notebook
-.ipynb_checkpoints
-*.ipynb
+#Stuadaxis-specific
+imported-ui/
+imported-ui-one/
+docs/
+.kiro/specs/aws-infrastructure-elevation/tasks.md
 
-# Database & AI Models
-chromadb/
-*.db
-*.sqlite
-*.sqlite3
-data/chromadb/
+# Setup-related markdown files 
+AWS_SETUP_GUIDE.md
+COMMIT_GUIDE.md
+GIT_SETUP.md
+LAMBDA_TESTING_COMPLETE.md
+NEXT_STEPS.md
+PROJECT_INIT.md
+QUICKSTART.md
+README_SYNC_UI.md
+STRUCTURE.md
+SYNC_IMPLEMENTATION_COMPLETE.md
+SYNC_UI_DEMO_GUIDE.md
+DAY1_PROGRESS.md
 
-# Compiled files
-*.com
-*.class
-*.dll
-*.exe
-*.o
-*.so
+# Additional markdown and env files for security/privacy
+.env
+local-app/.env
+local-app/.env.example
+aws-infra/teacher-dashboard-web/.env
+aws-infra/teacher-dashboard-web/.env.example
+DAY1_PROGRESS.md
+local-app/INTEGRATION_CHECKLIST.md
+local-app/README_SYNC_ORCHESTRATOR.md
 
-# Package files
-*.7z
-*.dmg
-*.gz
-*.iso
-*.jar
-*.rar
-*.tar
-*.zip
+# Lambda and conflict resolution docs
+aws-infra/lambda/LAMBDA_TESTING_GUIDE.md
+aws-infra/lambda/QUICK_REFERENCE.md
+aws-infra/lambda/TESTING_COMPLETE.md
+local-app/CONFLICT_RESOLUTION_INTEGRATION.md
+local-app/README_CONFLICT_RESOLUTION.md
 
-# Documentation builds
-docs/_build/
-site/
-
-# MyPy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
+# Kiro config (privacy/security)
+.kiro/specs/aws-infrastructure-elevation/.config.kiro

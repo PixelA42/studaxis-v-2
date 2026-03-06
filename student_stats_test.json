@@ -1,0 +1,8 @@
+{
+  "student_id": "STU-TEST-001",
+  "device_id": "DEV-LOCAL-01",
+  "quiz_attempts": 3,
+  "total_score": 85.5,
+  "streak": 5,
+  "last_sync": "2026-03-02T15:30:00Z"
+}

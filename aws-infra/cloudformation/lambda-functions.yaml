@@ -34,6 +34,11 @@ Parameters:
     Default: 3600
     Description: Pre-signed URL TTL in seconds (default 1 hour)
 
+  BedrockModelId:
+    Type: String
+    Default: arn:aws:bedrock:ap-south-1:718980965213:inference-profile/global.amazon.nova-2-lite-v1:0
+    Description: Bedrock model ARN for quiz generation
+
 # ─────────────────────────────────────────────────────────────────────────────
 Resources:
 
@@ -183,6 +188,231 @@ Resources:
       RetentionInDays: 14
 
   # ═══════════════════════════════════════════════════════════════════════════
+  # 3. QUIZ GENERATION LAMBDA  (API Gateway → Bedrock)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  QuizGenerationExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub studaxis-quiz-gen-role-${Environment}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: BedrockInvokeOnly
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                Resource: "*"
+
+  QuizGenerationLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub studaxis-quiz-generation-${Environment}
+      Description: >-
+        Generates quizzes and lesson summaries via Amazon Bedrock.
+        Invoked by API Gateway REST endpoints.
+      Runtime: python3.11
+      Architectures: [arm64]
+      Handler: handler.lambda_handler
+      MemorySize: 512
+      Timeout: 30
+      Role: !GetAtt QuizGenerationExecutionRole.Arn
+      Code:
+        S3Bucket: !Sub studaxis-lambda-artifacts-${Environment}
+        S3Key: lambda/quiz_generation.zip
+      Environment:
+        Variables:
+          BEDROCK_REGION: !Ref AWS::Region
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
+          LOG_LEVEL: !Ref LogLevel
+      Tags:
+        - Key: Project
+          Value: Studaxis
+        - Key: Component
+          Value: QuizGeneration
+        - Key: Environment
+          Value: !Ref Environment
+
+  QuizGenerationLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${QuizGenerationLambda}
+      RetentionInDays: 14
+
+  # Permission for API Gateway to invoke the Lambda
+  QuizGenLambdaApiPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref QuizGenerationLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TeacherApiGateway}/*
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 4. API GATEWAY — Teacher REST API
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  TeacherApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub studaxis-teacher-api-${Environment}
+      Description: >-
+        REST API for teacher dashboard. Fronts quiz generation (Bedrock)
+        and content publishing. IAM-authenticated, throttled.
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Tags:
+        - Key: Project
+          Value: Studaxis
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ── /generateQuiz ─────────────────────────────────────────────────────────
+
+  GenerateQuizResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref TeacherApiGateway
+      ParentId: !GetAtt TeacherApiGateway.RootResourceId
+      PathPart: generateQuiz
+
+  GenerateQuizMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref TeacherApiGateway
+      ResourceId: !Ref GenerateQuizResource
+      HttpMethod: POST
+      AuthorizationType: AWS_IAM
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${QuizGenerationLambda.Arn}/invocations
+        IntegrationResponses:
+          - StatusCode: "200"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseModels:
+            application/json: Empty
+
+  GenerateQuizOptionsCORS:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref TeacherApiGateway
+      ResourceId: !Ref GenerateQuizResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+
+  # ── /generateNotes ────────────────────────────────────────────────────────
+
+  GenerateNotesResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref TeacherApiGateway
+      ParentId: !GetAtt TeacherApiGateway.RootResourceId
+      PathPart: generateNotes
+
+  GenerateNotesMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref TeacherApiGateway
+      ResourceId: !Ref GenerateNotesResource
+      HttpMethod: POST
+      AuthorizationType: AWS_IAM
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${QuizGenerationLambda.Arn}/invocations
+        IntegrationResponses:
+          - StatusCode: "200"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseModels:
+            application/json: Empty
+
+  GenerateNotesOptionsCORS:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref TeacherApiGateway
+      ResourceId: !Ref GenerateNotesResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+
+  # ── Deployment + Stage ────────────────────────────────────────────────────
+
+  TeacherApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - GenerateQuizMethod
+      - GenerateNotesMethod
+      - GenerateQuizOptionsCORS
+      - GenerateNotesOptionsCORS
+    Properties:
+      RestApiId: !Ref TeacherApiGateway
+
+  TeacherApiStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId: !Ref TeacherApiGateway
+      DeploymentId: !Ref TeacherApiDeployment
+      StageName: !Ref Environment
+      TracingEnabled: true
+      MethodSettings:
+        - ResourcePath: "/*"
+          HttpMethod: "*"
+          ThrottlingRateLimit: 10
+          ThrottlingBurstLimit: 20
+          LoggingLevel: INFO
+          DataTraceEnabled: true
+      Tags:
+        - Key: Project
+          Value: Studaxis
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ═══════════════════════════════════════════════════════════════════════════
   # 3. QUIZ INDEX TABLE  (lightweight metadata written by bedrock-quiz-generator)
   # ═══════════════════════════════════════════════════════════════════════════
 
@@ -231,3 +461,19 @@ Outputs:
   ContentDistributionRoleArn:
     Description: Execution role for Content Distribution Lambda
     Value: !GetAtt ContentDistributionExecutionRole.Arn
+
+  QuizGenerationLambdaArn:
+    Description: ARN of the Quiz Generation Lambda
+    Value: !GetAtt QuizGenerationLambda.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-QuizGenerationLambdaArn
+
+  TeacherApiEndpoint:
+    Description: Teacher REST API endpoint URL
+    Value: !Sub https://${TeacherApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+    Export:
+      Name: !Sub ${AWS::StackName}-TeacherApiEndpoint
+
+  TeacherApiId:
+    Description: Teacher API Gateway ID
+    Value: !Ref TeacherApiGateway

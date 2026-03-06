@@ -1,10 +1,10 @@
 {
   "user_id": "student_001",
-  "last_sync_timestamp": "2026-03-01T17:56:16.183672",
+  "last_sync_timestamp": "2026-02-28T13:04:53.760664",
   "streak": {
     "current": 0,
     "longest": 0,
-    "last_activity_date": "2026-03-01"
+    "last_activity_date": "2026-02-28"
   },
   "quiz_stats": {
     "total_attempted": 0,
@@ -20,12 +20,12 @@
   "chat_history": [],
   "preferences": {
     "difficulty_level": "Beginner",
-    "theme": "light",
+    "theme": "dark",
     "language": "English"
   },
   "hardware_info": {
-    "ram_gb": 15.63,
-    "cpu_model": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
-    "disk_space_gb": 85.75
+    "ram_gb": 15.69,
+    "cpu_model": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "disk_space_gb": 160.18
   }
 }

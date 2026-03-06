@@ -15,6 +15,12 @@ import os
 from typing import Any
 import requests
 from dotenv import load_dotenv
+
+try:
+    from streamlit_autorefresh import st_autorefresh
+    HAS_AUTOREFRESH = True
+except ImportError:
+    HAS_AUTOREFRESH = False
 from utils.appsync_s3_broker import (
     AppSyncQLClient,
     S3PresignedURLClient,
@@ -31,6 +37,7 @@ from utils.export_helpers import (
     notes_to_docx, notes_to_pdf,
 )
 from utils.content_uploader import ContentUploader
+from utils.api_gateway_client import TeacherApiClient
 
 # Load environment variables
 load_dotenv()
@@ -51,6 +58,13 @@ APPSYNC_ENDPOINT = os.getenv('APPSYNC_ENDPOINT', 'https://your-appsync-id.appsyn
 APPSYNC_API_KEY = os.getenv('APPSYNC_API_KEY', 'your-api-key-here')
 S3_PAYLOADS_BUCKET = os.getenv('S3_PAYLOADS_BUCKET', 'studaxis-payloads')
 S3_REGION = os.getenv('S3_REGION', 'ap-south-1')
+
+# Teacher API Gateway Configuration
+TEACHER_API_ENDPOINT = os.getenv(
+    'TEACHER_API_ENDPOINT',
+    'https://your-api-id.execute-api.ap-south-1.amazonaws.com/dev'
+)
+USE_API_GATEWAY = os.getenv('USE_API_GATEWAY', 'false').lower() == 'true'
 
 # ─────────────────────────────────────────────────────────────────────────────
 # DEMO MODE: Mock Data Generator
@@ -322,21 +336,69 @@ with st.sidebar:
         end_date = st.date_input("End Date", value=datetime.now())
 
     if st.button("🔄 Refresh Data", use_container_width=True):
+        st.cache_data.clear()
         st.rerun()
+
+    st.markdown("<hr class='glass-divider'>", unsafe_allow_html=True)
+
+    # ── Live auto-refresh toggle ─────────────────────────────────────────
+    auto_refresh = st.toggle(
+        "**Live Updates**",
+        value=True,
+        help="Auto-refresh dashboard every 30 seconds to show latest student activity",
+    )
+    if auto_refresh:
+        refresh_interval = st.select_slider(
+            "Refresh interval",
+            options=[15, 30, 60, 120],
+            value=30,
+            format_func=lambda x: f"{x}s",
+        )
+        st.markdown(
+            f'<div class="alert-strip alert-ok" style="font-size:0.72rem;">'
+            f'🟢 Live · refreshing every {refresh_interval}s</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        refresh_interval = 0
+        st.markdown(
+            '<div class="alert-strip alert-warn" style="font-size:0.72rem;">'
+            '⏸️ Paused · click Refresh Data to update</div>',
+            unsafe_allow_html=True,
+        )
 
     st.markdown("<hr class='glass-divider'>", unsafe_allow_html=True)
     st.markdown(f"""
     <div style="font-size:0.7rem;color:#94a3b8;line-height:1.7;">
         Last refreshed:<br>
-        <strong style="color:#64748b;">{datetime.now().strftime('%b %d, %Y  %H:%M')}</strong>
+        <strong style="color:#64748b;">{datetime.now().strftime('%b %d, %Y  %H:%M:%S')}</strong>
     </div>
     """, unsafe_allow_html=True)
+
+# ── Auto-refresh (component-based keeps state, meta-tag as fallback) ─────────
+if auto_refresh and refresh_interval > 0:
+    if HAS_AUTOREFRESH:
+        # Component-based: preserves session state across refreshes
+        tick = st_autorefresh(
+            interval=refresh_interval * 1000,
+            limit=0,
+            key="live_refresh",
+        )
+        # Clear cached data on each tick so fresh DynamoDB/S3 data is fetched
+        if tick and tick > 0:
+            st.cache_data.clear()
+    else:
+        # Fallback: meta tag refresh (loses state but works without pip install)
+        st.markdown(
+            f'<meta http-equiv="refresh" content="{refresh_interval}">',
+            unsafe_allow_html=True,
+        )
 
 # ─────────────────────────────────────────────────────────────────────────────
 # DATA LOADING FUNCTIONS (WITH FALLBACK)
 # ─────────────────────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=30)
 def fetch_student_stats_from_s3(bucket_name=STUDENT_STATS_BUCKET):
     """
     Fetch all student_*.json files from S3 bucket.
@@ -419,7 +481,7 @@ def call_appsync_mutation(mutation_string, variables, operation_name=None):
         st.error(f"AppSync error: {str(exc)}")
         return None
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=15)
 def fetch_sync_metadata_from_dynamodb():
     """Query DynamoDB 'studaxis-student-sync' for student sync metadata"""
     try:
@@ -473,7 +535,11 @@ def get_sync_metadata(use_demo=False):
 # ─────────────────────────────────────────────────────────────────────────────
 # PAGE HEADER
 # ─────────────────────────────────────────────────────────────────────────────
-st.markdown("""
+_live_dot = '<span style="color:#4ade80;font-weight:600;">&#9679;</span>' if auto_refresh else '<span style="color:#94a3b8;font-weight:600;">&#9679;</span>'
+_live_label = f"Live · refreshing every {refresh_interval}s" if auto_refresh else "Paused"
+_last_refresh = datetime.now().strftime('%H:%M:%S')
+
+st.markdown(f"""
 <div style="margin-bottom:8px;">
     <div style="font-size:0.85rem;color:#64748b;font-weight:500;">Welcome back,</div>
     <h1 style="margin:0;font-size:2rem;font-weight:800;
@@ -483,9 +549,11 @@ st.markdown("""
         Teacher Dashboard
     </h1>
     <div style="font-size:0.83rem;color:#94a3b8;margin-top:3px;">
-        Live student progress — updates automatically as students complete activities
+        Student activity → AppSync → DynamoDB → Dashboard (live)
         &nbsp;·&nbsp;
-        <span style="color:#4ade80;font-weight:600;">&#9679;</span>&nbsp;Connected
+        {_live_dot}&nbsp;{_live_label}
+        &nbsp;·&nbsp;
+        Last update: {_last_refresh}
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1067,28 +1135,57 @@ with tab6:
     # ── Bedrock settings (sidebar-injected values read here) ─────────────────
     bedrock_region = os.getenv('BEDROCK_REGION', 'ap-south-1')
 
+    # ── Routing toggle: API Gateway vs Direct Bedrock ────────────────────────
+    api_gw_client = TeacherApiClient(endpoint=TEACHER_API_ENDPOINT, region=S3_REGION)
+    use_api_gw = USE_API_GATEWAY
+
+    if use_api_gw:
+        st.markdown(
+            '<div class="alert-strip alert-ok">🔗 Routing through <strong>API Gateway</strong> '
+            f'→ Lambda → Bedrock &nbsp;·&nbsp; <code>{TEACHER_API_ENDPOINT[:60]}…</code></div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<div class="alert-strip alert-info">⚡ Calling Bedrock <strong>directly</strong> '
+            '(set <code>USE_API_GATEWAY=true</code> to route via API Gateway)</div>',
+            unsafe_allow_html=True,
+        )
+
     # ── Two-column layout: left = controls, right = output ───────────────────
     ctrl_col, out_col = st.columns([1, 1.4], gap="large")
 
     with ctrl_col:
         # ── Connection test ───────────────────────────────────────────────────
         st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        st.markdown('<div class="card-title">🔌 Bedrock Connection</div>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="card-sub">Region: <strong>{bedrock_region}</strong> &nbsp;·&nbsp; '
-            'Requires <code>bedrock:InvokeModel</code> IAM permission and '
-            'model access granted in the Bedrock console.</div>',
-            unsafe_allow_html=True,
-        )
+        if use_api_gw:
+            st.markdown('<div class="card-title">🔌 API Gateway Connection</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="card-sub">Teacher API → Lambda → Bedrock &nbsp;·&nbsp; '
+                'IAM authenticated, 10 req/sec throttle</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown('<div class="card-title">🔌 Bedrock Connection</div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="card-sub">Region: <strong>{bedrock_region}</strong> &nbsp;·&nbsp; '
+                'Requires <code>bedrock:InvokeModel</code> IAM permission and '
+                'model access granted in the Bedrock console.</div>',
+                unsafe_allow_html=True,
+            )
         if st.button("🔍 Test Connection", use_container_width=True, key="btn_test_conn"):
-            with st.spinner("Checking Bedrock access…"):
-                result = test_bedrock_connection(region=bedrock_region)
+            if use_api_gw:
+                with st.spinner("Checking API Gateway…"):
+                    result = api_gw_client.test_connection()
+            else:
+                with st.spinner("Checking Bedrock access…"):
+                    result = test_bedrock_connection(region=bedrock_region)
             if result["success"]:
                 st.markdown(
                     f'<div class="alert-strip alert-ok">✅ {result["message"]}</div>',
                     unsafe_allow_html=True,
                 )
-                if result["models"]:
+                if not use_api_gw and result.get("models"):
                     with st.expander("Available Claude models"):
                         for m in result["models"]:
                             st.code(m, language=None)
@@ -1097,14 +1194,15 @@ with tab6:
                     f'<div class="alert-strip alert-crit">❌ {result["message"]}</div>',
                     unsafe_allow_html=True,
                 )
-                st.markdown("""
-                <div class="alert-strip alert-warn">
-                    ⚠️ <strong>Checklist:</strong><br>
-                    1. Run <code>aws configure</code> with a key that has <code>bedrock:InvokeModel</code><br>
-                    2. In Bedrock Console → Model access → enable Claude 3 Haiku<br>
-                    3. Make sure the region matches where model access was granted
-                </div>
-                """, unsafe_allow_html=True)
+                if not use_api_gw:
+                    st.markdown("""
+                    <div class="alert-strip alert-warn">
+                        ⚠️ <strong>Checklist:</strong><br>
+                        1. Run <code>aws configure</code> with a key that has <code>bedrock:InvokeModel</code><br>
+                        2. In Bedrock Console → Model access → enable Claude 3 Haiku<br>
+                        3. Make sure the region matches where model access was granted
+                    </div>
+                    """, unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
         # ── Quiz generation form ──────────────────────────────────────────────
@@ -1145,30 +1243,47 @@ with tab6:
 
         # ── Quiz generation ───────────────────────────────────────────────────
         if gen_quiz_btn and quiz_topic.strip():
-            with st.spinner(f"Generating {quiz_num_q}-question quiz on '{quiz_topic}'…"):
+            route_label = "API Gateway → Lambda → Bedrock" if use_api_gw else "Direct Bedrock"
+            with st.spinner(f"Generating {quiz_num_q}-question quiz on '{quiz_topic}' via {route_label}…"):
                 try:
-                    quiz_result = bedrock_generate_quiz(
-                        topic=quiz_topic.strip(),
-                        difficulty=quiz_difficulty,
-                        num_questions=quiz_num_q,
-                        region=bedrock_region,
-                    )
+                    if use_api_gw:
+                        quiz_result = api_gw_client.generate_quiz(
+                            topic=quiz_topic.strip(),
+                            difficulty=quiz_difficulty,
+                            num_questions=quiz_num_q,
+                        )
+                    else:
+                        quiz_result = bedrock_generate_quiz(
+                            topic=quiz_topic.strip(),
+                            difficulty=quiz_difficulty,
+                            num_questions=quiz_num_q,
+                            region=bedrock_region,
+                        )
                     st.session_state["ai_quiz_result"] = quiz_result
                     st.session_state.pop("ai_summary_result", None)   # clear other output
+                    st.session_state.pop("ai_quiz_error", None)
                 except Exception as exc:
                     st.session_state["ai_quiz_error"] = str(exc)
                     st.session_state.pop("ai_quiz_result", None)
 
         if gen_summary_btn and summary_topic.strip():
-            with st.spinner(f"Generating study notes for '{summary_topic}'…"):
+            route_label = "API Gateway → Lambda → Bedrock" if use_api_gw else "Direct Bedrock"
+            with st.spinner(f"Generating study notes for '{summary_topic}' via {route_label}…"):
                 try:
-                    summary_result = generate_lesson_summary(
-                        topic=summary_topic.strip(),
-                        grade_level=summary_grade,
-                        region=bedrock_region,
-                    )
+                    if use_api_gw:
+                        summary_result = api_gw_client.generate_notes(
+                            topic=summary_topic.strip(),
+                            grade_level=summary_grade,
+                        )
+                    else:
+                        summary_result = generate_lesson_summary(
+                            topic=summary_topic.strip(),
+                            grade_level=summary_grade,
+                            region=bedrock_region,
+                        )
                     st.session_state["ai_summary_result"] = summary_result
                     st.session_state.pop("ai_quiz_result", None)      # clear other output
+                    st.session_state.pop("ai_summary_error", None)
                 except Exception as exc:
                     st.session_state["ai_summary_error"] = str(exc)
                     st.session_state.pop("ai_summary_result", None)

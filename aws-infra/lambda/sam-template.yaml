@@ -7,7 +7,7 @@ Description: >-
 Globals:
   Function:
     Timeout: 15
-    Memory: 256
+    MemorySize: 256
     Runtime: python3.11
     Architectures:
       - arm64
@@ -193,6 +193,69 @@ Resources:
       Variables:
         Environment: !Ref Environment
 
+  # ═════════════════════════════════════════════════════════════════════════
+  # TEACHER API GATEWAY (REST - Quiz Generation via Bedrock)
+  # ═════════════════════════════════════════════════════════════════════════
+
+  TeacherApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub studaxis-teacher-api-${Environment}
+      StageName: !Ref Environment
+      TracingEnabled: true
+      Cors:
+        AllowMethods: "'POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
+      Variables:
+        Environment: !Ref Environment
+
+  # ═════════════════════════════════════════════════════════════════════════
+  # QUIZ GENERATION LAMBDA (API Gateway → Bedrock)
+  # ═════════════════════════════════════════════════════════════════════════
+
+  QuizGenerationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub studaxis-quiz-generation-${Environment}
+      Description: Generates quizzes and lesson notes via Amazon Bedrock
+      Handler: handler.lambda_handler
+      Runtime: python3.11
+      MemorySize: 512
+      Timeout: 30
+      CodeUri: quiz_generation/
+      Events:
+        GenerateQuiz:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TeacherApi
+            Path: /generateQuiz
+            Method: POST
+        GenerateNotes:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TeacherApi
+            Path: /generateNotes
+            Method: POST
+      Environment:
+        Variables:
+          BEDROCK_REGION: ap-south-1
+          BEDROCK_MODEL_ID: arn:aws:bedrock:ap-south-1:718980965213:inference-profile/global.amazon.nova-2-lite-v1:0
+          LOG_LEVEL: DEBUG
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: "*"
+
+  QuizGenerationLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/studaxis-quiz-generation-${Environment}
+      RetentionInDays: 7
+
 Outputs:
   OfflineSyncFunctionArn:
     Description: ARN of the Offline Sync Lambda
@@ -211,5 +274,17 @@ Outputs:
     Value: !Ref ContentDistributionFunction
   
   ApiEndpoint:
-    Description: API Gateway endpoint for local testing
+    Description: API Gateway endpoint for local testing (AppSync simulator)
     Value: !Sub https://${AppSyncSimulator}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+
+  TeacherApiEndpoint:
+    Description: Teacher API Gateway endpoint (quiz generation)
+    Value: !Sub https://${TeacherApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+
+  QuizGenerationFunctionArn:
+    Description: ARN of the Quiz Generation Lambda
+    Value: !GetAtt QuizGenerationFunction.Arn
+
+  QuizGenerationFunctionName:
+    Description: Name of the Quiz Generation Lambda
+    Value: !Ref QuizGenerationFunction

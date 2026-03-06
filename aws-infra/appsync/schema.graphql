@@ -1,0 +1,177 @@
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+type Mutation {
+  createStudentProgress(input: CreateStudentProgressInput!): StudentProgress
+  deleteStudentProgress(input: DeleteStudentProgressInput!): StudentProgress
+  recordQuizAttempt(completedAtLocal: String, deviceId: String, difficulty: String, quizId: String!, score: Int!, subject: String, totalQuestions: Int!, userId: String!): QuizAttemptSyncResponse
+  updateStreak(currentStreak: Int!, userId: String!): StreakSyncResponse
+  updateStudentProgress(input: UpdateStudentProgressInput!): StudentProgress
+}
+
+type OfflineContent {
+  generatedAt: String!
+  manifestId: String!
+  presignedUrlExpirySeconds: Int!
+  quizzes: [AWSJSON!]!
+  totalItems: Int!
+  userId: String!
+}
+
+type Query {
+  fetchOfflineContent(subject: String, userId: String!): OfflineContent
+  getQuizPresignedUrl(quiz_id: String!): PresignedUrlResponse
+  listQuizzes: [QuizMeta]
+  getStudentProgress(user_id: ID!): StudentProgress
+  listStudentProgresses(filter: TableStudentProgressFilterInput, limit: Int, nextToken: String): StudentProgressConnection
+}
+
+type PresignedUrlResponse {
+  quiz_id: String
+  presigned_url: String
+  expires_at: String
+}
+
+type QuizMeta {
+  quiz_id: String
+  title: String
+  subject: String
+  difficulty: String
+  created_at: String
+  question_count: Int
+  s3_key: String
+}
+
+type QuizAttemptSyncResponse {
+  accuracyPercentage: Float!
+  attemptId: String!
+  quizId: String!
+  score: Int!
+  syncedAt: String!
+  totalQuestions: Int!
+  userId: String!
+}
+
+type StreakSyncResponse {
+  currentStreak: Int!
+  syncedAt: String!
+  userId: String!
+}
+
+type StudentProgress {
+  current_streak: Int!
+  device_id: String
+  last_quiz_date: String
+  last_sync_timestamp: String!
+  user_id: ID!
+}
+
+type StudentProgressConnection {
+  items: [StudentProgress]
+  nextToken: String
+}
+
+type Subscription {
+  onCreateStudentProgress(current_streak: Int, device_id: String, last_quiz_date: String, last_sync_timestamp: String, user_id: ID): StudentProgress @aws_subscribe(mutations : ["createStudentProgress"])
+  onDeleteStudentProgress(current_streak: Int, device_id: String, last_quiz_date: String, last_sync_timestamp: String, user_id: ID): StudentProgress @aws_subscribe(mutations : ["deleteStudentProgress"])
+  onUpdateStudentProgress(current_streak: Int, device_id: String, last_quiz_date: String, last_sync_timestamp: String, user_id: ID): StudentProgress @aws_subscribe(mutations : ["updateStudentProgress"])
+}
+
+input CreateStudentProgressInput {
+  current_streak: Int!
+  device_id: String
+  last_quiz_date: String
+  last_sync_timestamp: String!
+  user_id: ID!
+}
+
+input DeleteStudentProgressInput {
+  user_id: ID!
+}
+
+input ModelSizeInput {
+  between: [Int]
+  eq: Int
+  ge: Int
+  gt: Int
+  le: Int
+  lt: Int
+  ne: Int
+}
+
+input TableBooleanFilterInput {
+  attributeExists: Boolean
+  eq: Boolean
+  ne: Boolean
+}
+
+input TableFloatFilterInput {
+  attributeExists: Boolean
+  between: [Float]
+  eq: Float
+  ge: Float
+  gt: Float
+  le: Float
+  lt: Float
+  ne: Float
+}
+
+input TableIDFilterInput {
+  attributeExists: Boolean
+  beginsWith: ID
+  between: [ID]
+  contains: ID
+  eq: ID
+  ge: ID
+  gt: ID
+  le: ID
+  lt: ID
+  ne: ID
+  notContains: ID
+  size: ModelSizeInput
+}
+
+input TableIntFilterInput {
+  attributeExists: Boolean
+  between: [Int]
+  eq: Int
+  ge: Int
+  gt: Int
+  le: Int
+  lt: Int
+  ne: Int
+}
+
+input TableStringFilterInput {
+  attributeExists: Boolean
+  beginsWith: String
+  between: [String]
+  contains: String
+  eq: String
+  ge: String
+  gt: String
+  le: String
+  lt: String
+  ne: String
+  notContains: String
+  size: ModelSizeInput
+}
+
+input TableStudentProgressFilterInput {
+  current_streak: TableIntFilterInput
+  device_id: TableStringFilterInput
+  last_quiz_date: TableStringFilterInput
+  last_sync_timestamp: TableStringFilterInput
+  user_id: TableIDFilterInput
+}
+
+input UpdateStudentProgressInput {
+  current_streak: Int
+  device_id: String
+  last_quiz_date: String
+  last_sync_timestamp: String
+  user_id: ID!
+}
