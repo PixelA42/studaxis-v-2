@@ -12,6 +12,8 @@ import os
 
 import streamlit as st
 
+from ollama_loader import load_ollama_model
+
 from deployment_ui import initialize_deployment_ui_state
 from pages.auth import show_auth
 from pages.chat import show_chat
@@ -142,6 +144,10 @@ def _init_session_state() -> None:
     # Role + profile persistence flags
     st.session_state.setdefault("user_role", None)  # None | "student" | "teacher"
     st.session_state.setdefault("profile_loaded", False)
+
+    # Ollama / AI engine state (set during model init boot screen)
+    st.session_state.setdefault("ollama_available", True)
+    st.session_state.setdefault("ollama_error", None)
 
     # Sync monitoring placeholders (UI-only; no backend logic)
     st.session_state.setdefault("sync_status", "[SYNC_STATUS]")
@@ -462,7 +468,7 @@ def render_storage_validation_screen() -> None:
         if profile_mode is None:
             st.session_state.boot_phase = "profile_selection"
         else:
-            st.session_state.boot_phase = "model_initialization"
+            st.session_state.boot_phase = "dashboard_reveal"
     st.rerun()
 
 
@@ -518,7 +524,7 @@ def render_profile_mode_selection_screen() -> None:
                 user_role=st.session_state.get("user_role") or "student",
             )
             save_profile(profile)
-            st.session_state.boot_phase = "model_initialization"
+            st.session_state.boot_phase = "dashboard_reveal"
         else:
             # Joining a class – persist partial profile (without class_code yet)
             profile = UserProfile(
@@ -573,7 +579,7 @@ def render_class_code_entry_screen() -> None:
                 )
                 save_profile(profile)
 
-                st.session_state.boot_phase = "model_initialization"
+                st.session_state.boot_phase = "dashboard_reveal"
                 st.rerun()
 
     with col_secondary:
@@ -589,7 +595,7 @@ def render_class_code_entry_screen() -> None:
             )
             save_profile(profile)
 
-            st.session_state.boot_phase = "model_initialization"
+            st.session_state.boot_phase = "dashboard_reveal"
             st.rerun()
 
     if error_message:
@@ -633,19 +639,10 @@ def render_dashboard_reveal_transition() -> None:
 
 
 def render_model_initialization_phase() -> None:
-    """Phase: model initialization screen for student AI features."""
-    render_model_initialization_screen()
-
-    if st.session_state.get("low_power_mode_active", False):
-        st.caption(
-            "Low Power Mode Active — Reduced animations and background tasks "
-            f"below {st.session_state.get('low_power_mode_reason')}."
-        )
-
-    if st.button("Continue to dashboard", type="primary", use_container_width=True):
-        st.session_state.model_init_complete = True
-        st.session_state.boot_phase = "dashboard_reveal"
-        st.rerun()
+    """Legacy: Model init now runs at app startup. This phase should not be reached."""
+    # Fallback: if somehow we hit this phase, transition directly to dashboard.
+    st.session_state.boot_phase = "dashboard_reveal"
+    st.rerun()
 
 
 def render_role_selection_screen() -> None:
@@ -693,7 +690,7 @@ def render_role_selection_screen() -> None:
             if st.session_state.get("profile_mode") is None:
                 st.session_state.boot_phase = "profile_selection"
             else:
-                st.session_state.boot_phase = "model_initialization"
+                st.session_state.boot_phase = "dashboard_reveal"
         else:
             st.session_state.user_role = "teacher"
             st.session_state.boot_phase = "teacher_redirect"
@@ -775,7 +772,9 @@ def render_boot_flow() -> None:
     elif phase == "class_code":
         render_class_code_entry_screen()
     elif phase == "model_initialization":
-        render_model_initialization_phase()
+        # Legacy phase: model load now happens at app startup. Skip straight to dashboard.
+        st.session_state.boot_phase = "dashboard_reveal"
+        st.rerun()
     elif phase == "dashboard_reveal":
         render_dashboard_reveal_transition()
     else:
@@ -814,7 +813,10 @@ def _show_feature_placeholder(title: str, icon: str, description: str) -> None:
 
 
 def _apply_page_from_url() -> bool:
-    """If URL has ?page=..., sync to session_state and return True to rerun."""
+    """If URL has ?page=..., sync to session_state.
+    We simply update the state; no rerun is required because main
+    re-evaluates with the new value in the same execution.
+    """
     valid_pages = {
         "dashboard", "chat", "quiz", "flashcards", "settings",
         "panic_mode", "insights", "conflicts", "profile", "sync_status",
@@ -823,10 +825,8 @@ def _apply_page_from_url() -> bool:
     page = get_current_page()
     if page not in valid_pages:
         page = "dashboard"
-    current = st.session_state.get("page", "dashboard")
-    if page != current:
-        st.session_state.page = page
-        return True
+    # always overwrite; harmless if same
+    st.session_state.page = page
     return False
 
 
@@ -886,9 +886,25 @@ def main() -> None:
         initial_sidebar_state="collapsed",
     )
     _inject_global_css()
+
+    # --- STATE INITIALIZATION: one-time model load gate ---
+    if "model_loaded" not in st.session_state:
+        st.session_state.model_loaded = False
+
+    # --- LOADING BLOCK: run BEFORE sidebar or page content ---
+    if not st.session_state.model_loaded:
+        inject_performance_ui_css()
+        render_model_initialization_screen()
+        success, error_msg = load_ollama_model()
+        st.session_state.ollama_available = success
+        st.session_state.ollama_error = error_msg
+        st.session_state.model_loaded = True
+        st.rerun()
+        st.stop()
+
     _init_session_state()
     inject_performance_ui_css()
-    
+
     if not st.session_state.get("boot_complete", False):
         render_boot_flow()
         return

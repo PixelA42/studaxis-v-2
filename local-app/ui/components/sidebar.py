@@ -112,7 +112,7 @@ def render_sidebar(
     footer {{visibility: hidden;}}
     .stApp {{background: #f0f2f5;}}
     
-    :root {{
+    :root {{  /* double curly braces for f-string escaping */
         --alabaster-base: rgba(252, 252, 252, 0.82);
         --accent-blue: #00A8E8;
         --text-primary: #1a1a1a;
@@ -200,7 +200,7 @@ def render_sidebar(
     
     .nav-item:hover {{ background: rgba(255, 255, 255, 0.5); color: var(--text-primary); transform: translateY(-1px); }}
     .nav-item.active {{ background: white; color: var(--text-primary); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03); }}
-    .nav-item.active::before {{
+    .nav-item.active::before {{ 
         content: ''; position: absolute; left: 0; top: 25%; height: 50%; width: 4px;
         background: var(--accent-blue); border-radius: 0 4px 4px 0;
     }}
@@ -209,7 +209,7 @@ def render_sidebar(
     
     .panic-mode:hover {{ background: rgba(255, 68, 68, 0.1) !important; color: #ff4444 !important; }}
     .nav-footer {{ margin-top: auto; padding: 20px 12px; border-top: 1px solid rgba(0,0,0,0.03); overflow: hidden; }}
-    a:hover {{ text-decoration: none !important; }}
+    a:hover {{ text-decoration: none !important; }} 
 
     .sidebar.collapsed {{ --sidebar-width: 80px; }}
     .sidebar.collapsed .logo-text,
@@ -241,12 +241,12 @@ def render_sidebar(
 <script>
     const sidebar = document.getElementById('sidebar');
     const root = document.documentElement;
-    if (localStorage.getItem('sidebarState') === 'collapsed') {{
-        sidebar.classList.add('collapsed');
-        root.style.setProperty('--sidebar-width', '80px');
-    }} else {{
-        root.style.setProperty('--sidebar-width', '260px');
-    }}
+    // Always start with sidebar expanded by default
+    sidebar.classList.remove('collapsed');
+    root.style.setProperty('--sidebar-width', '260px');
+    // reset stored state so subsequent loads default open
+    localStorage.setItem('sidebarState', 'expanded');
+    // Only toggle on button click
     function toggleSidebar() {{
         sidebar.classList.toggle('collapsed');
         if (sidebar.classList.contains('collapsed')) {{

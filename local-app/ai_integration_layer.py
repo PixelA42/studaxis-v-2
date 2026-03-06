@@ -19,6 +19,13 @@ import threading
 import time
 from typing import Any, Optional
 
+import requests
+
+OLLAMA_API_URL = "http://localhost:11434/api/generate"
+OLLAMA_CONNECTION_FALLBACK = (
+    "⚠️ Cannot connect to local AI. Please ensure Ollama is running in the background."
+)
+
 
 class AITaskType(str, Enum):
     CHAT = "chat"
@@ -49,10 +56,10 @@ class AIExecutionTarget(str, Enum):
 @dataclass
 class AIConfig:
     # Placeholders are preserved until finalized in requirements/config.
-    LOCAL_AI_MODEL: str = "[LOCAL_AI_MODEL]"
+    LOCAL_AI_MODEL: str = "llama3.2"
     CLOUD_AI_MODEL: str = "[CLOUD_AI_MODEL]"
     EMBEDDING_MODEL: str = "[EMBEDDING_MODEL]"
-    AI_TIMEOUT_SECONDS: int = 30
+    AI_TIMEOUT_SECONDS: int = 60
     AI_RESPONSE_MAX_TOKENS: int = 512
     MAX_INPUT_CHARS: int = 6000
     MAX_CONTEXT_ITEMS: int = 12
@@ -219,7 +226,14 @@ class AIEngine:
             sanitized_input = self._sanitize_input(request.user_input)
             bounded_context = self._sanitize_context(request.context_data)
             template = self.templates.select(request.task_type)
-            prompt = self._build_prompt(template, sanitized_input, bounded_context)
+            task_prompt = self._build_task_specific_prompt(
+                request.task_type, sanitized_input, bounded_context
+            )
+            prompt = (
+                task_prompt
+                if task_prompt is not None
+                else self._build_prompt(template, sanitized_input, bounded_context)
+            )
 
             target = self._select_inference_target(request)
             model_name = self._resolve_model_name(target)
@@ -246,6 +260,15 @@ class AIEngine:
             fallback = self._make_fallback_response(
                 request,
                 "AI response timeout. Returning safe fallback response.",
+            )
+            self._log_request_and_response(request, fallback)
+            return fallback
+        except ConnectionError as exc:
+            self.state_machine.set_state(request.request_id, AIState.ERROR)
+            fallback = self._make_fallback_response(
+                request,
+                str(exc),
+                custom_text=OLLAMA_CONNECTION_FALLBACK,
             )
             self._log_request_and_response(request, fallback)
             return fallback
@@ -283,6 +306,34 @@ class AIEngine:
                 sanitized[key] = value
         return sanitized
 
+    def _build_task_specific_prompt(
+        self,
+        task_type: AITaskType,
+        user_input: str,
+        context_data: dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Build a task-specific prompt for supported task types.
+        Returns None for unsupported types so caller can fall back to template-based prompt.
+        """
+        if task_type == AITaskType.FLASHCARD_EXPLANATION:
+            topic = context_data.get("topic", "[topic unknown]")
+            front = context_data.get("front", "[question unknown]")
+            back = context_data.get("back", "[answer unknown]")
+            return (
+                f"You are an expert AI tutor. Explain the following flashcard clearly and simply. "
+                f"Topic: {topic}. Question: {front}. Answer: {back}. User query: {user_input}"
+            )
+        if task_type == AITaskType.STUDY_RECOMMENDATION:
+            topic = context_data.get("topic", "[topic unknown]")
+            time_budget_minutes = context_data.get("time_budget_minutes", 15)
+            return (
+                f"You are an AI study planner. The student is studying {topic}. "
+                f"They have {time_budget_minutes} minutes. "
+                f"Provide a highly focused, bulleted study plan."
+            )
+        return None
+
     def _build_prompt(
         self,
         template: PromptTemplate,
@@ -319,6 +370,34 @@ class AIEngine:
             return self.config.CLOUD_AI_MODEL
         return self.config.LOCAL_AI_MODEL
 
+    def _call_ollama(self, model_name: str, prompt: str, timeout_seconds: int) -> str:
+        """
+        Send non-streaming request to local Ollama API.
+        Returns the generated text or raises on failure.
+        """
+        payload = {
+            "model": model_name,
+            "prompt": prompt,
+            "stream": False,
+        }
+        try:
+            resp = requests.post(
+                OLLAMA_API_URL,
+                json=payload,
+                timeout=timeout_seconds,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return data.get("response", "").strip() or ""
+        except requests.exceptions.ConnectionError:
+            raise ConnectionError(OLLAMA_CONNECTION_FALLBACK)
+        except requests.exceptions.Timeout:
+            raise TimeoutError("Ollama inference exceeded timeout.")
+        except requests.exceptions.RequestException as e:
+            raise ConnectionError(
+                f"{OLLAMA_CONNECTION_FALLBACK} Error: {e}"
+            )
+
     def _run_inference_with_timeout(
         self,
         *,
@@ -328,23 +407,25 @@ class AIEngine:
         timeout_seconds: int,
     ) -> str:
         """
-        Simulated inference with timeout handling.
-        Intentionally does not call external APIs.
+        Run inference: Ollama for LOCAL target, simulated for CLOUD.
         """
+        if target == AIExecutionTarget.LOCAL:
+            return self._call_ollama(model_name, prompt, timeout_seconds)
+
+        # CLOUD target: keep simulated until cloud API is configured
         started = time.time()
-        simulated_latency = 0.08 if target == AIExecutionTarget.LOCAL else 0.05
+        simulated_latency = 0.05
         if simulated_latency > timeout_seconds:
             raise TimeoutError("Inference exceeded timeout.")
         time.sleep(simulated_latency)
         elapsed = time.time() - started
         if elapsed > timeout_seconds:
             raise TimeoutError("Inference exceeded timeout.")
-
         prompt_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:10]
         return (
-            f"[SIMULATED_{target.value.upper()}_INFERENCE]"
+            f"[SIMULATED_CLOUD_INFERENCE]"
             f" model={model_name} hash={prompt_hash} "
-            f"response=This is a placeholder AI response generated by AIEngine."
+            f"response=Cloud inference not yet configured. Please use local mode."
         )
 
     def _parse_response(
@@ -412,12 +493,22 @@ class AIEngine:
             ]
         return ["Would you like a concise action plan next?"]
 
-    def _make_fallback_response(self, request: AIRequest, reason: str) -> AIResponse:
+    def _make_fallback_response(
+        self,
+        request: AIRequest,
+        reason: str,
+        *,
+        custom_text: Optional[str] = None,
+    ) -> AIResponse:
         self.state_machine.set_state(request.request_id, AIState.FALLBACK_RESPONSE)
         return AIResponse(
             text=(
-                "I could not complete that AI request right now. "
-                "Please retry, or continue with offline study resources."
+                custom_text
+                if custom_text is not None
+                else (
+                    "I could not complete that AI request right now. "
+                    "Please retry, or continue with offline study resources."
+                )
             ),
             confidence_score=0.2,
             metadata={

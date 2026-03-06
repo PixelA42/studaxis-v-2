@@ -116,27 +116,29 @@ def show_flashcards() -> None:
             st.rerun()
         return
 
+    ai_engine = _get_ai_engine()
     st.success(card["back"])
     connectivity = st.session_state.get("connectivity_status", "offline")
     offline_mode = connectivity != "online"
-    ai_engine = _get_ai_engine()
+    
 
     col1, col2, col3 = st.columns(3)
     with col1:
         if st.button("Explain with AI"):
-            response = ai_engine.request(
-                task_type=AITaskType.FLASHCARD_EXPLANATION,
-                user_input=f"Explain this flashcard: {card['front']}",
-                context_data={
-                    "flashcard_id": card["id"],
-                    "topic": card["topic"],
-                    "front": card["front"],
-                    "back": card["back"],
-                },
-                offline_mode=offline_mode,
-                privacy_sensitive=True,
-                user_id=st.session_state.get("profile_name"),
-            )
+            with st.spinner("Processing with local AI..."):
+                response = ai_engine.request(
+                    task_type=AITaskType.FLASHCARD_EXPLANATION,
+                    user_input=f"Explain this flashcard: {card['front']}",
+                    context_data={
+                        "flashcard_id": card["id"],
+                        "topic": card["topic"],
+                        "front": card["front"],
+                        "back": card["back"],
+                    },
+                    offline_mode=offline_mode,
+                    privacy_sensitive=True,
+                    user_id=st.session_state.get("profile_name"),
+                )
             st.session_state.flashcard_last_ai_explanation = response.text
             st.rerun()
 
@@ -154,20 +156,24 @@ def show_flashcards() -> None:
             st.session_state.flashcard_index = (idx + 1) % len(_FLASHCARDS)
             st.rerun()
 
-    if st.button("Get Study Recommendation"):
-        recommendation = ai_engine.request(
-            task_type=AITaskType.STUDY_RECOMMENDATION,
-            user_input=f"Suggest a review plan for topic {card['topic']}.",
-            context_data={
-                "topic": card["topic"],
-                "review_mode": "flashcards",
-                "recent_card_id": card["id"],
-                "time_budget_minutes": st.session_state.get("study_time_minutes", "[STUDY_TIME_MINUTES]"),
-            },
-            offline_mode=offline_mode,
-            privacy_sensitive=True,
-            user_id=st.session_state.get("profile_name"),
-        )
+    if st.button("Get Study Recommendation", key="flashcard_get_recommendation"):
+        with st.spinner("Processing with local AI..."):
+            ai_engine = _get_ai_engine()
+            recommendation = ai_engine.request(
+                task_type=AITaskType.STUDY_RECOMMENDATION,
+                user_input=f"Suggest a review plan for topic {card['topic']}.",
+                context_data={
+                    "topic": card["topic"],
+                    "review_mode": "flashcards",
+                    "recent_card_id": card["id"],
+                    "front": card["front"],
+                    "back": card["back"],
+                    "time_budget_minutes": st.session_state.get("study_time_minutes", 15),
+                },
+                offline_mode=offline_mode,
+                privacy_sensitive=True,
+                user_id=st.session_state.get("profile_name"),
+            )
         st.session_state.flashcard_last_recommendation = recommendation.text
         st.rerun()
 
