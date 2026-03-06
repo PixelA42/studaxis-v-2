@@ -21,9 +21,10 @@
   --sd-border-strong: #CBD5E1;
 
   /* Accent — 2% electric blue */
-  --sd-accent-blue: #00A8E8;
-  --sd-accent-blue-hover: #0091C7;
-  --sd-accent-blue-focus: rgba(0, 168, 232, 0.45);
+  --sd-accent-blue: #0284C7;
+  --sd-accent-blue-hover: #0369A1;
+  --sd-accent-blue-strong: #075985;
+  --sd-accent-blue-focus: rgba(2, 132, 199, 0.45);
 
   /* Warm accents — 8% */
   --sd-accent-warm-1: #FA5C5C;
@@ -39,10 +40,14 @@
   /* Shadows & elevation */
   --sd-shadow-card: 0 18px 45px rgba(15, 23, 42, 0.08);
   --sd-shadow-hover: 0 24px 55px rgba(15, 23, 42, 0.12);
+  --sd-focus-ring: #0369A1;
+  --sd-focus-glow: rgba(2, 132, 199, 0.35);
 
   /* Radius */
   --sd-radius-primary: 18px;
   --sd-radius-stat: 12px;
+  --sd-radius-card: 14px;
+  --sd-glass-blur: 16px;
 
   /* Spacing (8px base) */
   --sd-space-1: 4px;
@@ -61,6 +66,7 @@
   --sd-text-h3: 16px;
   --sd-text-body: 14px;
   --sd-text-caption: 12px;
+  --sd-text-helper: 13px;
 
   /* Skeleton */
   --sd-skeleton-base: #E5E7EB;

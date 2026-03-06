@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { MetricTile } from '../components/dashboard/MetricTile';
 import { GlassCard } from '../components/dashboard/GlassCard';
 import { CloudSyncStatus } from '../components/dashboard/CloudSyncStatus';
@@ -53,13 +53,21 @@ export function DashboardOverview() {
   const studentSync = DEMO_STUDENT_SYNC;
   
   // Get stale students (not synced in 24h)
-  const staleStudents = studentSync
-    .filter((s) => {
-      if (!s.lastSync) return true;
-      const hoursSince = (Date.now() - new Date(s.lastSync).getTime()) / (1000 * 60 * 60);
-      return hoursSince > 24;
-    })
-    .map((s) => s.name);
+  const staleStudents = useMemo(
+    () =>
+      studentSync
+        .filter((s) => {
+          if (!s.lastSync) return true;
+          const hoursSince = (Date.now() - new Date(s.lastSync).getTime()) / (1000 * 60 * 60);
+          return hoursSince > 24;
+        })
+        .map((s) => s.name),
+    [studentSync]
+  );
+
+  const handleStudentClick = useCallback((studentId: string) => {
+    console.log('Student clicked:', studentId);
+  }, []);
 
   return (
     <main id="main-content" className="page-dashboard" role="main">
@@ -119,7 +127,7 @@ export function DashboardOverview() {
             <p className="card-sub">Device connectivity overview</p>
             <StudentSyncOverview
               students={studentSync}
-              onStudentClick={(id) => console.log('Student clicked:', id)}
+              onStudentClick={handleStudentClick}
             />
           </GlassCard>
         </div>

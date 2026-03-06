@@ -14,6 +14,7 @@ from typing import Any
 import streamlit as st
 
 from ai_integration_layer import AIEngine, AITaskType
+from ui_components import render_empty_state, render_mode_status_badge
 
 
 _DATA_PATH = Path(__file__).parent.parent / "data" / "user_stats.json"
@@ -113,6 +114,19 @@ def show_quiz() -> None:
 
     st.title("Quick Quiz")
     st.caption("Grading and recommendations are routed via AI Integration Layer.")
+    connectivity = st.session_state.get("connectivity_status", "offline")
+    offline_mode = connectivity != "online"
+    render_mode_status_badge(
+        "Online mode" if not offline_mode else "Offline mode - grading available locally",
+        online=not offline_mode,
+    )
+
+    if not _QUIZ_ITEMS:
+        render_empty_state(
+            "No quiz items available",
+            "Empty State Illustration Placeholder - add quiz content to begin grading.",
+        )
+        return
 
     difficulty = _load_stats().get("preferences", {}).get("difficulty_level", "Beginner")
     question_options = [f"{q['topic']} - {q['question']}" for q in _QUIZ_ITEMS]
@@ -124,45 +138,47 @@ def show_quiz() -> None:
 
     if st.button("Submit for AI Grading", type="primary"):
         ai_engine = _get_ai_engine()
-        connectivity = st.session_state.get("connectivity_status", "offline")
-        offline_mode = connectivity != "online"
-
-        grading_response = ai_engine.request(
-            task_type=AITaskType.GRADING,
-            user_input=answer,
-            context_data={
-                "question_id": selected["id"],
-                "question": selected["question"],
-                "topic": selected["topic"],
-                "expected_answer": selected["expected_answer"],
-                "difficulty": difficulty,
-                "rubric": "[GRADING_RUBRIC_PLACEHOLDER]",
-            },
-            offline_mode=offline_mode,
-            privacy_sensitive=True,
-            user_id=st.session_state.get("profile_name"),
-        )
-
         score = _local_score(answer, selected["expected_answer"])
+        try:
+            with st.spinner("Grading your response and preparing recommendations..."):
+                grading_response = ai_engine.request(
+                    task_type=AITaskType.GRADING,
+                    user_input=answer,
+                    context_data={
+                        "question_id": selected["id"],
+                        "question": selected["question"],
+                        "topic": selected["topic"],
+                        "expected_answer": selected["expected_answer"],
+                        "difficulty": difficulty,
+                        "rubric": "[GRADING_RUBRIC_PLACEHOLDER]",
+                    },
+                    offline_mode=offline_mode,
+                    privacy_sensitive=True,
+                    user_id=st.session_state.get("profile_name"),
+                )
+
+                recommendation_response = ai_engine.request(
+                    task_type=AITaskType.STUDY_RECOMMENDATION,
+                    user_input=f"Recommend next steps for topic {selected['topic']}.",
+                    context_data={
+                        "topic": selected["topic"],
+                        "score": score,
+                        "difficulty": difficulty,
+                        "study_time_minutes": st.session_state.get("study_time_minutes", "[STUDY_TIME_MINUTES]"),
+                    },
+                    offline_mode=offline_mode,
+                    privacy_sensitive=True,
+                    user_id=st.session_state.get("profile_name"),
+                )
+        except Exception as exc:
+            st.error(f"Unable to grade this answer right now: {exc}")
+            return
+
         _update_quiz_stats(selected["topic"], score)
 
         st.success(f"Score: {score}/10")
         st.markdown("### AI Feedback")
         st.write(grading_response.text)
-
-        recommendation_response = ai_engine.request(
-            task_type=AITaskType.STUDY_RECOMMENDATION,
-            user_input=f"Recommend next steps for topic {selected['topic']}.",
-            context_data={
-                "topic": selected["topic"],
-                "score": score,
-                "difficulty": difficulty,
-                "study_time_minutes": st.session_state.get("study_time_minutes", "[STUDY_TIME_MINUTES]"),
-            },
-            offline_mode=offline_mode,
-            privacy_sensitive=True,
-            user_id=st.session_state.get("profile_name"),
-        )
 
         st.markdown("### Study Recommendation")
         st.write(recommendation_response.text)

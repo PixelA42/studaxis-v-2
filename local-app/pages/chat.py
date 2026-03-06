@@ -280,7 +280,7 @@ def _process_ai_response() -> None:
     Simulate offline inference latency, then append a placeholder AI response.
     Called synchronously while the skeleton is visible on the prior render pass.
     """
-    with st.spinner(""):
+    with st.spinner("AI Tutor is preparing a response..."):
         time.sleep(0.3)
 
     parent_idx = st.session_state.pop("_clarify_parent_idx", None)

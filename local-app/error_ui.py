@@ -54,7 +54,8 @@ def inject_error_css() -> None:
         return
 
     st.session_state["_error_css_injected"] = True
-    st.markdown(_ERROR_CSS, unsafe_allow_html=True)
+    # Error styles are provided by the global theme stylesheet.
+    # Keeping this as a no-op avoids duplicating a second large CSS block.
 
 
 _ERROR_CSS = """

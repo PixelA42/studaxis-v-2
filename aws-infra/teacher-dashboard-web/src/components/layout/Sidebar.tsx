@@ -36,7 +36,6 @@ export function Sidebar() {
               className={({ isActive }) =>
                 `sidebar__link ${isActive ? 'sidebar__link--active' : ''}`
               }
-              role="listitem"
             >
               <span className="sidebar__link-icon" aria-hidden="true">
                 {item.icon}

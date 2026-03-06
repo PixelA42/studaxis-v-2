@@ -21,8 +21,17 @@ export function TopNav({ teacherName, syncStatus, lastSyncTimestamp }: TopNavPro
         setDropdownOpen(false);
       }
     }
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setDropdownOpen(false);
+      }
+    }
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
   }, []);
 
   return (
@@ -51,7 +60,7 @@ export function TopNav({ teacherName, syncStatus, lastSyncTimestamp }: TopNavPro
               className="top-nav__profile"
               onClick={() => setDropdownOpen(!dropdownOpen)}
               aria-expanded={dropdownOpen}
-              aria-haspopup="menu"
+              aria-haspopup="true"
               aria-label="Teacher profile menu"
             >
               <span className="top-nav__avatar" aria-hidden="true">
@@ -64,18 +73,16 @@ export function TopNav({ teacherName, syncStatus, lastSyncTimestamp }: TopNavPro
             {dropdownOpen && (
               <div
                 className="top-nav__dropdown"
-                role="menu"
                 aria-label="Profile menu"
               >
-                <a href="#profile" role="menuitem" className="top-nav__dropdown-item">
+                <a href="#profile" className="top-nav__dropdown-item" onClick={() => setDropdownOpen(false)}>
                   Profile
                 </a>
-                <a href="#account" role="menuitem" className="top-nav__dropdown-item">
+                <a href="#account" className="top-nav__dropdown-item" onClick={() => setDropdownOpen(false)}>
                   Account
                 </a>
                 <button
                   type="button"
-                  role="menuitem"
                   className="top-nav__dropdown-item"
                   onClick={() => {
                     toggleTheme();
@@ -85,7 +92,7 @@ export function TopNav({ teacherName, syncStatus, lastSyncTimestamp }: TopNavPro
                   {theme === 'light' ? 'Dark mode' : 'Light mode'}
                 </button>
                 <hr className="top-nav__dropdown-divider" />
-                <a href="#logout" role="menuitem" className="top-nav__dropdown-item">
+                <a href="#logout" className="top-nav__dropdown-item" onClick={() => setDropdownOpen(false)}>
                   Sign out
                 </a>
               </div>

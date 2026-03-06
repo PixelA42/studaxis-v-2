@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+
 interface SyncActivityItem {
   id: string;
   studentName: string;
@@ -42,7 +44,14 @@ function getActivityIcon(type: SyncActivityItem['type']): string {
 }
 
 export function RecentSyncActivity({ activities, maxItems = 10 }: RecentSyncActivityProps) {
-  const displayedActivities = activities.slice(0, maxItems);
+  const displayedActivities = useMemo(
+    () =>
+      activities.slice(0, maxItems).map((activity) => ({
+        ...activity,
+        formattedTimestamp: formatTimestamp(activity.timestamp),
+      })),
+    [activities, maxItems]
+  );
 
   return (
     <div className="recent-sync-activity">
@@ -82,7 +91,7 @@ export function RecentSyncActivity({ activities, maxItems = 10 }: RecentSyncActi
                 className="recent-sync-activity__time"
                 dateTime={activity.timestamp}
               >
-                {formatTimestamp(activity.timestamp)}
+                {activity.formattedTimestamp}
               </time>
             </li>
           ))}

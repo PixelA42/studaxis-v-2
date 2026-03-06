@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { SyncStatus } from '../../types';
 
 interface StudentSyncItem {
@@ -53,9 +54,39 @@ function isStale(lastSync: string | null): boolean {
 }
 
 export function StudentSyncOverview({ students, onStudentClick }: StudentSyncOverviewProps) {
-  const onlineCount = students.filter((s) => s.status === 'connected').length;
-  const staleCount = students.filter((s) => isStale(s.lastSync)).length;
-  const errorCount = students.filter((s) => s.status === 'error').length;
+  const computedStudents = useMemo(
+    () =>
+      students.map((student) => {
+        const stale = isStale(student.lastSync);
+        return {
+          ...student,
+          stale,
+          statusColor: getStatusColor(student.status),
+          formattedLastSync: formatLastSync(student.lastSync),
+        };
+      }),
+    [students]
+  );
+
+  const summary = useMemo(
+    () =>
+      computedStudents.reduce(
+        (acc, student) => {
+          if (student.status === 'connected') {
+            acc.online += 1;
+          }
+          if (student.stale) {
+            acc.stale += 1;
+          }
+          if (student.status === 'error') {
+            acc.error += 1;
+          }
+          return acc;
+        },
+        { online: 0, stale: 0, error: 0 }
+      ),
+    [computedStudents]
+  );
 
   return (
     <div className="student-sync-overview">
@@ -63,19 +94,19 @@ export function StudentSyncOverview({ students, onStudentClick }: StudentSyncOve
       <div className="student-sync-summary">
         <div className="student-sync-summary__item">
           <span className="student-sync-summary__count student-sync-summary__count--success">
-            {onlineCount}
+            {summary.online}
           </span>
           <span className="student-sync-summary__label">Online</span>
         </div>
         <div className="student-sync-summary__item">
           <span className="student-sync-summary__count student-sync-summary__count--warn">
-            {staleCount}
+            {summary.stale}
           </span>
           <span className="student-sync-summary__label">Stale</span>
         </div>
         <div className="student-sync-summary__item">
           <span className="student-sync-summary__count student-sync-summary__count--error">
-            {errorCount}
+            {summary.error}
           </span>
           <span className="student-sync-summary__label">Errors</span>
         </div>
@@ -83,10 +114,7 @@ export function StudentSyncOverview({ students, onStudentClick }: StudentSyncOve
 
       {/* Student list */}
       <ul className="student-sync-list" role="list">
-        {students.map((student) => {
-          const stale = isStale(student.lastSync);
-          const statusColor = getStatusColor(student.status);
-          
+        {computedStudents.map((student) => {
           return (
             <li key={student.id} className="student-sync-item">
               <button
@@ -101,16 +129,16 @@ export function StudentSyncOverview({ students, onStudentClick }: StudentSyncOve
                 <div className="student-sync-item__info">
                   <span className="student-sync-item__name">{student.name}</span>
                   <span className="student-sync-item__meta">
-                    {formatLastSync(student.lastSync)}
+                    {student.formattedLastSync}
                     {student.pendingItems > 0 && (
                       <> · {student.pendingItems} pending</>
                     )}
-                    {stale && <> · <strong>Stale</strong></>}
+                    {student.stale && <> · <strong>Stale</strong></>}
                   </span>
                 </div>
                 <div
                   className="student-sync-item__status"
-                  style={{ backgroundColor: statusColor }}
+                  style={{ backgroundColor: student.statusColor }}
                   role="status"
                   aria-label={`Status: ${student.status}`}
                 />
@@ -120,7 +148,7 @@ export function StudentSyncOverview({ students, onStudentClick }: StudentSyncOve
         })}
       </ul>
 
-      {students.length === 0 && (
+      {computedStudents.length === 0 && (
         <div className="student-sync-empty" role="status">
           <span className="student-sync-empty__icon" aria-hidden="true">👥</span>
           <p className="student-sync-empty__text">

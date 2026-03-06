@@ -1,4 +1,4 @@
-# Python
+# Python cache and build artifacts
 __pycache__/
 *.py[cod]
 *$py.class
@@ -10,19 +10,20 @@ ENV/
 .venv
 studaxis-vtwo-env/
 local-app/__pycache__/
-local-app/tests/__pycache__/
 local-app/pages/__pycache__/
+local-app/tests/__pycache__/
 local-app/utils/__pycache__/
 flashcards_system/__pycache__/
 ai_chat/__pycache__/
 aws-infra/lambda/__pycache__/
 aws-infra/lambda/quiz_generation/__pycache__/
 aws-infra/teacher-dashboard/__pycache__/
+aws-infra/teacher-dashboard/utils/__pycache__/
 
 # Streamlit
 .streamlit/
 
-# Data
+# Data (local user data should not be committed)
 local-app/data/*.json
 local-app/data/backups/*.json
 local-app/data/conflict_log.jsonl
@@ -38,7 +39,7 @@ data/backups/
 !local-app/data/backups/.gitkeep
 !data/chromadb/.gitkeep
 
-# Environment
+# Environment and secrets
 .env
 .env.local
 local-app/.env
@@ -46,14 +47,14 @@ local-app/.env.example
 aws-infra/teacher-dashboard-web/.env
 aws-infra/teacher-dashboard-web/.env.example
 
-# IDE
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS
+# OS files
 .DS_Store
 Thumbs.db
 
@@ -82,7 +83,7 @@ dist/
 *.tmp
 *.temp
 
-#Stuadaxis-specific
+# Stuadaxis-specific
 imported-ui/
 imported-ui-one/
 docs/
@@ -103,11 +104,6 @@ SYNC_UI_DEMO_GUIDE.md
 DAY1_PROGRESS.md
 
 # Additional markdown and env files for security/privacy
-.env
-local-app/.env
-local-app/.env.example
-aws-infra/teacher-dashboard-web/.env
-aws-infra/teacher-dashboard-web/.env.example
 DAY1_PROGRESS.md
 local-app/INTEGRATION_CHECKLIST.md
 local-app/README_SYNC_ORCHESTRATOR.md
@@ -120,4 +116,4 @@ local-app/CONFLICT_RESOLUTION_INTEGRATION.md
 local-app/README_CONFLICT_RESOLUTION.md
 
 # Kiro config (privacy/security)
-.kiro/specs/aws-infrastructure-elevation/.config.kiro
+.kiro/specs/aws-infrastructure-elevation/.config

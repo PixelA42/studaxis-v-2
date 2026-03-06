@@ -577,6 +577,7 @@ def show_settings_page() -> None:
         preferences["theme"] = theme
         user_stats["preferences"] = preferences
         save_user_stats(user_stats)
+        st.session_state.theme = theme
         st.rerun()
 
     _render_section_header(

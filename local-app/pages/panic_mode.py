@@ -15,6 +15,7 @@ from typing import Any
 import streamlit as st
 
 from ai_integration_layer import AIEngine, AITaskType
+from ui_components import render_empty_state, render_mode_status_badge
 
 
 _DATA_PATH = Path(__file__).parent.parent / "data" / "user_stats.json"
@@ -156,65 +157,70 @@ def _submit_exam() -> None:
     scores: list[float] = []
     topic_scores: dict[str, list[float]] = {}
 
-    for q in _PANIC_QUESTIONS:
-        answer = answers.get(q["id"], "")
-        grading = ai_engine.request(
-            task_type=AITaskType.GRADING,
-            user_input=answer,
-            context_data={
-                "exam_mode": "panic_mode",
-                "question_id": q["id"],
-                "question": q["question"],
-                "topic": q["topic"],
-                "expected_answer": q["expected_answer"],
-                "rubric": "[PROMPT_TEMPLATE_GRADING]",
-            },
-            offline_mode=offline_mode,
-            privacy_sensitive=True,
-            user_id=st.session_state.get("profile_name"),
-        )
-        score = _local_score(answer, q["expected_answer"])
-        scores.append(score)
-        topic_scores.setdefault(q["topic"], []).append(score)
-        grading_rows.append(
-            {
-                "question_id": q["id"],
-                "topic": q["topic"],
-                "score": score,
-                "feedback": grading.text,
-                "model": grading.metadata.get("model_name"),
+    try:
+        with st.spinner("Submitting panic mode exam for grading..."):
+            for q in _PANIC_QUESTIONS:
+                answer = answers.get(q["id"], "")
+                grading = ai_engine.request(
+                    task_type=AITaskType.GRADING,
+                    user_input=answer,
+                    context_data={
+                        "exam_mode": "panic_mode",
+                        "question_id": q["id"],
+                        "question": q["question"],
+                        "topic": q["topic"],
+                        "expected_answer": q["expected_answer"],
+                        "rubric": "[PROMPT_TEMPLATE_GRADING]",
+                    },
+                    offline_mode=offline_mode,
+                    privacy_sensitive=True,
+                    user_id=st.session_state.get("profile_name"),
+                )
+                score = _local_score(answer, q["expected_answer"])
+                scores.append(score)
+                topic_scores.setdefault(q["topic"], []).append(score)
+                grading_rows.append(
+                    {
+                        "question_id": q["id"],
+                        "topic": q["topic"],
+                        "score": score,
+                        "feedback": grading.text,
+                        "model": grading.metadata.get("model_name"),
+                    }
+                )
+
+            weak_topics_payload = {
+                topic: round(sum(vals) / len(vals), 2) for topic, vals in topic_scores.items()
             }
-        )
+            weak_topic_response = ai_engine.request(
+                task_type=AITaskType.WEAK_TOPIC_DETECTION,
+                user_input="Identify weak topics from this exam result.",
+                context_data={
+                    "exam_mode": "panic_mode",
+                    "topic_scores": weak_topics_payload,
+                    "total_questions": len(_PANIC_QUESTIONS),
+                },
+                offline_mode=offline_mode,
+                privacy_sensitive=True,
+                user_id=st.session_state.get("profile_name"),
+            )
 
-    weak_topics_payload = {
-        topic: round(sum(vals) / len(vals), 2) for topic, vals in topic_scores.items()
-    }
-    weak_topic_response = ai_engine.request(
-        task_type=AITaskType.WEAK_TOPIC_DETECTION,
-        user_input="Identify weak topics from this exam result.",
-        context_data={
-            "exam_mode": "panic_mode",
-            "topic_scores": weak_topics_payload,
-            "total_questions": len(_PANIC_QUESTIONS),
-        },
-        offline_mode=offline_mode,
-        privacy_sensitive=True,
-        user_id=st.session_state.get("profile_name"),
-    )
-
-    recommendation = ai_engine.request(
-        task_type=AITaskType.STUDY_RECOMMENDATION,
-        user_input="Create a post-exam improvement plan.",
-        context_data={
-            "exam_mode": "panic_mode",
-            "topic_scores": weak_topics_payload,
-            "weak_topics_summary": weak_topic_response.text,
-            "study_time_minutes": st.session_state.get("study_time_minutes", "[STUDY_TIME_MINUTES]"),
-        },
-        offline_mode=offline_mode,
-        privacy_sensitive=True,
-        user_id=st.session_state.get("profile_name"),
-    )
+            recommendation = ai_engine.request(
+                task_type=AITaskType.STUDY_RECOMMENDATION,
+                user_input="Create a post-exam improvement plan.",
+                context_data={
+                    "exam_mode": "panic_mode",
+                    "topic_scores": weak_topics_payload,
+                    "weak_topics_summary": weak_topic_response.text,
+                    "study_time_minutes": st.session_state.get("study_time_minutes", "[STUDY_TIME_MINUTES]"),
+                },
+                offline_mode=offline_mode,
+                privacy_sensitive=True,
+                user_id=st.session_state.get("profile_name"),
+            )
+    except Exception as exc:
+        st.error(f"Panic mode submission failed: {exc}")
+        return
 
     _update_stats(scores, topic_scores)
 
@@ -240,6 +246,18 @@ def show_panic_mode() -> None:
 
     st.title("Panic Mode")
     st.caption("Timed exam simulator. Grading + post-exam feedback are routed through AIEngine.")
+    connectivity = st.session_state.get("connectivity_status", "offline")
+    render_mode_status_badge(
+        "Online mode" if connectivity == "online" else "Offline mode - exam is fully local",
+        online=connectivity == "online",
+    )
+
+    if not _PANIC_QUESTIONS:
+        render_empty_state(
+            "No panic mode questions available",
+            "Empty State Illustration Placeholder - add a question set to start the exam simulator.",
+        )
+        return
 
     if not st.session_state.panic_started:
         duration = st.selectbox("Exam duration (minutes)", [15, 30, 60], index=0)

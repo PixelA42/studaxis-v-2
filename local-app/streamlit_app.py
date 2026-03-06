@@ -31,6 +31,7 @@ from performance_ui import (
     inject_performance_ui_css,
     render_model_initialization_screen,
 )
+from preferences import load_user_stats
 from profile_store import UserProfile, load_profile, save_profile
 from sync_manager import SyncManager
 
@@ -83,6 +84,8 @@ def _init_session_state() -> None:
     # Theme + version flags (simplified for MVP)
     if "theme" not in st.session_state:
         st.session_state.theme = "light"
+    if "theme_preference_hydrated" not in st.session_state:
+        st.session_state.theme_preference_hydrated = False
     if "app_version" not in st.session_state:
         st.session_state.app_version = APP_VERSION
     if "last_seen_version" not in st.session_state:
@@ -128,6 +131,15 @@ def _init_session_state() -> None:
     initialize_deployment_ui_state()
 
     init_performance_ui_state()
+
+    if not st.session_state.theme_preference_hydrated:
+        try:
+            theme_pref = load_user_stats().get("preferences", {}).get("theme", "light")
+            if theme_pref in ("light", "dark"):
+                st.session_state.theme = theme_pref
+        except Exception:
+            pass
+        st.session_state.theme_preference_hydrated = True
 
     # Hydrate any existing profile from disk once at startup
     _hydrate_profile_from_disk()

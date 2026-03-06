@@ -118,9 +118,9 @@ def show_conflict_resolution_modal(conflict: ConflictResult):
         .conflict-modal {
             background: rgba(255, 255, 255, 0.95);
             border: 1px solid var(--border-subtle-light, #E2E8F0);
-            border-radius: 20px;
+            border-radius: 18px;
             padding: 32px;
-            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
             backdrop-filter: blur(16px);
         }
         

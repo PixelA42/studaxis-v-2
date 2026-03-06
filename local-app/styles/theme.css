@@ -607,7 +607,7 @@ h1, h2, h3 {
 }
 
 .dashboard-stat-sub {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--db-text-muted);
     margin-top: 2px;
 }
@@ -1010,13 +1010,13 @@ h1, h2, h3 {
     z-index: 1;
     max-width: 720px;
     width: 100%;
-    border-radius: 24px;
+    border-radius: 18px;
     padding: 52px 48px 44px;
     background: rgba(255, 255, 255, 0.82);
     border: 1px solid #E2E8F0;
     box-shadow: 0 24px 64px rgba(15, 23, 42, 0.08);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     text-align: center;
 }
 
@@ -1137,13 +1137,13 @@ h1, h2, h3 {
     z-index: 1;
     max-width: 440px;
     width: 100%;
-    border-radius: 22px;
+    border-radius: 18px;
     padding: 40px 36px 32px;
     background: rgba(255, 255, 255, 0.82);
     border: 1px solid #E2E8F0;
     box-shadow: 0 24px 64px rgba(15, 23, 42, 0.09);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
 }
 
 .auth-logo {
@@ -1722,13 +1722,13 @@ h1, h2, h3 {
 }
 
 .sync-monitor__label {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--db-text-muted, #64748B);
     white-space: nowrap;
 }
 
 .sync-monitor__time {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--db-text-main, #0F172A);
 }
@@ -1810,7 +1810,7 @@ h1, h2, h3 {
 
 .teacher-sync-table thead th {
     text-align: left;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -1915,7 +1915,7 @@ h1, h2, h3 {
 .teacher-sync-badge--partial .teacher-sync-badge__dot { background: #00A8E8; }
 
 .teacher-sync-time {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--db-text-muted, #64748B);
 }
 
@@ -2319,13 +2319,13 @@ h1, h2, h3 {
     position: relative;
     max-width: 480px;
     width: 100%;
-    border-radius: 22px;
+    border-radius: 18px;
     padding: 32px 28px 24px;
     background: rgba(255, 255, 255, 0.96);
     border: 1px solid #E2E8F0;
     box-shadow: 0 32px 80px rgba(15, 23, 42, 0.22);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     animation: modal-enter 0.25s ease-out;
 }
 

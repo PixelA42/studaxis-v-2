@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { GlassCard } from '../dashboard/GlassCard';
 
 interface GraphPlaceholderProps {
@@ -5,7 +6,7 @@ interface GraphPlaceholderProps {
   height?: number;
 }
 
-export function GraphPlaceholder({ title, height = 280 }: GraphPlaceholderProps) {
+function GraphPlaceholderComponent({ title, height = 280 }: GraphPlaceholderProps) {
   return (
     <GlassCard>
       <h3 className="graph-placeholder__title">{title}</h3>
@@ -20,3 +21,5 @@ export function GraphPlaceholder({ title, height = 280 }: GraphPlaceholderProps)
     </GlassCard>
   );
 }
+
+export const GraphPlaceholder = memo(GraphPlaceholderComponent);

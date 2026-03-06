@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { GlassCard } from '../components/dashboard/GlassCard';
 import { AnalyticsFilters } from '../components/analytics/AnalyticsFilters';
 import { GraphPlaceholder } from '../components/analytics/GraphPlaceholder';
@@ -23,6 +23,9 @@ const getDefaultDateRange = () => {
 export function Analytics() {
   const [selectedClass, setSelectedClass] = useState('all');
   const [dateRange, setDateRange] = useState(getDefaultDateRange());
+  const handleDateRangeChange = useCallback((start: string, end: string) => {
+    setDateRange({ start, end });
+  }, []);
 
   const handleExport = () => {
     // UI only — no data logic
@@ -42,7 +45,7 @@ export function Analytics() {
             selectedClass={selectedClass}
             onClassChange={setSelectedClass}
             dateRange={dateRange}
-            onDateRangeChange={(start, end) => setDateRange({ start, end })}
+            onDateRangeChange={handleDateRangeChange}
             classes={DEMO_CLASSES}
           />
         </GlassCard>

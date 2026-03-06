@@ -66,14 +66,14 @@ def render_hardware_warning_modal(
             """
             <div class="hardware-modal-backdrop">
               <div class="hardware-modal-gradient"></div>
-              <div class="hardware-modal-card" role="dialog" aria-modal="true" aria-labelledby="hardware-modal-title">
+              <div class="hardware-modal-card" role="dialog" aria-modal="true" aria-labelledby="hardware-modal-title" aria-describedby="hardware-modal-desc">
                 <div class="hardware-modal-heading-row">
                   <div class="hardware-modal-icon" aria-hidden="true">⚠️</div>
                   <div>
                     <h2 id="hardware-modal-title" class="hardware-modal-title">
                       {headline}
                     </h2>
-                    <p class="hardware-modal-subtitle">
+                    <p id="hardware-modal-desc" class="hardware-modal-subtitle">
                       {subtitle}
                     </p>
                   </div>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 type NotificationStatus = 'read' | 'unread';
 type NotificationPriority = 'low' | 'medium' | 'high';
@@ -16,7 +16,6 @@ interface NotificationItem {
   details: string;
 }
 
-const PLACEHOLDER_UNREAD_COUNT = '[UNREAD_COUNT]';
 const PLACEHOLDER_MESSAGE = '[NOTIFICATION_MESSAGE]';
 const PLACEHOLDER_TIMESTAMP = '[NOTIFICATION_TIMESTAMP]';
 const PLACEHOLDER_EVENT = '[NOTIFICATION_EVENT]';
@@ -88,11 +87,74 @@ const PLACEHOLDER_TEACHER_NOTIFICATIONS: NotificationItem[] = [
 export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>(PLACEHOLDER_TEACHER_NOTIFICATIONS);
+  const panelId = useId();
+  const titleId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
 
   const unreadCount = useMemo(
     () => items.reduce((count, item) => count + (item.status === 'unread' ? 1 : 0), 0),
     [items]
   );
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const panel = panelRef.current;
+    if (!panel) {
+      return;
+    }
+
+    const focusables = panel.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, summary, [tabindex]:not([tabindex="-1"])'
+    );
+    const firstFocusable = focusables[0];
+    firstFocusable?.focus();
+
+    function handleGlobalKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+        triggerRef.current?.focus();
+        return;
+      }
+
+      if (event.key !== 'Tab' || focusables.length === 0) {
+        return;
+      }
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      const panelEl = panelRef.current;
+      if (!panelEl) {
+        return;
+      }
+      const target = event.target as Node;
+      if (!panelEl.contains(target) && !triggerRef.current?.contains(target)) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => {
+      document.removeEventListener('keydown', handleGlobalKeyDown);
+      document.removeEventListener('mousedown', handlePointerDown);
+    };
+  }, [isOpen]);
 
   function markAsRead(itemId: string) {
     setItems((prev) =>
@@ -107,6 +169,7 @@ export function NotificationBell() {
   return (
     <div className="notification-bell" data-open={isOpen ? 'true' : 'false'}>
       <button
+        ref={triggerRef}
         type="button"
         className="notification-bell__button"
         aria-label="Notifications"
@@ -114,30 +177,52 @@ export function NotificationBell() {
         onClick={() => setIsOpen((current) => !current)}
         aria-expanded={isOpen}
         aria-haspopup="dialog"
+        aria-controls={panelId}
       >
         <span className="notification-bell__icon" aria-hidden="true">
           🔔
         </span>
         <span className="notification-bell__count" aria-label={`Unread notifications: ${unreadCount}`}>
-          {PLACEHOLDER_UNREAD_COUNT}
+          {unreadCount}
         </span>
       </button>
 
       {isOpen && (
-        <section className="notification-panel" role="dialog" aria-label="Notifications panel">
+        <section
+          ref={panelRef}
+          id={panelId}
+          className="notification-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+        >
           <header className="notification-panel__header">
             <div>
               <p className="notification-panel__eyebrow">Notifications</p>
-              <h2 className="notification-panel__title">Teacher Notifications</h2>
+              <h2 id={titleId} className="notification-panel__title">
+                Teacher Notifications
+              </h2>
             </div>
-            <button
-              type="button"
-              className="notification-panel__clear-btn"
-              onClick={clearAll}
-              disabled={items.length === 0}
-            >
-              Clear all notifications
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                className="notification-panel__clear-btn"
+                onClick={clearAll}
+                disabled={items.length === 0}
+              >
+                Clear all notifications
+              </button>
+              <button
+                type="button"
+                className="notification-panel__clear-btn"
+                onClick={() => {
+                  setIsOpen(false);
+                  triggerRef.current?.focus();
+                }}
+              >
+                Close
+              </button>
+            </div>
           </header>
 
           {items.length === 0 ? (

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { GlassCard } from './GlassCard';
 
 interface MetricTileProps {
@@ -8,7 +9,7 @@ interface MetricTileProps {
   isLoading?: boolean;
 }
 
-export function MetricTile({ label, value, subText, icon, isLoading }: MetricTileProps) {
+function MetricTileComponent({ label, value, subText, icon, isLoading }: MetricTileProps) {
   return (
     <GlassCard variant="stat">
       {icon && <span className="metric-tile__icon" aria-hidden="true">{icon}</span>}
@@ -24,3 +25,5 @@ export function MetricTile({ label, value, subText, icon, isLoading }: MetricTil
     </GlassCard>
   );
 }
+
+export const MetricTile = memo(MetricTileComponent);

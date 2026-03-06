@@ -122,37 +122,42 @@ def inject_css():
     <style>
     /* ── Soft ambient mesh gradient ────────────────────────────────────────── */
     .stApp {
-        background: linear-gradient(135deg,
-            #fdf6ff 0%, #e8f4f8 25%, #f0faf5 50%, #fff7f0 75%, #f8f0ff 100%);
+        background: linear-gradient(
+            135deg,
+            #f8fafc 0%,
+            #f6f8fb 45%,
+            #fdf7f2 72%,
+            #f8fafc 100%
+        );
         background-attachment: fixed;
     }
 
     /* ── Core glass card ─────────────────────────────────────────────────── */
     .glass-card {
-        background: rgba(255, 255, 255, 0.35);
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.09);
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
-        border-radius: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.45);
+        border-radius: 18px;
+        border: 1px solid #E2E8F0;
         padding: 22px 24px;
         margin-bottom: 18px;
         color: #2d334a;
     }
 
     /* ── 6 gradient profiles ─────────────────────────────────────────────── */
-    .grad-maroon { background: linear-gradient(135deg, #6b0f1a 0%, #b91c28 55%, #e11d3f 100%);
+    .grad-maroon { background: linear-gradient(135deg, #7f1d1d 0%, #b91c28 70%, #e11d48 100%);
                    color: white !important; border: none; }
-    .grad-sage   { background: linear-gradient(135deg, #52796f 0%, #74b49b 60%, #a8d8c2 100%);
+    .grad-sage   { background: linear-gradient(135deg, #bbf7d0 0%, #86efac 70%, #dcfce7 100%);
+                   color: #0f172a !important; border: 1px solid rgba(134, 239, 172, 0.65); }
+    .grad-blue   { background: linear-gradient(135deg, #075985 0%, #0284c7 68%, #38bdf8 100%);
                    color: white !important; border: none; }
-    .grad-blue   { background: linear-gradient(135deg, #1a203c 0%, #1e3a5f 55%, #0ea5e9 100%);
+    .grad-sunset { background: linear-gradient(135deg, #c2410c 0%, #ea580c 70%, #fb923c 100%);
                    color: white !important; border: none; }
-    .grad-sunset { background: linear-gradient(135deg, #c2440e 0%, #ea580c 55%, #fb923c 100%);
+    .grad-purple { background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 68%, #c4b5fd 100%);
                    color: white !important; border: none; }
-    .grad-purple { background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 55%, #c4b5fd 100%);
-                   color: white !important; border: none; }
-    .grad-slate  { background: linear-gradient(135deg, #64748b 0%, #94a3b8 60%, #cbd5e1 100%);
-                   color: white !important; border: none; }
+    .grad-slate  { background: linear-gradient(135deg, #cbd5e1 0%, #e2e8f0 65%, #f8fafc 100%);
+                   color: #0f172a !important; border: 1px solid rgba(148, 163, 184, 0.5); }
 
     /* ── Metric display ───────────────────────────────────────────────────── */
     .metric-big   { font-size: 2.4rem; font-weight: 800; line-height: 1;
