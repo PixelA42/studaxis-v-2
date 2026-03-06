@@ -483,6 +483,10 @@ def render_model_initialization_screen(
     status_text: str = "Preparing AI engine...",
 ) -> None:
     """Render the AI engine loading screen with milestone-based progress (no JS timer)."""
+    # 🚨 THE FAILSAFE: If already booted, completely abort rendering!
+    if st.session_state.get("app_booted", False):
+        return
+
     progress = max(0, min(100, progress))
     pct_str = f"{progress:02d}"
 

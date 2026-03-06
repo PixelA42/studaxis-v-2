@@ -886,79 +886,74 @@ def main() -> None:
         layout="wide",
         initial_sidebar_state="collapsed",
     )
-    _inject_global_css()
 
-    # --- STATE INITIALIZATION: one-time model load gate ---
-    if "model_loaded" not in st.session_state:
-        st.session_state.model_loaded = False
+    # 1. STATE INITIALIZATION — Boot gate flag (must persist across reruns)
+    st.session_state.setdefault("app_booted", False)
+    st.session_state.setdefault("model_loaded", False)
 
-    # --- LOADING BLOCK: run BEFORE sidebar or page content ---
-    if not st.session_state.get("model_loaded", False):
-        inject_performance_ui_css()
-        loader_ui = st.empty()
-
-        # Milestone 1: Hardware constraints
-        with loader_ui.container():
+    # 2. THE BOOT GATE — Runs before ANY sidebar or layout code; loading screen shows exactly once
+    if not st.session_state.app_booted:
+        boot_ui = st.empty()
+        with boot_ui.container():
             render_model_initialization_screen(15, "Verifying hardware constraints...")
-        try:
-            from pages.hardware_validator import HardwareValidator
-            validator = HardwareValidator()
-            validator.validate()
-        except Exception:
-            pass
-        time.sleep(0.5)
+            try:
+                from pages.hardware_validator import HardwareValidator
+                validator = HardwareValidator()
+                validator.validate()
+            except Exception:
+                pass
+            time.sleep(0.5)
 
-        # Milestone 2: ChromaDB / vector store (stub; add real init when available)
-        with loader_ui.container():
+        with boot_ui.container():
             render_model_initialization_screen(40, "Initializing ChromaDB Vector Store...")
         time.sleep(0.5)
 
-        # Milestone 3: Load Ollama model (heavy blocking task)
-        with loader_ui.container():
+        with boot_ui.container():
             render_model_initialization_screen(75, "Loading Llama 3.2 into memory...")
         success, error_msg = load_ollama_model()
         st.session_state.ollama_available = success
         st.session_state.ollama_error = error_msg
 
-        # Milestone 4: Ready
-        with loader_ui.container():
+        with boot_ui.container():
             render_model_initialization_screen(100, "System Ready.")
         time.sleep(0.5)
 
+        st.session_state.app_booted = True
         st.session_state.model_loaded = True
-        loader_ui.empty()
+        boot_ui.empty()
         st.rerun()
-        st.stop()
+        st.stop()  # CRITICAL: prevents any other code (sidebar, layout) from running during boot
 
+    # 3. MAIN APP SHELL — Only reached when app_booted is True
+    _inject_global_css()
     _init_session_state()
     inject_performance_ui_css()
 
     if not st.session_state.get("boot_complete", False):
         render_boot_flow()
         return
-    
-    page = st.session_state.get("page", "dashboard")
-    
+
+    current_page = st.session_state.get("page", "dashboard")
     pages_without_sidebar = {"landing", "auth", "teacher_insights", "error_demo"}
-    
-    if page not in pages_without_sidebar:
+
+    if current_page not in pages_without_sidebar:
         inject_sidebar_layout_css()
         if _apply_page_from_url():
             st.rerun()
-        page = _render_sidebar_and_get_page()
-        # Dev: reset AI loader so the model init screen can be shown again
+        current_page = _render_sidebar_and_get_page()
+        # Dev: reset boot gate so the model init screen can be shown again
         if st.sidebar.button("🛠️ Dev: Reset AI Loader"):
+            st.session_state.app_booted = False
             st.session_state.model_loaded = False
             st.rerun()
-    
-    if page == "landing":
+
+    if current_page == "landing":
         show_landing()
-    elif page == "auth":
+    elif current_page == "auth":
         show_auth()
-    elif page == "dashboard":
+    elif current_page == "dashboard":
         theme = st.session_state.get("theme", "light")
         profile_name = st.session_state.get("profile_name", "Student")
-        
         render_hero_header(
             title="Welcome back",
             name=profile_name,
@@ -967,27 +962,27 @@ def main() -> None:
             theme=theme,
         )
         show_dashboard()
-    elif page == "chat":
+    elif current_page == "chat":
         show_chat()
-    elif page == "quiz":
+    elif current_page == "quiz":
         show_quiz()
-    elif page == "flashcards":
+    elif current_page == "flashcards":
         show_flashcards()
-    elif page == "settings":
+    elif current_page == "settings":
         show_settings()
-    elif page == "panic_mode":
+    elif current_page == "panic_mode":
         show_panic_mode()
-    elif page == "insights":
+    elif current_page == "insights":
         show_insights()
-    elif page == "conflicts":
+    elif current_page == "conflicts":
         show_conflicts_page()
-    elif page == "profile":
+    elif current_page == "profile":
         show_profile()
-    elif page == "sync_status":
+    elif current_page == "sync_status":
         _show_sync_status_page()
-    elif page == "teacher_insights":
+    elif current_page == "teacher_insights":
         show_teacher_insights_dashboard()
-    elif page == "error_demo":
+    elif current_page == "error_demo":
         show_error_demo()
 
 
