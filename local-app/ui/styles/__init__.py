@@ -13,6 +13,7 @@ _CSS_LOAD_ORDER = [
     "glass.css",
     "components.css",
     "hardware.css",
+    "sidebar.css",
     "dashboard.css",
     "landing.css",
     "auth.css",

@@ -15,16 +15,20 @@ import streamlit as st
 from deployment_ui import initialize_deployment_ui_state
 from pages.auth import show_auth
 from pages.chat import show_chat
+from pages.conflicts import show_conflicts_page
 from pages.dashboard import show_dashboard
 from pages.error_demo import show_error_demo
 from pages.flashcards import show_flashcards
-from pages.panic_mode import show_panic_mode
-from pages.quiz import show_quiz
-from pages.settings import show_settings
-from pages.teacher_insights_dashboard import show_teacher_insights_dashboard
 from pages.hardware_modal import render_hardware_warning_modal
 from pages.hardware_validator import HardwareValidator
+from pages.insights import show_insights
 from pages.landing import show_landing
+from pages.panic_mode import show_panic_mode
+from pages.profile import show_profile
+from pages.quiz import show_quiz
+from pages.settings import show_settings
+from pages.sync_status import show_sync_status_panel
+from pages.teacher_insights_dashboard import show_teacher_insights_dashboard
 from performance_ui import (
     apply_performance_mode_from_hardware,
     init_performance_ui_state,
@@ -35,6 +39,12 @@ from preferences import load_user_stats
 from profile_store import UserProfile, load_profile, save_profile
 from sync_manager import SyncManager
 from ui.components.glass_card import render_boot_card
+from ui.components.sidebar import (
+    get_current_page,
+    inject_sidebar_layout_css,
+    render_hero_header,
+    render_sidebar,
+)
 from ui.styles import inject_all_css
 
 
@@ -70,7 +80,16 @@ def _hydrate_profile_from_disk() -> None:
 
 
 def _inject_global_css() -> None:
-    """Inject global theme and component CSS once."""
+    """Inject global theme and component CSS once. Hide default Streamlit UI from first paint."""
+    hide_default_ui = """
+    <style>
+    #MainMenu { visibility: hidden; }
+    header[data-testid="stHeader"] { visibility: hidden; height: 0; }
+    footer { visibility: hidden; }
+    section[data-testid="stSidebar"] { display: none !important; }
+    </style>
+    """
+    st.markdown(hide_default_ui, unsafe_allow_html=True)
     css_path = Path(__file__).parent / "styles" / "theme.css"
     if css_path.exists():
         css = css_path.read_text(encoding="utf-8")
@@ -794,23 +813,111 @@ def _show_feature_placeholder(title: str, icon: str, description: str) -> None:
             st.rerun()
 
 
+def _apply_page_from_url() -> bool:
+    """If URL has ?page=..., sync to session_state and return True to rerun."""
+    valid_pages = {
+        "dashboard", "chat", "quiz", "flashcards", "settings",
+        "panic_mode", "insights", "conflicts", "profile", "sync_status",
+        "teacher_insights", "error_demo", "landing", "auth",
+    }
+    page = get_current_page()
+    if page not in valid_pages:
+        page = "dashboard"
+    current = st.session_state.get("page", "dashboard")
+    if page != current:
+        st.session_state.page = page
+        return True
+    return False
+
+
+def _render_sidebar_and_get_page() -> str:
+    """Render sidebar and return current page (from URL / session_state)."""
+    current_page = get_current_page()
+    st.session_state.page = current_page
+    profile_name = st.session_state.get("profile_name", "Student")
+    theme = st.session_state.get("theme", "light")
+    connectivity = st.session_state.get("connectivity_status", "offline")
+    
+    conflicts_count = 0
+    orchestrator = st.session_state.get("orchestrator")
+    if orchestrator and hasattr(orchestrator, "get_pending_conflicts"):
+        try:
+            conflicts_count = len(orchestrator.get_pending_conflicts())
+        except Exception:
+            pass
+    
+    render_sidebar(
+        current_page=current_page,
+        profile_name=profile_name,
+        conflicts_count=conflicts_count,
+        sync_status=connectivity,
+        theme=theme,
+    )
+    
+    return current_page
+
+
+def _show_sync_status_page() -> None:
+    """Render sync status page with orchestrator if available."""
+    orchestrator = st.session_state.get("orchestrator")
+    preferences = st.session_state.get("user_preferences", {})
+    
+    if orchestrator:
+        show_sync_status_panel(orchestrator, preferences)
+    else:
+        st.title("📡 Sync Status")
+        st.info(
+            "Sync orchestrator not initialized. This page shows sync status "
+            "when cloud connectivity is configured."
+        )
+        
+        connectivity = st.session_state.get("connectivity_status", "offline")
+        st.markdown(f"**Current Status:** {'🟢 Online' if connectivity == 'online' else '⚪ Offline'}")
+        
+        if st.button("← Back to Dashboard"):
+            st.session_state.page = "dashboard"
+            st.rerun()
+
+
 def main() -> None:
+    st.set_page_config(
+        page_title="Studaxis",
+        layout="wide",
+        initial_sidebar_state="collapsed",
+    )
     _inject_global_css()
     _init_session_state()
     inject_performance_ui_css()
-    # Visual boot flow runs before any dashboard or landing content.
+    
     if not st.session_state.get("boot_complete", False):
         render_boot_flow()
         return
-
-    # Normal page routing after boot is complete
-    page = st.session_state.page
-
+    
+    page = st.session_state.get("page", "dashboard")
+    
+    pages_without_sidebar = {"landing", "auth", "teacher_insights", "error_demo"}
+    
+    if page not in pages_without_sidebar:
+        inject_sidebar_layout_css()
+        if _apply_page_from_url():
+            st.rerun()
+        page = _render_sidebar_and_get_page()
+    
     if page == "landing":
         show_landing()
     elif page == "auth":
         show_auth()
     elif page == "dashboard":
+        theme = st.session_state.get("theme", "light")
+        profile_name = st.session_state.get("profile_name", "Student")
+        
+        render_hero_header(
+            title="Welcome back",
+            name=profile_name,
+            subtitle="Your AI-powered learning companion is ready",
+            show_cta=False,
+            theme=theme,
+        )
         show_dashboard()
     elif page == "chat":
         show_chat()
@@ -822,6 +929,14 @@ def main() -> None:
         show_settings()
     elif page == "panic_mode":
         show_panic_mode()
+    elif page == "insights":
+        show_insights()
+    elif page == "conflicts":
+        show_conflicts_page()
+    elif page == "profile":
+        show_profile()
+    elif page == "sync_status":
+        _show_sync_status_page()
     elif page == "teacher_insights":
         show_teacher_insights_dashboard()
     elif page == "error_demo":

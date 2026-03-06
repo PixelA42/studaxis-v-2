@@ -449,28 +449,29 @@ def _render_footer(connectivity_status: str, last_sync_raw: str | None) -> None:
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 
-def show_dashboard() -> None:
+def show_dashboard(skip_header: bool = True) -> None:
     """
     Render the Student Dashboard (Solo Mode).
 
     Reads user_stats.json for live data; falls back gracefully to zeros.
     Session state consumed: theme, profile_name, profile_mode, connectivity_status.
+    
+    Args:
+        skip_header: If True, skip rendering the dashboard header (used when
+                     hero header is rendered by the main app with sidebar).
     """
     stats = _load_user_stats()
 
-    # Pull session state values with safe defaults
     theme = st.session_state.get("theme", "light")
     profile_name = st.session_state.get("profile_name") or stats.get("user_id", "Student")
     profile_mode = st.session_state.get("profile_mode", "solo")
     connectivity_status = st.session_state.get("connectivity_status", "offline")
 
-    # Hydrate theme from stored preference on first load
     stored_theme = stats.get("preferences", {}).get("theme", "light")
     if "theme" not in st.session_state:
         st.session_state.theme = stored_theme
         theme = stored_theme
 
-    # Stat values
     streak_data = stats.get("streak", {})
     streak_current = streak_data.get("current", 0)
     streak_longest = streak_data.get("longest", 0)
@@ -487,23 +488,22 @@ def show_dashboard() -> None:
     last_sync = stats.get("last_sync_timestamp")
     sync_enabled = stats.get("preferences", {}).get("sync_enabled", True)
 
-    # Inject dynamic CSS tokens for chosen theme
     _inject_dashboard_css(theme)
 
     render_background_blobs()
     render_page_root_open("dashboard", theme)
 
-    _render_header(
-        profile_name=profile_name,
-        streak=streak_current,
-        theme=theme,
-        connectivity_status=connectivity_status,
-        profile_mode=profile_mode,
-        sync_enabled=sync_enabled,
-        low_power_mode=st.session_state.get("low_power_mode_active", False),
-    )
+    if not skip_header:
+        _render_header(
+            profile_name=profile_name,
+            streak=streak_current,
+            theme=theme,
+            connectivity_status=connectivity_status,
+            profile_mode=profile_mode,
+            sync_enabled=sync_enabled,
+            low_power_mode=st.session_state.get("low_power_mode_active", False),
+        )
 
-    # ── Sync Monitoring Indicator (placeholder-driven) ─────────
     sync_status = st.session_state.get("sync_status", "[SYNC_STATUS]")
     last_sync_time = st.session_state.get("last_sync_time", "[LAST_SYNC_TIME]")
     partial_sync_status = st.session_state.get("partial_sync_status", None)

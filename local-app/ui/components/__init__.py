@@ -25,3 +25,10 @@ from ui.components.page_chrome import (
     render_page_root_close,
     render_page_root_open,
 )
+from ui.components.sidebar import (
+    get_current_page,
+    inject_sidebar_layout_css,
+    render_compact_header,
+    render_hero_header,
+    render_sidebar,
+)
