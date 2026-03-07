@@ -4,7 +4,7 @@
 
 ```
 studaxis-vtwo/
-├── local-app/              # Student-facing edge application
+├── backend/              # Student-facing edge application
 │   ├── streamlit_app.py    # Main Streamlit UI (bento grid, navigation)
 │   ├── hardware_validator.py  # RAM/CPU checks, quantization recommendations
 │   ├── quiz_engine.py      # Quiz presentation, submission, AI grading
@@ -308,7 +308,7 @@ bedrock = boto3.client('bedrock-runtime')
 ### Local App Deployment
 - Bundled installer with Python + Ollama + dependencies
 - User runs `init.py` for first-time setup
-- Streamlit app launches via `streamlit run local-app/streamlit_app.py`
+- Streamlit app launches via `streamlit run backend/streamlit_app.py`
 
 ### AWS Deployment
 - CloudFormation stack for infrastructure

@@ -1,0 +1,31 @@
+{
+  "user_id": "student_001",
+  "last_sync_timestamp": "2026-03-04T07:36:51.764791",
+  "streak": {
+    "current": 0,
+    "longest": 0,
+    "last_activity_date": "2026-03-04"
+  },
+  "quiz_stats": {
+    "total_attempted": 0,
+    "total_correct": 0,
+    "average_score": 0.0,
+    "by_topic": {}
+  },
+  "flashcard_stats": {
+    "total_reviewed": 0,
+    "mastered": 0,
+    "due_for_review": 0
+  },
+  "chat_history": [],
+  "preferences": {
+    "difficulty_level": "Beginner",
+    "theme": "light",
+    "language": "English"
+  },
+  "hardware_info": {
+    "ram_gb": 15.69,
+    "cpu_model": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "disk_space_gb": 159.66
+  }
+}

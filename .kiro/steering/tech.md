@@ -153,19 +153,19 @@ ollama pull llama3:3b
 ollama list
 
 # Run hardware validation
-python local-app/hardware_validator.py
+python backend/pages/hardware_validator.py
 
 # Test Ollama client
-python local-app/utils/ollama_client.py
+python backend/utils/ollama_client.py
 
 # Test local storage
-python local-app/utils/local_storage.py
+python backend/utils/local_storage.py
 
 # Launch Streamlit app
-streamlit run local-app/streamlit_app.py
+streamlit run backend/streamlit_app.py
 
 # Launch on different port
-streamlit run local-app/streamlit_app.py --server.port 8502
+streamlit run backend/streamlit_app.py --server.port 8502
 ```
 
 ### AWS Operations
@@ -206,7 +206,7 @@ pytest tests/
 pytest tests/test_quiz_engine.py
 
 # Run with coverage
-pytest --cov=local-app tests/
+pytest --cov=backend tests/
 
 # Property-based tests (Hypothesis)
 pytest tests/ -k "property"

@@ -1,0 +1,44 @@
+[
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "student_001",
+      "quizId": "quiz_test_001",
+      "score": 8,
+      "totalQuestions": 10,
+      "subject": "Mathematics",
+      "difficulty": "Medium",
+      "deviceId": "local-device",
+      "completedAtLocal": "2026-03-04T11:54:22.474998+00:00"
+    },
+    "queued_at": "2026-03-04T11:54:22.474998+00:00",
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "mutation_type": "updateStreak",
+    "payload": {
+      "userId": "student_001",
+      "currentStreak": 5
+    },
+    "queued_at": "2026-03-04T11:54:22.477849+00:00",
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "student_001",
+      "quizId": "quiz_history_001",
+      "score": 8,
+      "totalQuestions": 10,
+      "subject": "General",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-05T18:11:02.172553+00:00"
+    },
+    "queued_at": "2026-03-05T18:11:02.172553+00:00",
+    "retry_count": 0,
+    "last_error": ""
+  }
+]
