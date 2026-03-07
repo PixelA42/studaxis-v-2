@@ -11,6 +11,20 @@ import { Icons } from "../components/icons";
 import type { UserStats } from "../services/api";
 import { getUserStats } from "../services/api";
 
+/** Flame icon for streak badge — Studaxis accent-coral */
+const FlameIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
+    <path
+      d="M12 2C12 2 8 6.5 8 10.5C8 12.985 9.79 15 12 15C14.21 15 16 12.985 16 10.5C16 9.2 15.3 8.1 14.5 7.2C14.5 7.2 14 9 12.5 9C11.5 9 11 8 11 8C11 8 12 5.5 12 2Z"
+      fill="#FD8A6B"
+    />
+    <path
+      d="M12 13C10.343 13 9 14.343 9 16C9 18.5 10.5 20.5 12 22C13.5 20.5 15 18.5 15 16C15 14.343 13.657 13 12 13Z"
+      fill="#FEC288"
+    />
+  </svg>
+);
+
 function formatLastSync(iso: string | null | undefined): string {
   if (!iso) return "Never synced";
   try {
@@ -71,40 +85,111 @@ export function DashboardPage() {
     .toUpperCase()
     .slice(0, 2) || "S";
 
+  const dark = theme === "dark";
+  const isOnline = connectivityStatus === "online";
+
   return (
     <div className="space-y-6">
       <div className="ambient-glow" aria-hidden />
-      <header className="content-card rounded-card border border-glass-border p-5 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <header
+        className="content-card border border-glass-border overflow-hidden transition-shadow duration-300 hover:shadow-soft"
+        style={{
+          borderRadius: "20px",
+          padding: "0 28px",
+          height: "76px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "16px",
+        }}
+      >
+        {/* LEFT: Avatar + Name */}
+        <div className="flex items-center gap-[14px] flex-shrink-0">
           <div
-            className="w-12 h-12 rounded-xl bg-chunk-blue flex items-center justify-center text-white font-extrabold"
+            className="w-11 h-11 rounded-[13px] flex items-center justify-center text-white font-bold text-[17px] tracking-tight flex-shrink-0"
+            style={{
+              background: "linear-gradient(135deg, #00A8E8 0%, #0284c7 100%)",
+              boxShadow: "0 3px 10px rgba(0,168,232,0.35)",
+            }}
             aria-hidden
           >
             {initials}
           </div>
           <div>
-            <h1 className="text-xl font-extrabold font-anchor-bold text-heading-dark">
-              Welcome back, <span className="text-chunk-pink">{name}</span>
+            <h1 className="text-[15px] font-semibold leading-tight tracking-tight text-primary">
+              Welcome back,{" "}
+              <span className="text-[#FA5C5C] font-bold">{name}</span>
             </h1>
-            <p className="text-sm font-semibold text-heading-dark/70">Personal Mastery - AI Tutor ready</p>
+            <p className="text-xs text-muted font-normal mt-0.5 tracking-wide">
+              Personal Mastery · AI Tutor ready
+            </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="flex items-center gap-1.5 text-sm font-semibold text-heading-dark/90">
-            {Icons.streak} {streak} day{streak !== 1 ? "s" : ""}
+
+        {/* DIVIDER */}
+        <div
+          className="w-px h-9 flex-shrink-0"
+          style={{ background: "var(--glass-border)" }}
+        />
+
+        {/* CENTER: Streak badge */}
+        <div
+          className="flex items-center gap-[7px] rounded-[10px] px-3.5 py-[7px] flex-shrink-0 cursor-default transition-transform duration-150 hover:scale-[1.02]"
+          style={{
+            background: dark ? "rgba(253,138,107,0.1)" : "rgba(253,138,107,0.07)",
+            border: `1px solid ${dark ? "rgba(253,138,107,0.2)" : "rgba(253,138,107,0.15)"}`,
+          }}
+        >
+          <FlameIcon />
+          <span className="text-[13.5px] font-semibold text-[#FD8A6B] tracking-tight">
+            {streak} day{streak !== 1 ? "s" : ""}
           </span>
-          <span className="px-2.5 py-1 rounded-lg border border-glass-border text-xs font-semibold text-heading-dark/80">
+        </div>
+
+        {/* DIVIDER */}
+        <div
+          className="w-px h-9 flex-shrink-0"
+          style={{ background: "var(--glass-border)" }}
+        />
+
+        {/* RIGHT: Pills + Theme toggle */}
+        <div className="flex items-center gap-2.5 flex-shrink-0">
+          <span
+            className="rounded-[9px] px-3.5 py-[7px] text-[13px] font-medium text-muted transition-all duration-200 hover:-translate-y-px border border-glass-border"
+            style={{
+              background: dark ? "#252836" : "#f1f3f8",
+            }}
+          >
             {modeLabel}
           </span>
-          <StatusIndicator status={connectivityStatus} />
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-[9px] px-3 py-[7px] text-[13px] font-medium transition-all duration-200 hover:-translate-y-px ${
+              isOnline
+                ? dark
+                  ? "bg-success/10 border border-success/25 text-success"
+                  : "bg-success/10 border border-success/20 text-success"
+                : "bg-surface-light border border-glass-border text-muted"
+            }`}
+          >
+            <span
+              className={`w-[7px] h-[7px] rounded-full flex-shrink-0 ${
+                isOnline ? "bg-success animate-pulse" : "bg-muted"
+              }`}
+            />
+            {isOnline ? "Online" : "Offline"}
+          </span>
           <button
             type="button"
             onClick={toggleTheme}
-            className="px-3 py-1.5 rounded-lg border border-glass-border text-xs font-semibold text-heading-dark/80 hover:bg-surface-light transition-colors"
-            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            className="rounded-[9px] w-9 h-[34px] flex items-center justify-center text-muted transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-accent-blue/30"
+            style={{
+              background: dark ? "#252836" : "var(--surface-light)",
+              border: "1px solid var(--glass-border)",
+            }}
+            title={dark ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
           >
-            {theme === "dark" ? <>{Icons.sun} Light</> : <>{Icons.moon} Dark</>}
+            {dark ? Icons.sun : Icons.moon}
           </button>
         </div>
       </header>
