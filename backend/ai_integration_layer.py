@@ -33,6 +33,7 @@ class AITaskType(str, Enum):
     GRADING = "grading"
     FLASHCARD_EXPLANATION = "flashcard_explanation"
     FLASHCARD_GENERATION = "flashcard_generation"
+    QUIZ_GENERATION = "quiz_generation"
     WEAK_TOPIC_DETECTION = "weak_topic_detection"
     STUDY_RECOMMENDATION = "study_recommendation"
     TEACHER_ANALYTICS_INSIGHT = "teacher_analytics_insight"
@@ -156,6 +157,12 @@ class PromptTemplateLibrary:
                 system_instruction="Generate study flashcards as a raw JSON array only.",
                 context_rules="Use input topic or chapter name and requested count.",
                 response_format_rules="Output ONLY a JSON array of objects with id, topic, front, back. No markdown or explanation.",
+            ),
+            AITaskType.QUIZ_GENERATION: PromptTemplate(
+                name="[PROMPT_TEMPLATE_QUIZ_GENERATION]",
+                system_instruction="Generate open-ended exam questions from the given content as a raw JSON array only.",
+                context_rules="Use the provided source content and subject. Generate questions suitable for written answers.",
+                response_format_rules="Output ONLY a JSON array of objects with id, topic, question, expected_answer. No markdown or explanation.",
             ),
             AITaskType.WEAK_TOPIC_DETECTION: PromptTemplate(
                 name="[PROMPT_TEMPLATE_WEAK_TOPIC_DETECTION]",
@@ -391,6 +398,15 @@ class AIEngine:
                 f"Generate {count} flashcards about the {scope}: {input_text}. "
                 "You MUST respond ONLY with a raw JSON array of objects. Do not include markdown formatting or explanations. "
                 'Format: [{"id": "1", "topic": "...", "front": "...", "back": "..."}, ...]'
+            )
+        if task_type == AITaskType.QUIZ_GENERATION:
+            subject = context_data.get("subject", "General")
+            count = context_data.get("count", 5)
+            return (
+                f"Generate {count} open-ended exam questions for the subject: {subject}. "
+                "Base questions on the provided content. "
+                "You MUST respond ONLY with a raw JSON array of objects. Do not include markdown or explanations. "
+                'Format: [{"id": "q1", "topic": "' + subject + '", "question": "...", "expected_answer": "..."}, ...]'
             )
         if task_type == AITaskType.STUDY_RECOMMENDATION:
             topic = context_data.get("topic", "[topic unknown]")

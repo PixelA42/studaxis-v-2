@@ -5,7 +5,7 @@
  */
 
 import { useState, useMemo, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { postSignup } from "../services/api";
 
@@ -49,8 +49,13 @@ export function Auth() {
   const [loginPassword, setLoginPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signup, login } = useAuth();
+  const { isAuthenticated, profile, signup, loginWithCredentials } = useAuth();
   const navigate = useNavigate();
+
+  // Already registered/logged in → go to dashboard or onboarding based on completion
+  if (isAuthenticated) {
+    return <Navigate to={profile.onboarding_complete ? "/dashboard" : "/onboarding"} replace />;
+  }
 
   // URL-based mode: /auth/login → Sign In, /auth or /auth/signup → Sign Up
   useEffect(() => {
@@ -128,9 +133,14 @@ export function Auth() {
         password,
       });
       signup(res);
-      navigate("/dashboard", { replace: true });
+      navigate("/onboarding", { replace: true, state: { startFrom: "otp", email: email.trim().toLowerCase() } });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
+      const msg = err instanceof Error ? err.message : "Signup failed. Please try again.";
+      setError(msg);
+      // Already registered → redirect to login
+      if (typeof msg === "string" && /already (exists|registered)/i.test(msg)) {
+        navigate("/auth/login", { replace: true });
+      }
     } finally {
       setLoading(false);
     }
@@ -142,8 +152,8 @@ export function Auth() {
     if (!canLogin) return;
     setLoading(true);
     try {
-      await login(usernameOrEmail.trim(), loginPassword);
-      navigate("/dashboard", { replace: true });
+      await loginWithCredentials(usernameOrEmail.trim(), loginPassword);
+      navigate(profile.onboarding_complete ? "/dashboard" : "/onboarding", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid credentials. Please try again.");
     } finally {

@@ -3,13 +3,17 @@
  * Integrated with backend /api/chat (Ollama + RAG), getUserStats, updateUserStats.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import {
   getUserStats,
   updateUserStats,
   postChat,
+  getTextbooks,
+  uploadTextbook,
+  ragSearch,
   type ChatMessage,
 } from "../services/api";
 
@@ -30,12 +34,15 @@ const QUICK_CHIPS = [
   "Check my answer",
 ];
 
+const SUBJECTS = ["General", "Maths", "Science", "Computer Science", "Biology", "Chem", "Physics"] as const;
+
 const SUBJECT_COLORS: Record<string, string> = {
   Physics: "#FA5C5C",
   Biology: "#10b981",
-  Math: "#00a8e8",
-  History: "#FD8A6B",
-  Chemistry: "#FEC288",
+  Maths: "#00a8e8",
+  Science: "#FD8A6B",
+  "Computer Science": "#FEC288",
+  Chem: "#8b5cf6",
   General: "#9ca3af",
 };
 
@@ -108,8 +115,85 @@ export function ChatPage() {
   const [clarifyInputs, setClarifyInputs] = useState<Record<number, string>>({});
   const [clarifyExpanded, setClarifyExpanded] = useState<Record<number, boolean>>({});
   const [error, setError] = useState<string | null>(null);
+  const [subject, setSubject] = useState<string>("General");
+  const [activeTextbook, setActiveTextbook] = useState<string | null>(null);
+  const [textbooks, setTextbooks] = useState<{ id: string; name: string }[]>([]);
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [subjectOpen, setSubjectOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<{ content: string; source?: string; subject?: string }[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const attachRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const subjectRef = useRef<HTMLDivElement>(null);
+  const attachDropdownRef = useRef<HTMLDivElement>(null);
+  const searchDropdownRef = useRef<HTMLDivElement>(null);
+  const subjectDropdownRef = useRef<HTMLDivElement>(null);
+
+  type DropdownPos = { top: number; left: number; width: number; bottom: number };
+  const [attachPos, setAttachPos] = useState<DropdownPos | null>(null);
+  const [searchPos, setSearchPos] = useState<DropdownPos | null>(null);
+  const [subjectPos, setSubjectPos] = useState<DropdownPos | null>(null);
+
+  /** Open upward when more space above; else open downward. Constrain to viewport so dropdown stays visible. */
+  const getDropdownPlacement = useCallback((pos: DropdownPos) => {
+    if (typeof window === "undefined") {
+      return { top: pos.top - 4, transform: "translateY(-100%)" as const, maxHeight: 320 };
+    }
+    const spaceAbove = pos.top;
+    const spaceBelow = window.innerHeight - pos.bottom;
+    const openUp = spaceAbove >= spaceBelow;
+    const gap = 8;
+    const maxHeight = openUp
+      ? Math.max(120, spaceAbove - gap)
+      : Math.max(120, spaceBelow - gap);
+    return openUp
+      ? { top: pos.top - 4, transform: "translateY(-100%)" as const, maxHeight }
+      : { top: pos.bottom + 4, maxHeight };
+  }, []);
+
+  const updatePositions = useCallback(() => {
+    if (attachOpen && attachRef.current) {
+      const r = attachRef.current.getBoundingClientRect();
+      setAttachPos({ top: r.top, left: r.left, width: r.width, bottom: r.bottom });
+    } else {
+      setAttachPos(null);
+    }
+    if (searchOpen && searchRef.current) {
+      const r = searchRef.current.getBoundingClientRect();
+      setSearchPos({ top: r.top, left: r.left, width: r.width, bottom: r.bottom });
+    } else {
+      setSearchPos(null);
+    }
+    if (subjectOpen && subjectRef.current) {
+      const r = subjectRef.current.getBoundingClientRect();
+      setSubjectPos({ top: r.top, left: r.left, width: r.width, bottom: r.bottom });
+    } else {
+      setSubjectPos(null);
+    }
+  }, [attachOpen, searchOpen, subjectOpen]);
+
+  useLayoutEffect(() => {
+    updatePositions();
+  }, [updatePositions]);
+
+  useEffect(() => {
+    if (!attachOpen && !searchOpen && !subjectOpen) return;
+    const onScrollOrResize = () => updatePositions();
+    window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("resize", onScrollOrResize);
+    const main = document.querySelector("main");
+    if (main) main.addEventListener("scroll", onScrollOrResize);
+    return () => {
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("resize", onScrollOrResize);
+      main?.removeEventListener("scroll", onScrollOrResize);
+    };
+  }, [attachOpen, searchOpen, subjectOpen, updatePositions]);
 
   const loadInitial = useCallback(async () => {
     try {
@@ -132,6 +216,10 @@ export function ChatPage() {
   useEffect(() => {
     loadInitial();
   }, [loadInitial]);
+
+  useEffect(() => {
+    getTextbooks().then((r) => setTextbooks(r.textbooks)).catch(() => setTextbooks([]));
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -167,8 +255,8 @@ export function ChatPage() {
           context: {
             difficulty: level,
             chat_history: next.slice(-20).map((m) => ({ role: m.role, content: m.content })),
-            subject: undefined,
-            active_textbook: "[ACTIVE_TEXTBOOK]",
+            subject: subject !== "General" ? subject : undefined,
+            active_textbook: activeTextbook ?? undefined,
             user_id: profile.profile_name ?? null,
           },
         });
@@ -193,8 +281,62 @@ export function ChatPage() {
         setLoading(false);
       }
     },
-    [messages, level, profile.profile_name, saveHistory]
+    [messages, level, subject, activeTextbook, profile.profile_name, saveHistory]
   );
+
+  useEffect(() => {
+    getTextbooks().then((r) => setTextbooks(r.textbooks)).catch(() => setTextbooks([]));
+  }, [attachOpen]);
+
+  const handleTextbookUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.name.toLowerCase().endsWith(".pdf")) return;
+    setUploading(true);
+    try {
+      const res = await uploadTextbook(file);
+      setTextbooks((p) => [...p, { id: res.id, name: res.name }]);
+      setActiveTextbook(res.id);
+      setAttachOpen(false);
+    } catch {
+      setError("Upload failed. Try again.");
+    } finally {
+      setUploading(false);
+    }
+    e.target.value = "";
+  }, []);
+
+  const handleRagSearch = useCallback(async () => {
+    if (!searchQuery.trim()) return;
+    setSearching(true);
+    try {
+      const res = await ragSearch(searchQuery.trim(), 5);
+      setSearchResults(res.results ?? []);
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const close = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const insideAny =
+        attachRef.current?.contains(target) ||
+        searchRef.current?.contains(target) ||
+        subjectRef.current?.contains(target) ||
+        attachDropdownRef.current?.contains(target) ||
+        searchDropdownRef.current?.contains(target) ||
+        subjectDropdownRef.current?.contains(target);
+      if (!insideAny) {
+        setAttachOpen(false);
+        setSearchOpen(false);
+        setSubjectOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
 
   const handleNewChat = useCallback(async () => {
     setMessages(INITIAL_MESSAGES);
@@ -278,7 +420,7 @@ export function ChatPage() {
 
   return (
     <div
-      className="flex -m-6 h-[calc(100vh-0px)] overflow-hidden"
+      className="flex -m-6 min-h-0 flex-1 overflow-visible"
       style={{
         background: "#f0f4ff",
         fontFamily: "'Plus Jakarta Sans', 'DM Sans', sans-serif",
@@ -765,7 +907,7 @@ export function ChatPage() {
               style={{
                 background: "rgba(10,12,18,0.92)",
                 borderRadius: "17px",
-                overflow: "hidden",
+                overflow: "visible",
               }}
             >
               <div className="pt-3.5 px-4">
@@ -781,48 +923,188 @@ export function ChatPage() {
                 />
               </div>
               <div className="flex items-center justify-between py-2.5 px-3.5 pb-3">
-                <div className="flex gap-1.5">
-                  <button
-                    type="button"
-                    className="chat-icon-btn p-1.5 rounded-md text-white/25"
-                    title="Attach Textbook/PDF"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    className="chat-icon-btn p-1.5 rounded-md text-white/25"
-                    title="Search Knowledge Base"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" />
-                      <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    className="chat-icon-btn p-1.5 rounded-md text-white/25"
-                    title="Select Subject"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M4 19.5A2.5 2.5 0 016.5 17H20M4 19.5A2.5 2.5 0 014 17V5a2 2 0 012-2h10a2 2 0 012 2v5"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                      />
-                      <path d="M14 13l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
+                <div className="flex gap-1.5 items-center">
+                  {/* Attach: textbooks + upload */}
+                  <div ref={attachRef} className="relative">
+                    <button
+                      type="button"
+                      className={`chat-icon-btn p-1.5 rounded-md ${attachOpen ? "text-[#00a8e8]" : "text-white/25"}`}
+                      title="Attach Textbook/PDF"
+                      onClick={() => { setAttachOpen(!attachOpen); setSearchOpen(false); setSubjectOpen(false); }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                  </div>
+                  {/* Search: RAG / knowledge base */}
+                  <div ref={searchRef} className="relative">
+                    <button
+                      type="button"
+                      className={`chat-icon-btn p-1.5 rounded-md ${searchOpen ? "text-[#00a8e8]" : "text-white/25"}`}
+                      title="Search Knowledge Base"
+                      onClick={() => { setSearchOpen(!searchOpen); setAttachOpen(false); setSubjectOpen(false); }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" />
+                        <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                  </div>
+                  {/* Subject selector */}
+                  <div ref={subjectRef} className="relative">
+                    <button
+                      type="button"
+                      className={`chat-icon-btn p-1.5 rounded-md ${subjectOpen ? "text-[#00a8e8]" : "text-white/25"}`}
+                      title="Select Subject"
+                      onClick={() => { setSubjectOpen(!subjectOpen); setAttachOpen(false); setSearchOpen(false); }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M4 19.5A2.5 2.5 0 016.5 17H20M4 19.5A2.5 2.5 0 014 17V5a2 2 0 012-2h10a2 2 0 012 2v5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        <path d="M14 13l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
+                {attachOpen &&
+                  attachPos &&
+                  createPortal(
+                    <div
+                      ref={attachDropdownRef}
+                      className="min-w-[320px] max-w-[min(480px,95vw)] rounded-xl bg-[#1a1d24] border border-white/10 shadow-xl p-3 z-[9999] overflow-y-auto"
+                      style={{
+                        position: "fixed",
+                        left: attachPos.left,
+                        ...getDropdownPlacement(attachPos),
+                      }}
+                    >
+                      <div className="text-xs font-semibold text-white/80 mb-2">Textbooks & notes</div>
+                      <label className="block mb-2">
+                        <span className="text-xs text-white/60">Upload PDF</span>
+                        <input
+                          type="file"
+                          accept=".pdf"
+                          onChange={handleTextbookUpload}
+                          disabled={uploading}
+                          className="block w-full mt-1 text-xs text-white/80 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-[#00a8e8] file:text-white"
+                        />
+                      </label>
+                      {textbooks.length > 0 && (
+                        <>
+                          <div className="text-xs text-white/60 mb-1">Existing</div>
+                          <div className="max-h-40 overflow-y-auto space-y-1">
+                            {textbooks.map((t) => (
+                              <button
+                                key={t.id}
+                                type="button"
+                                onClick={() => {
+                                  setActiveTextbook(t.id);
+                                  setAttachOpen(false);
+                                }}
+                                className={`block w-full text-left px-2 py-1.5 rounded text-xs break-words whitespace-normal ${activeTextbook === t.id ? "bg-[#00a8e8]/30 text-white" : "text-white/80 hover:bg-white/10"}`}
+                              >
+                                {t.name}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                      {activeTextbook && (
+                        <button
+                          type="button"
+                          onClick={() => setActiveTextbook(null)}
+                          className="mt-2 text-xs text-white/50 hover:text-white/80"
+                        >
+                          Clear selection
+                        </button>
+                      )}
+                    </div>,
+                    document.body,
+                    "attach-dropdown"
+                  )}
+                {searchOpen &&
+                  searchPos &&
+                  createPortal(
+                    <div
+                      ref={searchDropdownRef}
+                      className="min-w-[300px] max-w-[min(420px,90vw)] rounded-xl bg-[#1a1d24] border border-white/10 shadow-xl p-3 z-[9999] overflow-y-auto"
+                      style={{
+                        position: "fixed",
+                        left: searchPos.left,
+                        ...getDropdownPlacement(searchPos),
+                      }}
+                    >
+                      <div className="text-xs font-semibold text-white/80 mb-2">Search textbooks</div>
+                      <div className="flex gap-1 mb-2">
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleRagSearch()}
+                          placeholder="Query..."
+                          className="flex-1 px-2 py-1.5 rounded bg-white/10 text-white text-xs placeholder:text-white/40 border border-white/10"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRagSearch}
+                          disabled={searching || !searchQuery.trim()}
+                          className="px-2 py-1.5 rounded bg-[#00a8e8] text-white text-xs font-medium disabled:opacity-50"
+                        >
+                          Search
+                        </button>
+                      </div>
+                      {searchResults.length > 0 && (
+                        <div className="max-h-36 overflow-y-auto space-y-1 text-xs text-white/70">
+                          {searchResults.map((r, i) => (
+                            <div
+                              key={i}
+                              className="p-2 rounded bg-white/5 border border-white/5 break-words whitespace-normal text-xs"
+                            >
+                              {r.content?.slice(0, 200)}
+                              {(r.content?.length ?? 0) > 200 ? "…" : ""}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {searchResults.length === 0 && searchQuery && !searching && (
+                        <p className="text-xs text-white/50">No matches. Try different keywords.</p>
+                      )}
+                    </div>,
+                    document.body,
+                    "search-dropdown"
+                  )}
+                {subjectOpen &&
+                  subjectPos &&
+                  createPortal(
+                    <div
+                      ref={subjectDropdownRef}
+                      className="min-w-[200px] max-w-[min(280px,95vw)] rounded-xl bg-[#1a1d24] border border-white/10 shadow-xl p-2 z-[9999] overflow-y-auto"
+                      style={{
+                        position: "fixed",
+                        left: subjectPos.left,
+                        ...getDropdownPlacement(subjectPos),
+                      }}
+                    >
+                      <div className="text-xs font-semibold text-white/80 mb-2">Subject</div>
+                      <div className="space-y-0.5">
+                        {SUBJECTS.map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => {
+                              setSubject(s);
+                              setSubjectOpen(false);
+                            }}
+                            className={`block w-full text-left px-2 py-1.5 rounded text-xs ${subject === s ? "bg-[#00a8e8]/30 text-white" : "text-white/80 hover:bg-white/10"}`}
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    </div>,
+                    document.body,
+                    "subject-dropdown"
+                  )}
                 <button
                   type="button"
                   className="chat-send-btn flex items-center gap-2 pl-3 pr-1 py-0.5 rounded-xl border-none text-sm font-bold disabled:opacity-60 disabled:cursor-not-allowed"

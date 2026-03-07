@@ -13,10 +13,14 @@ from ui.components.page_chrome import render_background_blobs, render_page_root_
 
 
 def show_profile() -> None:
-    """Render the user profile page."""
+    """Render the user profile page. Redirects to landing if profile_name is null."""
+    profile_name = st.session_state.get("profile_name")
+    if not profile_name:
+        st.session_state.page = "landing"
+        st.rerun()
+        return
     theme = st.session_state.get("theme", "light")
-    profile_name = st.session_state.get("profile_name", "Student")
-    profile_mode = st.session_state.get("profile_mode", "solo")
+    profile_mode = st.session_state.get("profile_mode")
     class_code = st.session_state.get("class_code")
     
     render_background_blobs()
@@ -27,12 +31,12 @@ def show_profile() -> None:
         <div class="dashboard-header-card" role="banner" style="margin-bottom: 24px;">
             <div class="dashboard-header-left">
                 <div class="dashboard-avatar" style="width: 64px; height: 64px; font-size: 28px;">
-                    {profile_name[0].upper() if profile_name else 'S'}
+                    {profile_name[0].upper()}
                 </div>
                 <div class="dashboard-welcome-text">
                     <span class="dashboard-welcome-name" style="font-size: 24px;">{profile_name}</span>
                     <span class="dashboard-welcome-sub">
-                        {'Solo Learner' if profile_mode == 'solo' else 'Class Linked'}
+                        {'Solo Learner' if profile_mode == 'solo' else ('Class Linked' if profile_mode else 'Not set')}
                     </span>
                 </div>
             </div>
@@ -58,7 +62,7 @@ def show_profile() -> None:
         )
     
     with col2:
-        mode_display = "Solo Mode" if profile_mode == "solo" else "Class Linked"
+        mode_display = "Solo Mode" if profile_mode == "solo" else ("Class Linked" if profile_mode else "Not set")
         if profile_mode == "teacher_linked_provisional":
             mode_display = "Class Linked (Pending)"
         
@@ -90,7 +94,7 @@ def show_profile() -> None:
     
     new_name = st.text_input(
         "Update display name",
-        value=profile_name,
+        value=profile_name or "",
         key="profile_name_edit",
     )
     

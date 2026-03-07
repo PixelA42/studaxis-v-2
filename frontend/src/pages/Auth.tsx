@@ -10,18 +10,22 @@ export function AuthPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const { login } = useAuth();
+  const { loginWithCredentials } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     if (!username.trim() || !password.trim()) {
       setError("Please enter username and password.");
       return;
     }
-    login(username, password);
-    navigate("/dashboard", { replace: true });
+    try {
+      await loginWithCredentials(username.trim(), password);
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign in failed.");
+    }
   };
 
   return (

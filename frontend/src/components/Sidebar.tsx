@@ -69,8 +69,6 @@ export function Sidebar() {
     setCollapsed(getStoredCollapsed());
   }, []);
 
-  const profileName = profile.profile_name || "Student";
-
   return (
     <aside
       className={`relative flex flex-col flex-shrink-0 content-card border-r border-t-0 border-b-0 border-l-0 rounded-r-2xl transition-all duration-300 z-10 ${
@@ -147,7 +145,9 @@ export function Sidebar() {
       <div className={`p-3 border-t border-glass-border ${collapsed ? "flex justify-center" : ""}`}>
         {!collapsed && (
           <>
-            <p className="text-xs text-heading-dark/60 truncate font-medium">{profileName}</p>
+            {profile.profile_name && (
+              <p className="text-xs text-heading-dark/60 truncate font-medium">{profile.profile_name}</p>
+            )}
             <div className="mt-2">
               <StatusIndicator status={connectivityStatus} />
             </div>

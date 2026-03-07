@@ -11,7 +11,7 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { loginWithCredentials } = useAuth();
   const navigate = useNavigate();
 
   const canSubmit =
@@ -23,7 +23,7 @@ export function LoginPage() {
     if (!canSubmit) return;
     setLoading(true);
     try {
-      await login(usernameOrEmail.trim(), password);
+      await loginWithCredentials(usernameOrEmail.trim(), password);
       navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid credentials. Please try again.");

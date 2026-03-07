@@ -2,15 +2,35 @@
  * Studaxis API client — frontend-to-backend integration layer.
  * All requests go to the local FastAPI server (API bridge).
  * Uses relative /api so it works when served from same origin (prod) or via Vite proxy (dev).
+ * Attaches JWT from localStorage to Authorization header; on 401, triggers logout + redirect.
  */
 const API_BASE = "";
+const STORAGE_TOKEN = "studaxis_token";
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+let onUnauthorized: (() => void) | null = null;
+
+/** Register handler for 401 responses. AuthContext calls this with logout + redirect. */
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  onUnauthorized = handler;
+}
+
+async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const url = `${API_BASE}${path}`;
   const isFormData = options.body instanceof FormData;
-  const headers: Record<string, string> = { ...(options.headers as Record<string, string>) };
-  if (!isFormData) headers["Content-Type"] = "application/json";
+  const headers = new Headers(options.headers as HeadersInit);
+  if (!isFormData) headers.set("Content-Type", "application/json");
+  const token = localStorage.getItem(STORAGE_TOKEN);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
   const res = await fetch(url, { ...options, headers });
+  if (res.status === 401) {
+    onUnauthorized?.();
+    throw new Error("Unauthorized");
+  }
+  return res;
+}
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const res = await apiFetch(path, options);
   if (!res.ok) {
     const raw = await res.text();
     let message = raw || `API error ${res.status}`;
@@ -94,6 +114,7 @@ export interface AuthResponse {
   user_id: number;
   username: string;
   email: string;
+  onboarding_complete?: boolean;
 }
 
 /** Hardware check (Phase 8): ok / warn / block + specs + tips */
@@ -158,6 +179,7 @@ export interface AuthResponse {
   user_id: number;
   username: string;
   email: string;
+  onboarding_complete?: boolean;
 }
 
 /** Auth response (signup/login) — JWT + user info */
@@ -167,6 +189,7 @@ export interface AuthResponse {
   user_id: number;
   username: string;
   email: string;
+  onboarding_complete?: boolean;
 }
 
 /** Auth response (signup/login) — JWT + user info */
@@ -176,6 +199,7 @@ export interface AuthResponse {
   user_id: number;
   username: string;
   email: string;
+  onboarding_complete?: boolean;
 }
 
 /** User profile (AuthContext — matches backend /api/user/profile) */
@@ -184,6 +208,7 @@ export interface UserProfile {
   profile_mode: "solo" | "teacher_linked" | "teacher_linked_provisional" | null;
   class_code: string | null;
   user_role: "student" | "teacher" | null;
+  onboarding_complete?: boolean;
 }
 
 /** Auth response (signup/login) — JWT + user info */
@@ -193,6 +218,7 @@ export interface AuthResponse {
   user_id: number;
   username: string;
   email: string;
+  onboarding_complete?: boolean;
 }
 
 /** Auth response (signup/login) — JWT + user info */
@@ -202,6 +228,7 @@ export interface AuthResponse {
   user_id: number;
   username: string;
   email: string;
+  onboarding_complete?: boolean;
 }
 
 /** User stats (same schema as backend /api/user/stats) */
@@ -223,6 +250,8 @@ export interface UserStats {
     theme?: "light" | "dark";
     language?: string;
     sync_enabled?: boolean;
+    subject?: string;
+    grade?: string;
   };
   hardware_info?: Record<string, unknown>;
 }
@@ -267,6 +296,21 @@ export async function updateUserStats(stats: Partial<UserStats>): Promise<{ ok: 
     method: "PUT",
     body: JSON.stringify(stats),
   });
+}
+
+/** Current user from GET /api/user/me (auth-protected) */
+export interface CurrentUserResponse {
+  id: number;
+  username: string;
+  email: string;
+}
+
+/**
+ * Get current authenticated user. Requires valid Bearer token.
+ * Returns 401 if token is missing, expired, or invalid.
+ */
+export async function getCurrentUser(): Promise<CurrentUserResponse> {
+  return request<CurrentUserResponse>("/api/user/me");
 }
 
 /**
@@ -317,6 +361,70 @@ export async function postLogin(params: {
   });
 }
 
+/** Check if email is already registered. POST /api/auth/check-email */
+export async function checkEmail(email: string): Promise<{ exists: boolean }> {
+  return request<{ exists: boolean }>("/api/auth/check-email", {
+    method: "POST",
+    body: JSON.stringify({ email: email.trim().toLowerCase() }),
+  });
+}
+
+/** Verify email via token from verification link. GET /api/auth/verify-email?token= */
+export async function verifyEmail(token: string): Promise<{ message: string }> {
+  return request<{ message: string }>(
+    `/api/auth/verify-email?token=${encodeURIComponent(token)}`
+  );
+}
+
+/** Request OTP for existing user. POST /api/auth/request-otp */
+export async function postRequestOtp(params: { email: string }): Promise<{ message: string }> {
+  return request<{ message: string }>("/api/auth/request-otp", {
+    method: "POST",
+    body: JSON.stringify({ email: params.email.trim().toLowerCase() }),
+  });
+}
+
+/** Verify OTP, returns JWT. POST /api/auth/verify-otp */
+export interface VerifyOtpResponse {
+  access_token: string;
+  token_type: string;
+  onboarding_complete?: boolean;
+}
+
+export async function postVerifyOtp(params: {
+  email: string;
+  otp: string;
+}): Promise<VerifyOtpResponse> {
+  return request<VerifyOtpResponse>("/api/auth/verify-otp", {
+    method: "POST",
+    body: JSON.stringify({
+      email: params.email.trim().toLowerCase(),
+      otp: params.otp.replace(/\s/g, ""),
+    }),
+  });
+}
+
+/** Complete onboarding. POST /api/auth/complete-onboarding */
+export interface CompleteOnboardingRequest {
+  profile_name: string;
+  role: "student" | "teacher";
+  mode?: "solo" | "teacher_linked" | "teacher_linked_provisional";
+  subjects?: string | null;
+  grade?: string | null;
+}
+
+export async function postCompleteOnboarding(
+  body: CompleteOnboardingRequest
+): Promise<{ ok: boolean; onboarding_complete: boolean }> {
+  return request<{ ok: boolean; onboarding_complete: boolean }>(
+    "/api/auth/complete-onboarding",
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    }
+  );
+}
+
 /**
  * Health check — liveness/readiness of the FastAPI backend.
  */
@@ -356,7 +464,7 @@ export async function getTextbooks(): Promise<TextbooksResponse> {
 export async function uploadTextbook(file: File): Promise<TextbookUploadResponse> {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch(`${API_BASE}/api/textbooks/upload`, {
+  const res = await apiFetch("/api/textbooks/upload", {
     method: "POST",
     body: form,
   });
@@ -372,6 +480,27 @@ export async function uploadTextbook(file: File): Promise<TextbookUploadResponse
     throw new Error(message);
   }
   return res.json() as Promise<TextbookUploadResponse>;
+}
+
+/** RAG search result chunk from embedded textbooks */
+export interface RAGSearchResult {
+  content: string;
+  source?: string;
+  subject?: string;
+}
+
+/** Response from GET /api/rag/search */
+export interface RAGSearchResponse {
+  results: RAGSearchResult[];
+  message?: string;
+}
+
+/**
+ * Semantic search over local ChromaDB. Returns top-k matching chunks from embedded textbooks.
+ */
+export async function ragSearch(q: string, k = 5): Promise<RAGSearchResponse> {
+  const params = new URLSearchParams({ q: q.trim(), k: String(Math.min(Math.max(1, k), 20)) });
+  return request<RAGSearchResponse>(`/api/rag/search?${params}`);
 }
 
 /**
@@ -397,7 +526,7 @@ export async function generateFlashcardsFromFiles(params: {
   const form = new FormData();
   params.files.forEach((f) => form.append("files", f));
   form.append("count", String(params.count));
-  const res = await fetch(`${API_BASE}/api/flashcards/generate/files`, {
+  const res = await apiFetch("/api/flashcards/generate/files", {
     method: "POST",
     body: form,
   });
@@ -589,6 +718,8 @@ export interface GradeResponse {
 
 export interface QuizSubmitRequest {
   answers: Array<{ question_id: string; answer: string }>;
+  /** Custom quiz items for panic mode when generated from material */
+  items?: QuizItem[];
 }
 
 export interface QuizSubmitResult {
@@ -634,6 +765,7 @@ export async function postGrade(params: GradeRequest): Promise<GradeResponse> {
 
 /**
  * Submit quiz answers; backend grades each via AI and updates user stats.
+ * For panic mode with custom items (from material), pass items so backend can grade correctly.
  */
 export async function postQuizSubmit(
   quizId: string,
@@ -643,9 +775,74 @@ export async function postQuizSubmit(
     `/api/quiz/${encodeURIComponent(quizId)}/submit`,
     {
       method: "POST",
-      body: JSON.stringify({ answers: params.answers }),
+      body: JSON.stringify({
+        answers: params.answers,
+        ...(params.items && params.items.length > 0 ? { items: params.items } : {}),
+      }),
     }
   );
+}
+
+/** Generate panic-mode questions from textbook. One subject only. */
+export async function generatePanicQuizFromTextbook(params: {
+  subject: string;
+  textbook_id: string;
+  chapter?: string;
+  count?: number;
+}): Promise<QuizResponse> {
+  return request<QuizResponse>("/api/quiz/panic/generate/textbook", {
+    method: "POST",
+    body: JSON.stringify({
+      subject: params.subject,
+      textbook_id: params.textbook_id,
+      chapter: params.chapter ?? null,
+      count: params.count ?? 5,
+    }),
+  });
+}
+
+/** Generate panic-mode questions from web URL. One subject only. */
+export async function generatePanicQuizFromWeblink(params: {
+  subject: string;
+  url: string;
+  count?: number;
+}): Promise<QuizResponse> {
+  return request<QuizResponse>("/api/quiz/panic/generate/weblink", {
+    method: "POST",
+    body: JSON.stringify({
+      subject: params.subject,
+      url: params.url,
+      count: params.count ?? 5,
+    }),
+  });
+}
+
+/** Generate panic-mode questions from uploaded files. One subject only. */
+export async function generatePanicQuizFromFiles(params: {
+  subject: string;
+  files: File[];
+  count?: number;
+}): Promise<QuizResponse> {
+  const form = new FormData();
+  form.append("subject", params.subject);
+  form.append("count", String(params.count ?? 5));
+  params.files.forEach((f) => form.append("files", f));
+  const res = await apiFetch("/api/quiz/panic/generate/files", {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) {
+    const raw = await res.text();
+    let message = raw || `API error ${res.status}`;
+    try {
+      const json = JSON.parse(raw) as { detail?: string };
+      if (typeof json.detail === "string") message = json.detail;
+    } catch {
+      // keep raw
+    }
+    throw new Error(message);
+  }
+  return res.json() as Promise<QuizResponse>;
 }
 
 // ——— Sync & Conflicts ———

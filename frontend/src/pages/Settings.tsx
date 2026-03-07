@@ -110,7 +110,12 @@ export function SettingsPage() {
     }
   };
 
-  const profileName = profile.profile_name || "Student";
+  if (!profile.profile_name) {
+    navigate("/auth/login", { replace: true });
+    return null;
+  }
+
+  const profileName = profile.profile_name;
   const modeLabel = profile.profile_mode === "solo" || !profile.profile_mode ? "Solo" : "Class Linked";
 
   return (

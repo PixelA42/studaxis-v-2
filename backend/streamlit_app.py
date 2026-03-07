@@ -835,7 +835,7 @@ def _render_sidebar_and_get_page() -> str:
     """Render sidebar and return current page (from URL / session_state)."""
     current_page = get_current_page()
     st.session_state.page = current_page
-    profile_name = st.session_state.get("profile_name", "Student")
+    profile_name = st.session_state.get("profile_name")  # None when no profile — no auto-populate
     theme = st.session_state.get("theme", "light")
     connectivity = st.session_state.get("connectivity_status", "offline")
     
@@ -952,8 +952,12 @@ def main() -> None:
     elif current_page == "auth":
         show_auth()
     elif current_page == "dashboard":
+        profile_name = st.session_state.get("profile_name")
+        if not profile_name:
+            st.session_state.page = "landing"
+            st.rerun()
+            return
         theme = st.session_state.get("theme", "light")
-        profile_name = st.session_state.get("profile_name", "Student")
         render_hero_header(
             title="Welcome back",
             name=profile_name,
@@ -969,6 +973,10 @@ def main() -> None:
     elif current_page == "flashcards":
         show_flashcards()
     elif current_page == "settings":
+        if not st.session_state.get("profile_name"):
+            st.session_state.page = "landing"
+            st.rerun()
+            return
         show_settings()
     elif current_page == "panic_mode":
         show_panic_mode()
@@ -977,6 +985,10 @@ def main() -> None:
     elif current_page == "conflicts":
         show_conflicts_page()
     elif current_page == "profile":
+        if not st.session_state.get("profile_name"):
+            st.session_state.page = "landing"
+            st.rerun()
+            return
         show_profile()
     elif current_page == "sync_status":
         _show_sync_status_page()

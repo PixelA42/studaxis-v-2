@@ -53,7 +53,12 @@ export function DashboardPage() {
       .catch(() => setStats(null));
   }, []);
 
-  const name = profile.profile_name || "Student";
+  if (!profile.profile_name) {
+    navigate("/auth/login", { replace: true });
+    return null;
+  }
+
+  const name = profile.profile_name;
   const streak = stats?.streak?.current ?? 0;
   const streakLongest = stats?.streak?.longest ?? 0;
   const quizAttempted = stats?.quiz_stats?.total_attempted ?? 0;

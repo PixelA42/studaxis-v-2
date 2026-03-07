@@ -2,14 +2,14 @@
   {
     "id": "1",
     "topic": "Definition",
-    "front": "Content-based",
-    "back": "A teaching method where the lesson content is the primary focus.",
+    "front": "A content-based approach in communication.",
+    "back": "Uses the message content to convey meaning.",
     "sourceType": [
-      "file"
+      "textbook"
     ],
-    "question": "Content-based",
-    "answer": "A teaching method where the lesson content is the primary focus.",
-    "next_review": "2026-03-10T11:26:04.175Z",
+    "question": "A content-based approach in communication.",
+    "answer": "Uses the message content to convey meaning.",
+    "next_review": "2026-03-10T13:43:36.180Z",
     "interval": 1,
     "repetitions": 0,
     "ease_factor": 2.5
@@ -152,14 +152,14 @@
   {
     "id": "1",
     "topic": "Definition",
-    "front": "Content-based",
-    "back": "A teaching method where the lesson content is the primary focus.",
+    "front": "A content-based approach in communication.",
+    "back": "Uses the message content to convey meaning.",
     "sourceType": [
-      "file"
+      "textbook"
     ],
-    "question": "Content-based",
-    "answer": "A teaching method where the lesson content is the primary focus.",
-    "next_review": "2026-03-10T11:26:04.175Z",
+    "question": "A content-based approach in communication.",
+    "answer": "Uses the message content to convey meaning.",
+    "next_review": "2026-03-10T13:43:36.180Z",
     "interval": 1,
     "repetitions": 0,
     "ease_factor": 2.5
@@ -302,14 +302,14 @@
   {
     "id": "1",
     "topic": "Definition",
-    "front": "Content-based",
-    "back": "A teaching method where the lesson content is the primary focus.",
+    "front": "A content-based approach in communication.",
+    "back": "Uses the message content to convey meaning.",
     "sourceType": [
-      "file"
+      "textbook"
     ],
-    "question": "Content-based",
-    "answer": "A teaching method where the lesson content is the primary focus.",
-    "next_review": "2026-03-10T11:26:04.175Z",
+    "question": "A content-based approach in communication.",
+    "answer": "Uses the message content to convey meaning.",
+    "next_review": "2026-03-10T13:43:36.180Z",
     "interval": 1,
     "repetitions": 0,
     "ease_factor": 2.5
@@ -452,14 +452,14 @@
   {
     "id": "1",
     "topic": "Definition",
-    "front": "Content-based",
-    "back": "A teaching method where the lesson content is the primary focus.",
+    "front": "A content-based approach in communication.",
+    "back": "Uses the message content to convey meaning.",
     "sourceType": [
-      "file"
+      "textbook"
     ],
-    "question": "Content-based",
-    "answer": "A teaching method where the lesson content is the primary focus.",
-    "next_review": "2026-03-10T11:26:04.175Z",
+    "question": "A content-based approach in communication.",
+    "answer": "Uses the message content to convey meaning.",
+    "next_review": "2026-03-10T13:43:36.180Z",
     "interval": 1,
     "repetitions": 0,
     "ease_factor": 2.5
@@ -602,14 +602,14 @@
   {
     "id": "1",
     "topic": "Definition",
-    "front": "Content-based",
-    "back": "A teaching method where the lesson content is the primary focus.",
+    "front": "A content-based approach in communication.",
+    "back": "Uses the message content to convey meaning.",
     "sourceType": [
-      "file"
+      "textbook"
     ],
-    "question": "Content-based",
-    "answer": "A teaching method where the lesson content is the primary focus.",
-    "next_review": "2026-03-10T11:26:04.175Z",
+    "question": "A content-based approach in communication.",
+    "answer": "Uses the message content to convey meaning.",
+    "next_review": "2026-03-10T13:43:36.180Z",
     "interval": 1,
     "repetitions": 0,
     "ease_factor": 2.5
@@ -759,7 +759,7 @@
     ],
     "question": "A content-based approach in communication.",
     "answer": "Uses the message content to convey meaning.",
-    "next_review": "2026-03-07T11:33:57.160Z",
+    "next_review": "2026-03-10T13:43:36.180Z",
     "interval": 1,
     "repetitions": 0,
     "ease_factor": 2.5
@@ -901,15 +901,15 @@
   },
   {
     "id": "1",
-    "topic": "Definition of Content-Based",
-    "front": "Content-based learning refers to the process of acquiring knowledge and skills through the exploration of content areas such as literature, history, science, and art.",
-    "back": "It involves the use of authentic materials and experiences to promote deeper understanding and engagement.",
+    "topic": "Definition",
+    "front": "A content-based approach in communication.",
+    "back": "Uses the message content to convey meaning.",
     "sourceType": [
       "textbook"
     ],
-    "question": "Content-based learning refers to the process of acquiring knowledge and skills through the exploration of content areas such as literature, history, science, and art.",
-    "answer": "It involves the use of authentic materials and experiences to promote deeper understanding and engagement.",
-    "next_review": "2026-03-07T11:34:15.928Z",
+    "question": "A content-based approach in communication.",
+    "answer": "Uses the message content to convey meaning.",
+    "next_review": "2026-03-10T13:43:36.180Z",
     "interval": 1,
     "repetitions": 0,
     "ease_factor": 2.5

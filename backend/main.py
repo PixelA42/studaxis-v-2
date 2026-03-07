@@ -21,7 +21,7 @@ import os
 import re
 import uuid
 from pathlib import Path
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,7 +36,8 @@ if str(_APP_DIR) not in __import__("sys").path:
 
 from ai_integration_layer import AIEngine, AIState, AITaskType
 from auth_routes import router as auth_router
-from database import init_db
+from database import User, init_db
+from dependencies import get_current_user
 from profile_store import UserProfile, load_profile, save_profile
 
 # ---------------------------------------------------------------------------
@@ -269,6 +270,7 @@ PANIC_ITEMS: list[dict[str, Any]] = [
 
 class QuizSubmitRequest(BaseModel):
     answers: list[dict[str, Any]] = Field(..., description="List of {question_id, answer}")
+    items: Optional[list[dict[str, Any]]] = Field(default=None, description="Custom quiz items for panic mode grading (when generated from material)")
 
 
 class QuizSubmitResponse(BaseModel):
@@ -307,6 +309,25 @@ def _normalize_cards(raw: list[Any]) -> list[dict[str, Any]]:
             "topic": topic,
             "front": front,
             "back": back,
+        })
+    return out
+
+
+def _normalize_quiz_items(raw: list[Any], subject: str) -> list[dict[str, Any]]:
+    """Convert LLM output to list of quiz items with id, topic, question, expected_answer."""
+    out: list[dict[str, Any]] = []
+    for i, item in enumerate(raw):
+        if not isinstance(item, dict):
+            continue
+        question = str(item.get("question", "")).strip() or "?"
+        expected = str(item.get("expected_answer", item.get("answer", ""))).strip() or ""
+        topic = str(item.get("topic", subject)).strip() or subject
+        item_id = str(item.get("id", f"pq{i+1}_{uuid.uuid4().hex[:8]}"))
+        out.append({
+            "id": item_id,
+            "topic": topic,
+            "question": question,
+            "expected_answer": expected,
         })
     return out
 
@@ -622,6 +643,39 @@ def _generate_cards_from_content(content: str, count: int, source_type: str) -> 
     for c in cards:
         c["sourceType"] = source_type
     return FlashcardGenerateResponse(cards=[FlashcardItem(**c) for c in cards], topic="Content-based")
+
+
+def _generate_quiz_from_content(content: str, subject: str, count: int = 5) -> list[dict[str, Any]]:
+    """Generate panic-mode quiz items from extracted text via AI."""
+    if not content or not content.strip():
+        raise HTTPException(status_code=422, detail="No extractable text from source")
+    engine = get_ai_engine()
+    truncated = content[:12000] if len(content) > 12000 else content
+    try:
+        response = engine.request(
+            task_type=AITaskType.QUIZ_GENERATION,
+            user_input=f"Generate {count} open-ended exam questions for {subject}.",
+            context_data={
+                "subject": subject,
+                "count": count,
+                "source_content": truncated,
+            },
+            offline_mode=True,
+            privacy_sensitive=True,
+            user_id=None,
+        )
+    except (ConnectionError, TimeoutError) as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    if response.state in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
+        raise HTTPException(status_code=503, detail=response.error_message or response.text or "AI unavailable.")
+    raw_text = _extract_json_array(response.text)
+    try:
+        parsed = json.loads(raw_text)
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=422, detail=f"AI returned invalid JSON: {e}")
+    if not isinstance(parsed, list):
+        raise HTTPException(status_code=422, detail="AI response was not a JSON array")
+    return _normalize_quiz_items(parsed, subject)
 
 
 class TextbookGenerateRequest(BaseModel):
@@ -1046,6 +1100,131 @@ def _local_score(answer: str, expected: str) -> float:
     return round(min(10.0, max(0.0, overlap * 10)), 1)
 
 
+def _generate_quiz_from_content(content: str, subject: str, count: int = 5) -> list[dict[str, Any]]:
+    """Generate panic-mode quiz items from extracted text via AI."""
+    if not content or not content.strip():
+        raise HTTPException(status_code=422, detail="No extractable text from source")
+    engine = get_ai_engine()
+    truncated = content[:12000] if len(content) > 12000 else content
+    try:
+        response = engine.request(
+            task_type=AITaskType.QUIZ_GENERATION,
+            user_input=f"Generate {count} open-ended exam questions for {subject}.",
+            context_data={
+                "subject": subject,
+                "count": count,
+                "source_content": truncated,
+            },
+            offline_mode=True,
+            privacy_sensitive=True,
+            user_id=None,
+        )
+    except (ConnectionError, TimeoutError) as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    if response.state in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
+        raise HTTPException(status_code=503, detail=response.error_message or response.text or "AI unavailable.")
+    raw_text = _extract_json_array(response.text)
+    try:
+        parsed = json.loads(raw_text)
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=422, detail=f"AI returned invalid JSON: {e}")
+    if not isinstance(parsed, list):
+        raise HTTPException(status_code=422, detail="AI response was not a JSON array")
+    return _normalize_quiz_items(parsed, subject)
+
+
+class PanicGenerateTextbookRequest(BaseModel):
+    subject: str = Field(..., min_length=1)
+    textbook_id: str = Field(...)
+    chapter: Optional[str] = Field(default=None)
+    count: int = Field(default=5, ge=3, le=15)
+
+
+class PanicGenerateWeblinkRequest(BaseModel):
+    subject: str = Field(..., min_length=1)
+    url: str = Field(..., min_length=1)
+    count: int = Field(default=5, ge=3, le=15)
+
+
+@app.post("/api/quiz/panic/generate/textbook")
+def panic_generate_textbook(req: PanicGenerateTextbookRequest):
+    """Generate panic-mode questions from a textbook. One subject only."""
+    path = SAMPLE_TEXTBOOKS_DIR / req.textbook_id
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail=f"Textbook '{req.textbook_id}' not found")
+    try:
+        content = _extract_text_from_file(path)
+        if not content.strip():
+            raise HTTPException(status_code=422, detail="Could not extract text from textbook")
+        items = _generate_quiz_from_content(content, req.subject, req.count)
+        return {"id": "panic", "title": f"Panic Mode — {req.subject}", "items": items}
+    except HTTPException:
+        raise
+    except Exception:
+        items = _normalize_quiz_items([], req.subject)
+        for i, q in enumerate(PANIC_ITEMS):
+            if q.get("topic", "").lower() == req.subject.lower():
+                items.append(q)
+        if not items:
+            items = [q for q in PANIC_ITEMS][:req.count]
+        return {"id": "panic", "title": f"Panic Mode — {req.subject}", "items": items}
+
+
+@app.post("/api/quiz/panic/generate/weblink")
+def panic_generate_weblink(req: PanicGenerateWeblinkRequest):
+    """Generate panic-mode questions from a web URL. One subject only."""
+    import requests as req_lib
+    try:
+        r = req_lib.get(req.url.strip(), timeout=15, headers={"User-Agent": "Studaxis/1.0"})
+        r.raise_for_status()
+        html = r.text
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Could not fetch URL: {e}")
+    text = re.sub(r"<[^>]+>", " ", html)
+    text = re.sub(r"\s+", " ", text).strip()
+    items = _generate_quiz_from_content(text, req.subject, req.count)
+    return {"id": "panic", "title": f"Panic Mode — {req.subject}", "items": items}
+
+
+@app.post("/api/quiz/panic/generate/files")
+def panic_generate_files(
+    files: list[UploadFile] = File(...),
+    subject: str = Form(...),
+    count: int = Form(5),
+):
+    """Generate panic-mode questions from uploaded files. One subject only."""
+    if not files:
+        raise HTTPException(status_code=400, detail="No files provided")
+    texts: list[str] = []
+    for uf in files:
+        if not uf.filename:
+            continue
+        suf = Path(uf.filename).suffix.lower()
+        if suf not in (".txt", ".pdf", ".ppt", ".pptx"):
+            continue
+        tmp = Path(uf.filename).name
+        try:
+            content = uf.file.read()
+            tmp_path = DATA_DIR / "tmp_upload" / tmp
+            tmp_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp_path.write_bytes(content)
+            try:
+                texts.append(_extract_text_from_file(tmp_path))
+            finally:
+                try:
+                    tmp_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+        except Exception as e:
+            raise HTTPException(status_code=422, detail=f"Failed to process {uf.filename}: {e}")
+    combined = "\n\n".join(texts)
+    if not combined.strip():
+        raise HTTPException(status_code=422, detail="No extractable text from files")
+    cnt = max(3, min(15, count))
+    items = _generate_quiz_from_content(combined, subject, cnt)
+    return {"id": "panic", "title": f"Panic Mode — {subject}", "items": items}
+
+
 @app.post("/api/quiz/{quiz_id}/submit", response_model=QuizSubmitResponse)
 def quiz_submit(quiz_id: str, req: QuizSubmitRequest):
     """Submit quiz answers; grade via AI and update user stats."""
@@ -1055,7 +1234,7 @@ def quiz_submit(quiz_id: str, req: QuizSubmitRequest):
     results: list[dict[str, Any]] = []
     difficulty = (stats.get("preferences") or {}).get("difficulty_level", "Beginner")
 
-    items_list = PANIC_ITEMS if quiz_id == "panic" else QUIZ_ITEMS
+    items_list = (req.items if req.items else PANIC_ITEMS) if quiz_id == "panic" else QUIZ_ITEMS
     items_by_id = {q["id"]: q for q in items_list}
     topic_scores: dict[str, list[float]] = {}
     for entry in req.answers:
@@ -1149,6 +1328,21 @@ def quiz_submit(quiz_id: str, req: QuizSubmitRequest):
 
 
 # ---------------------------------------------------------------------------
+# User (auth-protected)
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/user/me")
+def user_me(current_user: Annotated[User, Depends(get_current_user)]):
+    """Return current authenticated user. Requires valid Bearer token."""
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email,
+    }
+
+
+# ---------------------------------------------------------------------------
 # User stats
 # ---------------------------------------------------------------------------
 
@@ -1179,12 +1373,13 @@ def user_stats_put(stats: dict[str, Any]):
 def _profile_to_dict(p: Optional[UserProfile]) -> dict[str, Any]:
     """Convert UserProfile to JSON-serializable dict."""
     if p is None:
-        return {"profile_name": None, "profile_mode": None, "class_code": None, "user_role": None}
+        return {"profile_name": None, "profile_mode": None, "class_code": None, "user_role": None, "onboarding_complete": False}
     return {
         "profile_name": p.profile_name,
         "profile_mode": p.profile_mode,
         "class_code": p.class_code,
         "user_role": p.user_role,
+        "onboarding_complete": getattr(p, "onboarding_complete", False),
     }
 
 
@@ -1231,17 +1426,19 @@ class ProfileRequest(BaseModel):
     profile_mode: Optional[str] = None  # solo | teacher_linked | teacher_linked_provisional
     class_code: Optional[str] = None
     user_role: Optional[str] = None  # student | teacher
+    onboarding_complete: Optional[bool] = None
 
 
 def _profile_to_dict(p: Optional[UserProfile]) -> dict[str, Any]:
     """Convert UserProfile to JSON-serializable dict."""
     if p is None:
-        return {"profile_name": None, "profile_mode": None, "class_code": None, "user_role": None}
+        return {"profile_name": None, "profile_mode": None, "class_code": None, "user_role": None, "onboarding_complete": False}
     return {
         "profile_name": p.profile_name,
         "profile_mode": p.profile_mode,
         "class_code": p.class_code,
         "user_role": p.user_role,
+        "onboarding_complete": getattr(p, "onboarding_complete", False),
     }
 
 
@@ -1261,6 +1458,7 @@ def user_profile_post(req: ProfileRequest):
         profile_mode=req.profile_mode if req.profile_mode is not None else existing.profile_mode,
         class_code=req.class_code if req.class_code is not None else existing.class_code,
         user_role=req.user_role if req.user_role is not None else existing.user_role,
+        onboarding_complete=req.onboarding_complete if req.onboarding_complete is not None else getattr(existing, "onboarding_complete", False),
     )
     save_profile(merged)
     return _profile_to_dict(merged)

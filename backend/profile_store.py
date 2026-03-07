@@ -15,6 +15,7 @@ class UserProfile:
     profile_mode: Optional[str] = None  # "solo" | "teacher_linked" | "teacher_linked_provisional"
     class_code: Optional[str] = None
     user_role: Optional[str] = None  # "student" | "teacher"
+    onboarding_complete: bool = False
 
 
 def load_profile() -> Optional[UserProfile]:
@@ -31,15 +32,45 @@ def load_profile() -> Optional[UserProfile]:
         data = json.loads(raw)
         if not isinstance(data, dict):
             return None
+        # Treat empty {} or missing profile_name as no profile — do not auto-login or auto-populate
+        if not data or not data.get("profile_name"):
+            return None
 
         return UserProfile(
             profile_name=data.get("profile_name"),
             profile_mode=data.get("profile_mode"),
             class_code=data.get("class_code"),
             user_role=data.get("user_role"),
+            onboarding_complete=data.get("onboarding_complete", False),
         )
     except (OSError, json.JSONDecodeError):
         return None
+
+
+def get_onboarding_complete() -> bool:
+    """Return onboarding_complete from profile file. Used by auth routes."""
+    try:
+        if not PROFILE_FILE.exists():
+            return False
+        data = json.loads(PROFILE_FILE.read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            return bool(data.get("onboarding_complete", False))
+    except (OSError, json.JSONDecodeError):
+        pass
+    return False
+
+
+def get_onboarding_complete() -> bool:
+    """Read onboarding_complete from profile file. Returns False if no profile or missing."""
+    try:
+        if not PROFILE_FILE.exists():
+            return False
+        data = json.loads(PROFILE_FILE.read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            return bool(data.get("onboarding_complete", False))
+    except (OSError, json.JSONDecodeError):
+        pass
+    return False
 
 
 def save_profile(profile: UserProfile) -> None:

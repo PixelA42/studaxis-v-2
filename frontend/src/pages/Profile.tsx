@@ -19,7 +19,12 @@ export function ProfilePage() {
     setEditClassCode(profile.class_code || "");
   }, [profile.profile_name, profile.class_code]);
 
-  const name = profile.profile_name || "Student";
+  if (!profile.profile_name) {
+    navigate("/auth/login", { replace: true });
+    return null;
+  }
+
+  const name = profile.profile_name;
   const modeLabel =
     profile.profile_mode === "solo" || !profile.profile_mode
       ? "Solo Learner"

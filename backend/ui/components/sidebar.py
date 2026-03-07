@@ -82,7 +82,7 @@ def _build_footer_html(items: list[dict], current_page: str) -> str:
 
 def render_sidebar(
     current_page: str = "dashboard",
-    profile_name: str = "Student",
+    profile_name: str | None = None,
     conflicts_count: int = 0,
     sync_status: str = "offline",
     theme: str = "light",
@@ -271,13 +271,15 @@ def get_current_page() -> str:
 
 def render_hero_header(
     title: str = "Welcome back",
-    name: str = "Student",
+    name: str | None = None,
     subtitle: str = "AI-powered offline tutor that works anywhere, anytime",
     show_cta: bool = False,
     cta_text: str = "Get Started →",
     theme: str = "light",
 ) -> bool:
-    """Render the hero header section above the dashboard."""
+    """Render the hero header section above the dashboard. Renders nothing if name is null (caller should redirect)."""
+    if not name:
+        return False
     theme_class = "theme-dark" if theme == "dark" else ""
     hero_html = (
         f'<div class="hero-wrapper {theme_class}">'
@@ -302,15 +304,17 @@ def render_hero_header(
 
 
 def render_compact_header(
-    name: str = "Student",
+    name: str | None = None,
     streak: int = 0,
     mode: str = "Solo Mode",
     connectivity: str = "offline",
     theme: str = "light",
 ) -> None:
-    """Render a compact header bar for non-dashboard pages."""
+    """Render a compact header bar for non-dashboard pages. Renders nothing if name is null (caller should redirect)."""
+    if not name:
+        return
     theme_class = "theme-dark" if theme == "dark" else ""
-    initials = name[0].upper() if name else "S"
+    initials = name[0].upper()
     conn = "● Online" if connectivity == "online" else "○ Offline"
     streak_s = "s" if streak != 1 else ""
     st.markdown(

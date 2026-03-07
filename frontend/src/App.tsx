@@ -1,28 +1,45 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { AppStateProvider } from "./contexts/AppStateContext";
 import { AuthProvider } from "./contexts/AuthContext";
-import { AppStateProvider, useAppState } from "./contexts/AppStateContext";
+import { PanicExamProvider } from "./contexts/PanicExamContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { FlashcardDeckProvider } from "./contexts/FlashcardDeckContext";
-import { BootFlow } from "./pages/BootFlow";
-import { LandingPage } from "./pages/Landing";
-import { Auth } from "./components/Auth";
-import { HomePage } from "./pages/Home";
-import { DashboardPage } from "./pages/Dashboard";
-import { ChatPage } from "./pages/Chat";
-import { FlashcardsPage } from "./pages/Flashcards";
-import { QuizPage } from "./pages/Quiz";
-import { SettingsPage } from "./pages/Settings";
-import { PanicModePage } from "./pages/PanicMode";
-import { InsightsPage } from "./pages/Insights";
-import { ConflictsPage } from "./pages/Conflicts";
-import { ProfilePage } from "./pages/Profile";
-import { SyncPage } from "./pages/Sync";
-import { TeacherInsightsPage } from "./pages/TeacherInsights";
-import { ErrorDemoPage } from "./pages/ErrorDemo";
+import { NotificationProvider } from "./contexts/NotificationContext";
 import { DashboardLayout } from "./components/DashboardLayout";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import { OllamaLoadingScreen } from "./components/OllamaLoadingScreen";
+import { LoadingSpinner } from "./components/LoadingSpinner";
 import { checkOllamaPing } from "./services/api";
+
+/* Critical path — eager load for first paint */
+import { LandingPage } from "./pages/Landing";
+
+/* Lazy-loaded — code-split by route */
+const Auth = lazy(() => import("./components/Auth").then((m) => ({ default: m.Auth })));
+
+/* Lazy-loaded pages */
+const OnboardingFlow = lazy(() => import("./pages/OnboardingFlow").then((m) => ({ default: m.OnboardingFlow })));
+const HomePage = lazy(() => import("./pages/Home").then((m) => ({ default: m.HomePage })));
+const DashboardPage = lazy(() => import("./pages/Dashboard").then((m) => ({ default: m.DashboardPage })));
+const ChatPage = lazy(() => import("./pages/Chat").then((m) => ({ default: m.ChatPage })));
+const FlashcardsPage = lazy(() => import("./pages/Flashcards").then((m) => ({ default: m.FlashcardsPage })));
+const QuizPage = lazy(() => import("./pages/Quiz").then((m) => ({ default: m.QuizPage })));
+const SettingsPage = lazy(() => import("./pages/Settings").then((m) => ({ default: m.SettingsPage })));
+const PanicModePage = lazy(() => import("./pages/PanicMode").then((m) => ({ default: m.PanicModePage })));
+const InsightsPage = lazy(() => import("./pages/Insights").then((m) => ({ default: m.InsightsPage })));
+const ConflictsPage = lazy(() => import("./pages/Conflicts").then((m) => ({ default: m.ConflictsPage })));
+const ProfilePage = lazy(() => import("./pages/Profile").then((m) => ({ default: m.ProfilePage })));
+const SyncPage = lazy(() => import("./pages/Sync").then((m) => ({ default: m.SyncPage })));
+const TeacherInsightsPage = lazy(() => import("./pages/TeacherInsights").then((m) => ({ default: m.TeacherInsightsPage })));
+const ErrorDemoPage = lazy(() => import("./pages/ErrorDemo").then((m) => ({ default: m.ErrorDemoPage })));
+const VerifyEmailPage = lazy(() => import("./pages/VerifyEmail").then((m) => ({ default: m.VerifyEmailPage })));
+
+const PageFallback = () => (
+  <div className="min-h-[40vh] flex items-center justify-center">
+    <LoadingSpinner message="Loading…" />
+  </div>
+);
 
 /** First thing when app opens: wait for Ollama to be ready, then show the app. */
 export function OllamaGate({ children }: { children: React.ReactNode }) {
@@ -48,57 +65,62 @@ export function OllamaGate({ children }: { children: React.ReactNode }) {
 }
 
 function BootGuard({ children }: { children: React.ReactNode }) {
-  const { bootComplete } = useAppState();
-  const navigate = useNavigate();
-  if (!bootComplete) {
-    return (
-      <BootFlow
-        onComplete={() => navigate("/home", { replace: true })}
-      />
-    );
-  }
-  return <>{children}</>;
+  return <Suspense fallback={<PageFallback />}>{children}</Suspense>;
 }
 
 function AppRoutes() {
+  const navigate = useNavigate();
   return (
+    <Suspense fallback={<PageFallback />}>
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/auth/login" element={<Auth />} />
       <Route path="/auth/signup" element={<Auth />} />
-      <Route path="/teacher-insights" element={<TeacherInsightsPage />} />
-      <Route path="/error-demo" element={<ErrorDemoPage />} />
-      <Route element={<DashboardLayout />}>
-        <Route path="/home" element={<HomePage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/chat" element={<ChatPage />} />
-        <Route path="/flashcards" element={<FlashcardsPage />} />
-        <Route path="/quiz" element={<QuizPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/panic-mode" element={<PanicModePage />} />
-        <Route path="/insights" element={<InsightsPage />} />
-        <Route path="/conflicts" element={<ConflictsPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/sync" element={<SyncPage />} />
+      <Route path="/login" element={<OnboardingFlow onComplete={() => navigate("/dashboard", { replace: true })} />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route element={<ProtectedRoute requireProfile={false} />}>
+        <Route path="/onboarding" element={<OnboardingFlow startFrom="role" onComplete={() => navigate("/dashboard", { replace: true })} />} />
+      </Route>
+      <Route element={<ProtectedRoute />}>
+        <Route path="/teacher-insights" element={<TeacherInsightsPage />} />
+        <Route path="/error-demo" element={<ErrorDemoPage />} />
+        <Route element={<DashboardLayout />}>
+          <Route path="/home" element={<HomePage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/chat" element={<ChatPage />} />
+          <Route path="/flashcards" element={<FlashcardsPage />} />
+          <Route path="/quiz" element={<QuizPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/panic-mode" element={<PanicModePage />} />
+          <Route path="/insights" element={<InsightsPage />} />
+          <Route path="/conflicts" element={<ConflictsPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/sync" element={<SyncPage />} />
+        </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   );
 }
 
 export default function App() {
   return (
     <AuthProvider>
-        <AppStateProvider>
-          <ThemeProvider>
-            <FlashcardDeckProvider>
-              <BootGuard>
-                <AppRoutes />
-              </BootGuard>
-            </FlashcardDeckProvider>
-          </ThemeProvider>
-        </AppStateProvider>
-      </AuthProvider>
+      <AppStateProvider>
+        <ThemeProvider>
+          <FlashcardDeckProvider>
+            <NotificationProvider>
+              <PanicExamProvider>
+                <BootGuard>
+                  <AppRoutes />
+                </BootGuard>
+              </PanicExamProvider>
+            </NotificationProvider>
+          </FlashcardDeckProvider>
+        </ThemeProvider>
+      </AppStateProvider>
+    </AuthProvider>
   );
 }

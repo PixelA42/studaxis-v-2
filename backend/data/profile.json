@@ -1,6 +1,7 @@
 {
-  "profile_name": "bb",
+  "profile_name": "hello",
   "profile_mode": "solo",
   "class_code": null,
-  "user_role": "student"
+  "user_role": "student",
+  "onboarding_complete": true
 }

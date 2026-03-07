@@ -12,9 +12,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Generator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
-from sqlalchemy.types import DateTime, String
+from sqlalchemy.types import Boolean, DateTime, String
 
 # Base path: same as main.py (backend dir when run from backend, or STUDAXIS_BASE_PATH)
 _APP_DIR = Path(__file__).resolve().parent
@@ -62,6 +62,7 @@ class User(Base):
         index=True,
     )
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=lambda: datetime.now(timezone.utc),
@@ -76,6 +77,18 @@ def init_db() -> None:
     """Create all tables. Call on app startup."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(bind=engine)
+    # Migration: add is_verified if missing (existing DBs)
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT is_verified FROM users LIMIT 1"))
+            conn.commit()
+    except Exception:
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN is_verified BOOLEAN DEFAULT 0"))
+                conn.commit()
+        except Exception:
+            pass
 
 
 def get_db() -> Generator:

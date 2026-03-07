@@ -649,21 +649,22 @@ def show_settings_page() -> None:
     )
 
     profile = user_stats.get("profile", {})
-    profile_name = profile.get("name", "Student")
-    profile_mode = profile.get("mode", "solo")
+    # Do not auto-populate when profile is empty — use None to avoid fake session
+    profile_name = profile.get("name") if profile else None
+    profile_mode = profile.get("mode") if profile else None
 
     st.markdown(
         f"""
         <div class="settings-row">
             <div class="settings-row__label">
                 <span class="settings-row__label-title">Name</span>
-                <span class="settings-row__label-desc">{escape(profile_name)}</span>
+                <span class="settings-row__label-desc">{escape(profile_name or "Not set")}</span>
             </div>
         </div>
         <div class="settings-row">
             <div class="settings-row__label">
                 <span class="settings-row__label-title">Mode</span>
-                <span class="settings-row__label-desc">{escape(profile_mode.capitalize())}</span>
+                <span class="settings-row__label-desc">{escape((profile_mode or "Not set").capitalize())}</span>
             </div>
         </div>
         """,

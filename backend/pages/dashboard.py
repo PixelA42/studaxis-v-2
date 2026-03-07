@@ -176,9 +176,11 @@ def _render_header(
     sync_enabled: bool,
     low_power_mode: bool,
 ) -> None:
-    """Full-width glass header card."""
+    """Full-width glass header card. Renders nothing if profile_name is null (caller should redirect)."""
+    if not profile_name:
+        return
     initials = _initials(profile_name)
-    display_name = profile_name or "Student"
+    display_name = profile_name
     is_online = connectivity_status == "online"
 
     conn_html = (
@@ -463,7 +465,7 @@ def show_dashboard(skip_header: bool = True) -> None:
     stats = _load_user_stats()
 
     theme = st.session_state.get("theme", "light")
-    profile_name = st.session_state.get("profile_name") or stats.get("user_id", "Student")
+    profile_name = st.session_state.get("profile_name") or stats.get("user_id")
     profile_mode = st.session_state.get("profile_mode", "solo")
     connectivity_status = st.session_state.get("connectivity_status", "offline")
 

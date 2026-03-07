@@ -30,7 +30,6 @@ def show_auth() -> None:
         st.markdown('<div class="auth-actions-primary">', unsafe_allow_html=True)
         if st.button("Sign In", use_container_width=True):
             if username and password:
-                st.session_state.user_logged_in = True
                 st.session_state.page = "dashboard"
                 st.rerun()
             else:
