@@ -944,27 +944,30 @@ with tab4:
         offline_count = len(df_sync) - online_count - syncing_count
 
         sc1, sc2, sc3 = st.columns(3, gap="medium")
-        sc1.markdown(f"""
-        <div class="glass-card grad-sage" style="text-align:center;padding:22px;">
-            <div class="metric-label">Online</div>
-            <div class="metric-big">{online_count}</div>
-            <div class="score-pill">Synced securely</div>
-        </div>
-        """, unsafe_allow_html=True)
-        sc2.markdown(f"""
-        <div class="glass-card grad-sunset" style="text-align:center;padding:22px;">
-            <div class="metric-label">Syncing</div>
-            <div class="metric-big">{syncing_count}</div>
-            <div class="score-pill">Updating progress</div>
-        </div>
-        """, unsafe_allow_html=True)
-        sc3.markdown(f"""
-        <div class="glass-card grad-slate" style="text-align:center;padding:22px;">
-            <div class="metric-label">Offline</div>
-            <div class="metric-big">{offline_count}</div>
-            <div class="score-pill">Waiting for connection</div>
-        </div>
-        """, unsafe_allow_html=True)
+        with sc1:
+            st.markdown(f"""
+            <div class="glass-card grad-sage" style="text-align:center;padding:22px;">
+                <div class="metric-label">Online</div>
+                <div class="metric-big">{online_count}</div>
+                <div class="score-pill">Synced securely</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with sc2:
+            st.markdown(f"""
+            <div class="glass-card grad-sunset" style="text-align:center;padding:22px;">
+                <div class="metric-label">Syncing</div>
+                <div class="metric-big">{syncing_count}</div>
+                <div class="score-pill">Updating progress</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with sc3:
+            st.markdown(f"""
+            <div class="glass-card grad-slate" style="text-align:center;padding:22px;">
+                <div class="metric-label">Offline</div>
+                <div class="metric-big">{offline_count}</div>
+                <div class="score-pill">Waiting for connection</div>
+            </div>
+            """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 

@@ -219,7 +219,7 @@ class ContentDistributionTester:
     
     def __init__(self, use_real_aws: bool = False):
         self.use_real_aws = use_real_aws
-        self.context = MockAWSContext("studaxis-content-distribution-dev")
+        self.context = MockAWSContext("studaxis-content-2026-distribution-dev")
         self._setup_mocks()
     
     def _setup_mocks(self):

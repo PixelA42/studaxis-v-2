@@ -94,7 +94,8 @@ def notes_to_docx(notes_data: dict) -> bytes:
     # Summary
     doc.add_heading("Summary", level=2)
     summary_para = doc.add_paragraph(notes_data.get("summary", ""))
-    summary_para.runs[0].font.size = Pt(11)
+    if summary_para.runs:
+        summary_para.runs[0].font.size = Pt(11)
     doc.add_paragraph()
 
     # Fun fact

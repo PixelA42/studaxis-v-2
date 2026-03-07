@@ -1,0 +1,1 @@
+{"errorMessage": "ValidationError: Missing required fields: userId, quizId, score, totalQuestions", "errorType": "Exception", "requestId": "4db07748-6f98-4950-88e0-b0bb9dd93023", "stackTrace": ["  File \"/var/task/handler.py\", line 344, in lambda_handler\n    raise Exception(f\"ValidationError: {ve}\")\n"]}

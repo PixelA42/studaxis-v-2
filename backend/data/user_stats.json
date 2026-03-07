@@ -31,9 +31,9 @@
     }
   },
   "flashcard_stats": {
-    "total_reviewed": 0,
-    "mastered": 0,
-    "due_for_review": 0
+    "total_reviewed": 9,
+    "mastered": 3,
+    "due_for_review": 6
   },
   "chat_history": [],
   "preferences": {

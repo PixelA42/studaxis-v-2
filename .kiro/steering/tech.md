@@ -33,6 +33,13 @@
   - `data/chromadb/` - vector embeddings
   - `data/backups/` - user stats backups
 
+### PDF / Textbook Upload (Current Implementation)
+- **Frontend → Backend**: Integrated. React `FlashcardSourceSelector` calls `uploadTextbook(file)` → `POST /api/textbooks/upload` (FormData).
+- **Backend storage**: Local disk only — `backend/data/sample_textbooks/`. No S3.
+- **AWS**: Textbook PDFs are **not** uploaded to S3. AWS infra uses S3 for: student stats sync, quiz content (teacher dashboard), content distribution. Textbook upload is offline-first, local-only.
+- **Flow**: Select PDF → upload → saved to `sample_textbooks/` → available for flashcard generation via `POST /api/flashcards/generate/textbook`.
+- **Requirement**: `python-multipart` must be installed for multipart/form-data (see `requirements.txt`).
+
 ## AWS Cloud Services (Brain 1)
 
 ### Content Generation
@@ -49,7 +56,7 @@
   - Capacity: On-Demand (pay-per-request)
   - Performance: <100ms reads, <50ms writes
 - **S3**: Heavy payload storage
-  - Buckets: studaxis-student-stats, studaxis-content, studaxis-payloads
+  - Buckets: studaxis-student-stats-2026, studaxis-content-2026, studaxis-payloads
   - Structure: quizzes/, textbooks/, chat_logs/{user_id}/
   - Encryption: SSE-S3 (AES-256)
   - Versioning: Enabled for quiz and textbook content
@@ -175,18 +182,18 @@ streamlit run backend/streamlit_app.py --server.port 8502
 aws configure
 
 # Create S3 buckets
-aws s3 mb s3://studaxis-student-stats --region ap-south-1
-aws s3 mb s3://studaxis-content --region ap-south-1
+aws s3 mb s3://studaxis-student-stats-2026 --region ap-south-1
+aws s3 mb s3://studaxis-content-2026 --region ap-south-1
 
 # List S3 contents
-aws s3 ls s3://studaxis-student-stats/
+aws s3 ls s3://studaxis-student-stats-2026/
 
 # Upload to S3
-aws s3 cp file.json s3://studaxis-student-stats/
+aws s3 cp file.json s3://studaxis-student-stats-2026/
 
 # Enable S3 versioning
 aws s3api put-bucket-versioning \
-  --bucket studaxis-student-stats \
+  --bucket studaxis-student-stats-2026 \
   --versioning-configuration Status=Enabled
 
 # List Lambda functions

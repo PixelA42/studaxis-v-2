@@ -1,0 +1,9 @@
+{
+  "info": {
+    "fieldName": "updateStreak"
+  },
+  "arguments": {
+    "userId": "student-001",
+    "currentStreak": 5
+  }
+}

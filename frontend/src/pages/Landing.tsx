@@ -82,7 +82,7 @@ export function LandingPage() {
           </div>
           <div className="mt-8">
             <Link
-              to={userLoggedIn ? "/dashboard" : "/auth"}
+              to={userLoggedIn ? "/home" : "/auth"}
               className="inline-flex px-8 py-3 rounded-xl bg-chunk-blue text-heading-dark font-extrabold hover:opacity-90 transition-opacity shadow-card"
             >
               Get Started →

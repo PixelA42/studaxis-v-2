@@ -4,8 +4,11 @@
 
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
+import { useRecentToolsTracker } from "../hooks/useRecentTools";
 
 export function DashboardLayout() {
+  useRecentToolsTracker();
+
   return (
     <div className="min-h-screen flex bg-deep">
       <div className="ambient-glow" aria-hidden />

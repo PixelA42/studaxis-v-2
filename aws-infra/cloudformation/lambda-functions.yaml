@@ -113,7 +113,7 @@ Resources:
   ContentDistributionExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub studaxis-content-dist-role-${Environment}
+      RoleName: !Sub studaxis-content-2026-dist-role-${Environment}
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -152,7 +152,7 @@ Resources:
   ContentDistributionLambda:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub studaxis-content-distribution-${Environment}
+      FunctionName: !Sub studaxis-content-2026-distribution-${Environment}
       Description: >-
         Queries studaxis-quiz-index DynamoDB table for quiz metadata,
         generates time-limited S3 pre-signed URLs, and returns a

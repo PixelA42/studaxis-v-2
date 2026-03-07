@@ -123,8 +123,8 @@ FLASHCARD_REVIEW_INTERVALS = {
 
 # AWS Configuration (defaults)
 AWS_REGION = "ap-south-1"
-S3_BUCKET_STUDENT = "studaxis-student-stats"
-S3_BUCKET_CONTENT = "studaxis-content"
+S3_BUCKET_STUDENT = "studaxis-student-stats-2026"
+S3_BUCKET_CONTENT = "studaxis-content-2026"
 
 # Bedrock Configuration
 BEDROCK_MODEL_ID = "amazon.neo-lite-v2"

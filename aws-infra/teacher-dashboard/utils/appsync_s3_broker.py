@@ -276,5 +276,5 @@ def display_quiz_content(quiz_data: Dict):
             for option in q.get('options', []):
                 st.write(f"  • {option}")
             
-            st.write(f"**Correct Answer:** {q.get('correct_answer', 'N/A')}")
+            st.write(f"**Correct Answer:** {q.get('answer', q.get('correct_answer', 'N/A'))}")
             st.write(f"**Explanation:** {q.get('explanation', 'N/A')}")

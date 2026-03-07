@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import {
-  generateFlashcards,
   explainFlashcard,
   getStudyRecommendation,
   getFlashcardsDue,
@@ -10,16 +9,19 @@ import {
   getUserStats,
   updateUserStats,
 } from "../services/api";
-import type { FlashcardItem } from "../services/api";
+import type { FlashcardItem, DashboardFlashcardItem } from "../services/api";
 import { useFlashcardDeck } from "../contexts/FlashcardDeckContext";
-import { GlassCard, LoadingSpinner, HardwareStatus, PageChrome } from "../components";
+import { GlassCard, LoadingSpinner, HardwareStatus, PageChrome, AerogelDashboardCard } from "../components";
+import { CascadingCardStack } from "../components/CascadingCardStack";
+import { FlashcardSourceSelector } from "../components/FlashcardSourceSelector";
 
 const STUDY_TIME_MINUTES = 15;
 
-/** Enrich generated cards for storage (next_review, question, answer, interval, etc.). */
+/** Enrich generated cards for storage (next_review, question, answer, interval, sourceType, etc.). */
 function enrichForStorage(
   cards: FlashcardItem[],
-  topic: string
+  topic: string,
+  sourceType?: string[]
 ): FlashcardItem[] {
   const now = new Date().toISOString();
   return cards.map((c) => ({
@@ -31,6 +33,17 @@ function enrichForStorage(
     interval: 1,
     repetitions: 0,
     ease_factor: 2.5,
+    sourceType: sourceType ?? c.sourceType ?? ["textbook"],
+  }));
+}
+
+/** Map FlashcardItem to DashboardFlashcardItem for Aerogel (conceptTitle=topic, content=back, sourceType). */
+function mapToDashboardCards(deck: FlashcardItem[]): DashboardFlashcardItem[] {
+  return deck.map((c) => ({
+    id: c.id,
+    conceptTitle: c.topic ?? "General",
+    content: c.back ?? c.answer ?? "",
+    sourceType: c.sourceType,
   }));
 }
 
@@ -45,7 +58,7 @@ export function FlashcardsPage() {
   const {
     deck,
     cardIndex,
-    showAnswer,
+    showAnswer: _showAnswer,
     setShowAnswer,
     lastExplanation,
     lastRecommendation,
@@ -57,10 +70,6 @@ export function FlashcardsPage() {
     advanceToNext,
   } = useFlashcardDeck();
 
-  const [inputType, setInputType] = useState<"Topic Name" | "Textbook Chapter">(
-    "Topic Name"
-  );
-  const [topicInput, setTopicInput] = useState("");
   const [count, setCount] = useState(10);
   const [generateLoading, setGenerateLoading] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
@@ -83,22 +92,15 @@ export function FlashcardsPage() {
   const idx = n > 0 ? cardIndex % n : 0;
   const card: FlashcardItem | null = n > 0 ? deck[idx]! : null;
 
-  const handleGenerate = async () => {
-    const topic = topicInput.trim();
-    if (!topic) {
-      setGenerateError("Please enter a topic or chapter name.");
-      return;
-    }
+  const handleGenerateFromSelector = async (
+    cards: FlashcardItem[],
+    sourceType: string[]
+  ) => {
     setGenerateError(null);
     setGenerateLoading(true);
     try {
-      const res = await generateFlashcards({
-        topic_or_chapter: topic,
-        input_type: inputType,
-        count,
-        offline_mode: true,
-      });
-      const enriched = enrichForStorage(res.cards, topic);
+      const topic = cards[0]?.topic ?? "General";
+      const enriched = enrichForStorage(cards, topic, sourceType);
       await postFlashcards(enriched);
       setDeck(enriched);
       setCardIndex(0);
@@ -106,7 +108,7 @@ export function FlashcardsPage() {
       setLastExplanation("");
       setLastRecommendation("");
     } catch (e) {
-      setGenerateError(e instanceof Error ? e.message : "Failed to generate deck.");
+      setGenerateError(e instanceof Error ? e.message : "Failed to save deck.");
     } finally {
       setGenerateLoading(false);
     }
@@ -253,95 +255,41 @@ export function FlashcardsPage() {
           )}
 
           <GlassCard title="Create your deck">
-          <p className="text-sm text-primary/70 mb-4">
-            What would you like to study? We&apos;ll generate flashcards with
-            local AI.
-          </p>
+            <p className="text-sm text-primary/70 mb-4">
+              Choose a source (Textbook, Web link, or Files) and generate flashcards with local AI.
+            </p>
+            <FlashcardSourceSelector
+              count={count}
+              onCountChange={setCount}
+              onGenerate={handleGenerateFromSelector}
+              loading={generateLoading}
+              error={generateError}
+              onError={setGenerateError}
+            />
+          </GlassCard>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-primary/90 mb-2">
-                Input type
-              </label>
-              <div className="flex gap-4">
-                {(["Topic Name", "Textbook Chapter"] as const).map((opt) => (
-                  <label
-                    key={opt}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <input
-                      type="radio"
-                      name="inputType"
-                      checked={inputType === opt}
-                      onChange={() => setInputType(opt)}
-                      className="rounded border-glass-border bg-deep text-accent-blue focus:ring-accent-blue"
-                    />
-                    <span className="text-sm text-primary">{opt}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="topic-input"
-                className="block text-sm font-medium text-primary/90 mb-2"
-              >
-                Enter topic or chapter name
-              </label>
-              <input
-                id="topic-input"
-                type="text"
-                value={topicInput}
-                onChange={(e) => setTopicInput(e.target.value)}
-                placeholder="e.g. Newton's Laws, Chapter 5 – Cell Biology"
-                className="w-full max-w-md px-4 py-2 rounded-lg border border-glass-border bg-surface-light text-primary placeholder:text-primary/50 focus:outline-none focus:ring-2 focus:ring-accent-blue focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="count-slider"
-                className="block text-sm font-medium text-primary/90 mb-2"
-              >
-                Number of flashcards: {count}
-              </label>
-              <input
-                id="count-slider"
-                type="range"
-                min={5}
-                max={35}
-                value={count}
-                onChange={(e) => setCount(Number(e.target.value))}
-                className="w-full max-w-xs h-2 rounded-full appearance-none bg-surface-light border border-glass-border accent-accent-blue"
-              />
-              <p className="text-xs text-primary/60 mt-1">
-                AI may adjust this based on content density.
-              </p>
-            </div>
-
-            {generateError && (
-              <p className="text-sm text-red-400" role="alert">
-                {generateError}
-              </p>
-            )}
-
-            <LoadingSpinner loading={generateLoading} message="Generating your custom deck with local AI...">
-              <button
-                type="button"
-                onClick={handleGenerate}
-                disabled={generateLoading}
-                className="px-5 py-2.5 rounded-xl font-medium text-deep bg-accent-blue hover:bg-accent-blue/90 focus:outline-none focus:ring-2 focus:ring-accent-blue focus:ring-offset-2 focus:ring-offset-deep disabled:opacity-60"
-              >
-                Generate Flashcards
-              </button>
-            </LoadingSpinner>
-          </div>
-        </GlassCard>
+          {/* Stored decks — cascading card stack */}
+          <GlassCard title="Your stored decks">
+            <p className="text-sm text-primary/70 mb-4">
+              Click a deck below to load it for review. Decks are grouped by topic from your stored flashcards.
+            </p>
+            <CascadingCardStack
+              onSelectDeck={(cards, _topic) => {
+                setDeck(cards);
+                setCardIndex(0);
+                setShowAnswer(false);
+                setLastExplanation("");
+                setLastRecommendation("");
+              }}
+            />
+          </GlassCard>
       </div>
     </PageChrome>
     );
   }
+
+  /** Map FlashcardItem to DashboardFlashcardItem for Aerogel (conceptTitle=topic, content=back, sourceType) */
+  const aerogelCards = mapToDashboardCards(deck);
 
   return (
     <PageChrome backTo="/dashboard" backLabel="← Back to Dashboard">
@@ -360,31 +308,19 @@ export function FlashcardsPage() {
           Clear deck & generate new
         </button>
 
+        <AerogelDashboardCard
+          cards={aerogelCards}
+          limit={deck.length}
+          index={cardIndex}
+          onIndexChange={setCardIndex}
+        />
+
         <GlassCard>
           <p className="text-sm text-primary/70 mb-2">
-            Card {idx + 1} of {n} · Topic: {card?.topic ?? "General"}
+            Card {idx + 1} of {n} · Topic: {card?.topic ?? "General"} · Flip the card above to reveal the answer
           </p>
 
-          {!showAnswer ? (
-            <>
-              <div className="rounded-xl border border-glass-border bg-surface-light/50 p-5 mb-4">
-                <p className="text-primary font-medium">{card?.front ?? card?.question ?? "?"}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAnswer(true)}
-                className="px-5 py-2.5 rounded-xl font-medium text-deep bg-accent-blue hover:bg-accent-blue/90 focus:outline-none focus:ring-2 focus:ring-accent-blue"
-              >
-                Show answer
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="rounded-xl border border-glass-border bg-surface-light/50 p-5 mb-4">
-                <p className="text-primary font-medium">{card?.back ?? card?.answer ?? "—"}</p>
-              </div>
-
-              <div className="flex flex-wrap gap-3 mb-4">
+          <div className="flex flex-wrap gap-3 mb-4">
                 {explainLoading ? (
                   <LoadingSpinner
                     message="Processing with local AI..."
@@ -449,8 +385,6 @@ export function FlashcardsPage() {
                   </p>
                 </div>
               )}
-            </>
-          )}
         </GlassCard>
       </div>
       </div>

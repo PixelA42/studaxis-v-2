@@ -19,6 +19,7 @@ const navSections: {
   {
     label: "Core Tools",
     items: [
+      { to: "/home", label: "Home", icon: Icons.home },
       { to: "/dashboard", label: "Dashboard", icon: Icons.dashboard },
       { to: "/chat", label: "AI Chat", icon: Icons.ai },
       { to: "/flashcards", label: "Flashcards", icon: Icons.cards },
@@ -110,7 +111,7 @@ export function Sidebar() {
                   <NavLink
                     key={item.to}
                     to={item.to}
-                    end={item.to === "/dashboard"}
+                    end={item.to === "/home" || item.to === "/dashboard"}
                     className={({ isActive: active }) =>
                       `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                         collapsed ? "justify-center" : ""

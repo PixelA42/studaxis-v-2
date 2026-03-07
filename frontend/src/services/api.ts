@@ -7,13 +7,10 @@ const API_BASE = "";
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE}${path}`;
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers as Record<string, string>),
-    },
-  });
+  const isFormData = options.body instanceof FormData;
+  const headers: Record<string, string> = { ...(options.headers as Record<string, string>) };
+  if (!isFormData) headers["Content-Type"] = "application/json";
+  const res = await fetch(url, { ...options, headers });
   if (!res.ok) {
     const raw = await res.text();
     let message = raw || `API error ${res.status}`;
@@ -35,6 +32,8 @@ export interface FlashcardItem {
   topic: string;
   front: string;
   back: string;
+  /** Optional: textbook | weblink | file */
+  sourceType?: string | string[];
   /** Optional storage/SRS fields (next_review ISO, interval days, etc.) */
   next_review?: string;
   interval?: number;
@@ -333,6 +332,108 @@ export async function checkOllamaPing(): Promise<{ ok: boolean }> {
   return request<{ ok: boolean }>("/api/ollama/ping");
 }
 
+/** Response from GET /api/textbooks */
+export interface TextbooksResponse {
+  textbooks: Array<{ id: string; name: string }>;
+}
+
+/** Response from POST /api/textbooks/upload */
+export interface TextbookUploadResponse {
+  id: string;
+  name: string;
+}
+
+/**
+ * List textbooks from data/sample_textbooks (*.pdf, *.txt).
+ */
+export async function getTextbooks(): Promise<TextbooksResponse> {
+  return request<TextbooksResponse>("/api/textbooks");
+}
+
+/**
+ * Upload a PDF textbook to sample_textbooks.
+ */
+export async function uploadTextbook(file: File): Promise<TextbookUploadResponse> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${API_BASE}/api/textbooks/upload`, {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) {
+    const raw = await res.text();
+    let message = raw || `API error ${res.status}`;
+    try {
+      const json = JSON.parse(raw) as { detail?: string };
+      if (typeof json.detail === "string") message = json.detail;
+    } catch {
+      // keep raw
+    }
+    throw new Error(message);
+  }
+  return res.json() as Promise<TextbookUploadResponse>;
+}
+
+/**
+ * Generate flashcards from a web URL. Fetches HTML, strips tags, sends to AI.
+ */
+export async function generateFlashcardsFromWeblink(params: {
+  url: string;
+  count: number;
+}): Promise<FlashcardGenerateResponse> {
+  return request<FlashcardGenerateResponse>("/api/flashcards/generate/weblink", {
+    method: "POST",
+    body: JSON.stringify({ url: params.url, count: params.count }),
+  });
+}
+
+/**
+ * Generate flashcards from uploaded files (txt, pdf, ppt, pptx).
+ */
+export async function generateFlashcardsFromFiles(params: {
+  files: File[];
+  count: number;
+}): Promise<FlashcardGenerateResponse> {
+  const form = new FormData();
+  params.files.forEach((f) => form.append("files", f));
+  form.append("count", String(params.count));
+  const res = await fetch(`${API_BASE}/api/flashcards/generate/files`, {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) {
+    const raw = await res.text();
+    let message = raw || `API error ${res.status}`;
+    try {
+      const json = JSON.parse(raw) as { detail?: string };
+      if (typeof json.detail === "string") message = json.detail;
+    } catch {
+      // keep raw
+    }
+    throw new Error(message);
+  }
+  return res.json() as Promise<FlashcardGenerateResponse>;
+}
+
+/**
+ * Generate flashcards from a textbook by id (filename in sample_textbooks).
+ * Falls back to topic-based generation if textbook content cannot be loaded.
+ */
+export async function generateFlashcardsFromTextbook(params: {
+  textbook_id: string;
+  chapter?: string;
+  count: number;
+}): Promise<FlashcardGenerateResponse> {
+  return request<FlashcardGenerateResponse>("/api/flashcards/generate/textbook", {
+    method: "POST",
+    body: JSON.stringify({
+      textbook_id: params.textbook_id,
+      chapter: params.chapter ?? null,
+      count: params.count,
+    }),
+  });
+}
+
 /**
  * Generate a deck of flashcards from a topic or chapter name (local AI).
  * Calls POST /api/flashcards/generate.
@@ -392,6 +493,26 @@ export async function getStudyRecommendation(
 /** Response from GET /api/flashcards and GET /api/flashcards/due */
 export interface FlashcardsListResponse {
   cards: FlashcardItem[];
+}
+
+/** Dashboard flashcard format: conceptTitle, content, sourceType (textbook|weblink|semantics|file) */
+export interface DashboardFlashcardItem {
+  id: string;
+  conceptTitle: string;
+  content: string;
+  sourceType?: string | string[];
+}
+
+export interface DashboardFlashcardsResponse {
+  cards: DashboardFlashcardItem[];
+}
+
+/**
+ * Fetch dashboard flashcards (concept cards for aerogel UI).
+ * Maps stored flashcards to conceptTitle/content/sourceType format.
+ */
+export async function getDashboardFlashcards(): Promise<DashboardFlashcardsResponse> {
+  return request<DashboardFlashcardsResponse>("/api/dashboard/flashcards");
 }
 
 /**

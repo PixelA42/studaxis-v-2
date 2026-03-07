@@ -7,6 +7,7 @@ import { FlashcardDeckProvider } from "./contexts/FlashcardDeckContext";
 import { BootFlow } from "./pages/BootFlow";
 import { LandingPage } from "./pages/Landing";
 import { Auth } from "./components/Auth";
+import { HomePage } from "./pages/Home";
 import { DashboardPage } from "./pages/Dashboard";
 import { ChatPage } from "./pages/Chat";
 import { FlashcardsPage } from "./pages/Flashcards";
@@ -52,7 +53,7 @@ function BootGuard({ children }: { children: React.ReactNode }) {
   if (!bootComplete) {
     return (
       <BootFlow
-        onComplete={() => navigate("/dashboard", { replace: true })}
+        onComplete={() => navigate("/home", { replace: true })}
       />
     );
   }
@@ -69,6 +70,7 @@ function AppRoutes() {
       <Route path="/teacher-insights" element={<TeacherInsightsPage />} />
       <Route path="/error-demo" element={<ErrorDemoPage />} />
       <Route element={<DashboardLayout />}>
+        <Route path="/home" element={<HomePage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/flashcards" element={<FlashcardsPage />} />

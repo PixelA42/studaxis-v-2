@@ -1,0 +1,14 @@
+{
+  "info": {
+    "fieldName": "recordQuizAttempt"
+  },
+  "arguments": {
+    "userId": "student-001",
+    "quizId": "quiz-math-1",
+    "score": 8,
+    "totalQuestions": 10,
+    "subject": "Mathematics",
+    "difficulty": "Medium",
+    "deviceId": "test-cli-invoke"
+  }
+}

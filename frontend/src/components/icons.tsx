@@ -20,6 +20,7 @@ import {
   HiBookOpen,
   HiSun,
   HiMoon,
+  HiHome,
 } from "react-icons/hi2";
 
 const iconClass = "w-5 h-5";
@@ -37,6 +38,7 @@ export const Icons = {
   settings: <HiCog6Tooth className={iconClass} />,
   profile: <HiUser className={iconClass} />,
   dashboard: <HiSquares2X2 className={iconClass} />,
+  home: <HiHome className={iconClass} />,
   book: <HiBookOpen className={iconClass} />,
   offline: <HiBolt className={iconClass} />,
   sun: <HiSun className={iconClass} />,

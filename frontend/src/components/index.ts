@@ -1,3 +1,5 @@
+export { AerogelDashboardCard } from "./AerogelDashboardCard";
+export type { AerogelDashboardCardProps } from "./AerogelDashboardCard";
 export { GlassCard } from "./GlassCard";
 export type { GlassCardProps } from "./GlassCard";
 export { LoadingSpinner } from "./LoadingSpinner";
@@ -17,3 +19,7 @@ export { EmptyState } from "./EmptyState";
 export type { EmptyStateProps } from "./EmptyState";
 export { Modal } from "./Modal";
 export type { ModalProps } from "./Modal";
+export { FlashcardSourceSelector } from "./FlashcardSourceSelector";
+export type { FlashcardSourceSelectorProps, SourceTab } from "./FlashcardSourceSelector";
+export { CascadingCardStack } from "./CascadingCardStack";
+export type { CascadingCardStackProps, FlashcardDeckItem } from "./CascadingCardStack";

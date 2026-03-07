@@ -23,7 +23,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -46,6 +46,7 @@ BASE_PATH = Path(os.environ.get("STUDAXIS_BASE_PATH", str(_APP_DIR)))
 DATA_DIR = BASE_PATH / "data"
 STATS_FILE = DATA_DIR / "user_stats.json"
 FLASHCARDS_FILE = DATA_DIR / "flashcards.json"
+SAMPLE_TEXTBOOKS_DIR = DATA_DIR / "sample_textbooks"
 
 app = FastAPI(
     title="Studaxis API",
@@ -168,6 +169,7 @@ class FlashcardItem(BaseModel):
     topic: str
     front: str
     back: str
+    sourceType: Optional[str | list[str]] = None
 
 
 class FlashcardGenerateResponse(BaseModel):
@@ -516,6 +518,211 @@ def storage_files():
     return {"files": _get_storage_files()}
 
 
+# ---------------------------------------------------------------------------
+# Textbooks (sample_textbooks)
+# ---------------------------------------------------------------------------
+
+
+def _list_textbooks() -> list[dict[str, str]]:
+    """List *.pdf and *.txt files in sample_textbooks."""
+    out: list[dict[str, str]] = []
+    if not SAMPLE_TEXTBOOKS_DIR.is_dir():
+        return out
+    for p in sorted(SAMPLE_TEXTBOOKS_DIR.iterdir()):
+        if p.is_file() and p.suffix.lower() in (".pdf", ".txt"):
+            out.append({"id": p.name, "name": p.stem})
+    return out
+
+
+@app.get("/api/textbooks")
+def textbooks_list():
+    """List textbooks from data/sample_textbooks (*.pdf, *.txt)."""
+    return {"textbooks": _list_textbooks()}
+
+
+@app.post("/api/textbooks/upload")
+def textbooks_upload(file: UploadFile = File(...)):
+    """Multipart file upload; save PDF to sample_textbooks."""
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are accepted")
+    SAMPLE_TEXTBOOKS_DIR.mkdir(parents=True, exist_ok=True)
+    dest = SAMPLE_TEXTBOOKS_DIR / file.filename
+    try:
+        content = file.file.read()
+        dest.write_bytes(content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
+    return {"id": file.filename, "name": Path(file.filename).stem}
+
+
+def _extract_text_from_pdf(path: Path) -> str:
+    """Extract text from PDF using PyPDF2 or PyPDFLoader."""
+    try:
+        from PyPDF2 import PdfReader
+        reader = PdfReader(str(path))
+        return "\n".join(p.extract_text() or "" for p in reader.pages)
+    except ImportError:
+        try:
+            from langchain_community.document_loaders import PyPDFLoader
+            docs = PyPDFLoader(str(path)).load()
+            return "\n".join(d.page_content for d in docs)
+        except ImportError:
+            raise HTTPException(status_code=501, detail="Install PyPDF2 or langchain-community for PDF extraction")
+
+
+def _extract_text_from_file(path: Path) -> str:
+    """Extract text from txt, pdf, or ppt/pptx."""
+    suf = path.suffix.lower()
+    if suf == ".txt":
+        return path.read_text(encoding="utf-8", errors="replace")
+    if suf == ".pdf":
+        return _extract_text_from_pdf(path)
+    if suf in (".ppt", ".pptx"):
+        try:
+            from langchain_community.document_loaders import UnstructuredPowerPointLoader
+            docs = UnstructuredPowerPointLoader(str(path)).load()
+            return "\n".join(d.page_content for d in docs)
+        except ImportError:
+            raise HTTPException(status_code=501, detail="PPT support requires UnstructuredPowerPointLoader (pip install unstructured)")
+    return ""
+
+
+def _generate_cards_from_content(content: str, count: int, source_type: str) -> FlashcardGenerateResponse:
+    """Generate flashcards from extracted text via AI."""
+    if not content or not content.strip():
+        raise HTTPException(status_code=422, detail="No extractable text from source")
+    engine = get_ai_engine()
+    truncated = content[:12000] if len(content) > 12000 else content
+    try:
+        response = engine.request(
+            task_type=AITaskType.FLASHCARD_GENERATION,
+            user_input=f"Generate {count} flashcards from this content. Return a JSON array of objects with id, topic, front, back.",
+            context_data={
+                "input_type": "Textbook Chapter",
+                "topic_or_chapter": "Content-based",
+                "count": count,
+                "source_content": truncated,
+            },
+            offline_mode=True,
+            privacy_sensitive=True,
+            user_id=None,
+        )
+    except (ConnectionError, TimeoutError) as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    if response.state in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
+        raise HTTPException(status_code=503, detail=response.error_message or response.text or "AI unavailable.")
+    raw_text = _extract_json_array(response.text)
+    try:
+        parsed = json.loads(raw_text)
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=422, detail=f"AI returned invalid JSON: {e}")
+    if not isinstance(parsed, list):
+        raise HTTPException(status_code=422, detail="AI response was not a JSON array")
+    cards = _normalize_cards(parsed)
+    for c in cards:
+        c["sourceType"] = source_type
+    return FlashcardGenerateResponse(cards=[FlashcardItem(**c) for c in cards], topic="Content-based")
+
+
+class TextbookGenerateRequest(BaseModel):
+    textbook_id: str = Field(..., description="Filename in sample_textbooks")
+    chapter: Optional[str] = Field(default=None)
+    count: int = Field(default=10, ge=5, le=35)
+
+
+@app.post("/api/flashcards/generate/textbook", response_model=FlashcardGenerateResponse)
+def flashcards_generate_textbook(req: TextbookGenerateRequest):
+    """Generate flashcards from a textbook file. Falls back to topic if content cannot be loaded."""
+    path = SAMPLE_TEXTBOOKS_DIR / req.textbook_id
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail=f"Textbook '{req.textbook_id}' not found")
+    try:
+        content = _extract_text_from_file(path)
+        if not content.strip():
+            raise HTTPException(status_code=422, detail="Could not extract text from textbook")
+        return _generate_cards_from_content(content, req.count, "textbook")
+    except HTTPException:
+        raise
+    except Exception:
+        # Fallback to topic-based generation
+        topic = req.chapter or Path(req.textbook_id).stem
+        return flashcards_generate(FlashcardGenerateRequest(
+            topic_or_chapter=topic,
+            input_type="Textbook Chapter",
+            count=req.count,
+            offline_mode=True,
+            user_id=None,
+        ))
+
+
+class WeblinkGenerateRequest(BaseModel):
+    url: str = Field(..., min_length=1)
+    count: int = Field(default=10, ge=5, le=35)
+
+
+@app.post("/api/flashcards/generate/weblink", response_model=FlashcardGenerateResponse)
+def flashcards_generate_weblink(req: WeblinkGenerateRequest):
+    """Fetch URL content, strip HTML, generate flashcards via AI."""
+    import requests
+    try:
+        r = requests.get(req.url.strip(), timeout=15, headers={"User-Agent": "Studaxis/1.0"})
+        r.raise_for_status()
+        html = r.text
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Could not fetch URL: {e}")
+    text = re.sub(r"<[^>]+>", " ", html)
+    text = re.sub(r"\s+", " ", text).strip()
+    return _generate_cards_from_content(text, req.count, "weblink")
+
+
+@app.post("/api/flashcards/generate/files", response_model=FlashcardGenerateResponse)
+def flashcards_generate_files(files: list[UploadFile] = File(...), count: int = Form(10)):
+    """Multipart file upload; extract text from txt/pdf/ppt, generate via AI."""
+    if not files:
+        raise HTTPException(status_code=400, detail="No files provided")
+    texts: list[str] = []
+    ppt_skipped: list[str] = []
+    for uf in files:
+        if not uf.filename:
+            continue
+        suf = Path(uf.filename).suffix.lower()
+        if suf not in (".txt", ".pdf", ".ppt", ".pptx"):
+            continue
+        tmp = Path(uf.filename).name
+        try:
+            content = uf.file.read()
+            tmp_path = DATA_DIR / "tmp_upload" / tmp
+            tmp_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp_path.write_bytes(content)
+            try:
+                if suf in (".ppt", ".pptx"):
+                    try:
+                        from langchain_community.document_loaders import UnstructuredPowerPointLoader
+                        docs = UnstructuredPowerPointLoader(str(tmp_path)).load()
+                        texts.append("\n".join(d.page_content for d in docs))
+                    except ImportError:
+                        ppt_skipped.append(uf.filename)
+                else:
+                    texts.append(_extract_text_from_file(tmp_path))
+            finally:
+                try:
+                    tmp_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+        except Exception as e:
+            raise HTTPException(status_code=422, detail=f"Failed to process {uf.filename}: {e}")
+    if ppt_skipped:
+        pass  # Already recorded
+    combined = "\n\n".join(texts)
+    if not combined.strip():
+        msg = "No extractable text."
+        if ppt_skipped:
+            msg += f" PPT support unavailable; skipped: {', '.join(ppt_skipped)}"
+        raise HTTPException(status_code=422, detail=msg)
+    cnt = max(5, min(35, count))
+    return _generate_cards_from_content(combined, cnt, "file")
+
+
 @app.post("/api/flashcards/generate", response_model=FlashcardGenerateResponse)
 def flashcards_generate(req: FlashcardGenerateRequest):
     """
@@ -622,6 +829,38 @@ def _get_due_cards() -> list[dict[str, Any]]:
 def flashcards_list():
     """Return all stored flashcards (for sync/debug)."""
     return {"cards": _load_flashcards()}
+
+
+def _dashboard_flashcards() -> list[dict[str, Any]]:
+    """Transform stored flashcards to dashboard format (id, conceptTitle, content, sourceType)."""
+    raw = _load_flashcards()
+    out = []
+    for c in raw:
+        cid = c.get("id") or str(uuid.uuid4())
+        topic = c.get("topic") or "General"
+        front = c.get("front") or c.get("question") or ""
+        back = c.get("back") or c.get("answer") or ""
+        # conceptTitle = topic; content = back (answer). Front is the question.
+        concept_title = topic
+        content = back or front
+        source = c.get("sourceType")
+        if source is None:
+            source = ["textbook"]
+        elif isinstance(source, str):
+            source = [source]
+        out.append({
+            "id": cid,
+            "conceptTitle": concept_title,
+            "content": content,
+            "sourceType": source,
+        })
+    return out
+
+
+@app.get("/api/dashboard/flashcards")
+def dashboard_flashcards():
+    """Return flashcards in dashboard format (conceptTitle, content, sourceType) for aerogel card."""
+    return {"cards": _dashboard_flashcards()}
 
 
 @app.get("/api/flashcards/due")

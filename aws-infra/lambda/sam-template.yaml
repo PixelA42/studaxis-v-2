@@ -108,7 +108,7 @@ Resources:
   ContentDistributionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub studaxis-content-distribution-${Environment}-sam
+      RoleName: !Sub studaxis-content-2026-distribution-${Environment}-sam
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -145,7 +145,7 @@ Resources:
   ContentDistributionFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub studaxis-content-distribution-${Environment}
+      FunctionName: !Sub studaxis-content-2026-distribution-${Environment}
       Description: Handles offline content fetching (quizzes, manifests)
       Handler: handler.lambda_handler
       Runtime: python3.11
@@ -177,7 +177,7 @@ Resources:
   ContentDistributionLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/lambda/studaxis-content-distribution-${Environment}
+      LogGroupName: !Sub /aws/lambda/studaxis-content-2026-distribution-${Environment}
       RetentionInDays: 7
 
   # ═════════════════════════════════════════════════════════════════════════

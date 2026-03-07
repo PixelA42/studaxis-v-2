@@ -1,18 +1,18 @@
 [
   {
     "id": "1",
-    "card_id": "1",
-    "topic": "Definition of Integral",
-    "front": "What is the integral of a function?",
-    "back": "The integral of a function is the area under the curve of the function.",
-    "question": "What is the integral of a function?",
-    "answer": "The integral of a function is the area under the curve of the function.",
-    "type": "conceptual",
-    "created_at": "2026-03-06T12:32:04.229626+00:00",
+    "topic": "Definition",
+    "front": "Content-based",
+    "back": "A teaching method where the lesson content is the primary focus.",
+    "sourceType": [
+      "file"
+    ],
+    "question": "Content-based",
+    "answer": "A teaching method where the lesson content is the primary focus.",
+    "next_review": "2026-03-10T11:26:04.175Z",
     "interval": 1,
-    "repetitions": 1,
-    "ease_factor": 2.5,
-    "next_review": "2026-03-07T18:02:19.620418"
+    "repetitions": 0,
+    "ease_factor": 2.5
   },
   {
     "id": "2",
@@ -136,17 +136,917 @@
   },
   {
     "id": "10",
-    "card_id": "10",
-    "topic": "Integration by Parts",
-    "front": "What is integration by parts?",
-    "back": "Integration by parts is a method of integration that involves differentiating one function and integrating the other.",
-    "question": "What is integration by parts?",
-    "answer": "Integration by parts is a method of integration that involves differentiating one function and integrating the other.",
-    "type": "conceptual",
-    "created_at": "2026-03-06T12:32:04.229626+00:00",
+    "topic": "Technology integration",
+    "front": "Using technology to support content",
+    "back": "Using digital resources to support the teaching of subject matter.",
+    "sourceType": [
+      "file"
+    ],
+    "question": "Using technology to support content",
+    "answer": "Using digital resources to support the teaching of subject matter.",
+    "next_review": "2026-03-08T11:28:10.130Z",
     "interval": 1,
     "repetitions": 0,
-    "ease_factor": 2.5,
-    "next_review": "2026-03-10T08:34:41.265Z"
+    "ease_factor": 2.5
+  },
+  {
+    "id": "1",
+    "topic": "Definition",
+    "front": "Content-based",
+    "back": "A teaching method where the lesson content is the primary focus.",
+    "sourceType": [
+      "file"
+    ],
+    "question": "Content-based",
+    "answer": "A teaching method where the lesson content is the primary focus.",
+    "next_review": "2026-03-10T11:26:04.175Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "2",
+    "topic": "Characteristics of Content-based",
+    "front": "Key Features of Content-based",
+    "back": "Includes studying the subject matter, following the curriculum, and acquiring knowledge through reading, writing, and discussion.",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "Key Features of Content-based",
+    "answer": "Includes studying the subject matter, following the curriculum, and acquiring knowledge through reading, writing, and discussion.",
+    "next_review": "2026-03-07T11:24:45.744Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "3",
+    "topic": "Types of Content-based",
+    "front": "Types of Content-based Learning",
+    "back": "Can be categorized into different types such as traditional, cooperative, and problem-based learning.",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "Types of Content-based Learning",
+    "answer": "Can be categorized into different types such as traditional, cooperative, and problem-based learning.",
+    "next_review": "2026-03-07T11:24:45.744Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "4",
+    "topic": "Benefits of Content-based",
+    "front": "Advantages of Content-based Learning",
+    "back": "Helps students to develop knowledge, skills, and attitudes necessary for academic success.",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "Advantages of Content-based Learning",
+    "answer": "Helps students to develop knowledge, skills, and attitudes necessary for academic success.",
+    "next_review": "2026-03-07T11:24:45.744Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "5",
+    "topic": "Challenges of Content-based",
+    "front": "Challenges Faced by Content-based Learning",
+    "back": "Can be time-consuming, and may not be suitable for all students.",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "Challenges Faced by Content-based Learning",
+    "answer": "Can be time-consuming, and may not be suitable for all students.",
+    "next_review": "2026-03-07T11:24:45.744Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "6",
+    "topic": "Assessment in Content-based",
+    "front": "Methods of Assessment in Content-based Learning",
+    "back": "Typically involves written exams, quizzes, and projects to evaluate student learning.",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "Methods of Assessment in Content-based Learning",
+    "answer": "Typically involves written exams, quizzes, and projects to evaluate student learning.",
+    "next_review": "2026-03-07T11:24:45.744Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "7",
+    "topic": "Role of Technology in Content-based",
+    "front": "The Role of Technology in Content-based Learning",
+    "back": "Can enhance the learning experience through online resources, multimedia, and collaboration tools.",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "The Role of Technology in Content-based Learning",
+    "answer": "Can enhance the learning experience through online resources, multimedia, and collaboration tools.",
+    "next_review": "2026-03-07T11:24:45.744Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "8",
+    "topic": "Content-based and 21st Century Skills",
+    "front": "Link between Content-based and 21st Century Skills",
+    "back": "Helps students develop essential skills such as critical thinking, creativity, and problem-solving.",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "Link between Content-based and 21st Century Skills",
+    "answer": "Helps students develop essential skills such as critical thinking, creativity, and problem-solving.",
+    "next_review": "2026-03-07T11:24:45.744Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "9",
+    "topic": "Content-based and Differentiated Instruction",
+    "front": "Relationship between Content-based and Differentiated Instruction",
+    "back": "Can be adapted to meet the diverse needs of students through various instructional strategies.",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "Relationship between Content-based and Differentiated Instruction",
+    "answer": "Can be adapted to meet the diverse needs of students through various instructional strategies.",
+    "next_review": "2026-03-07T11:24:45.744Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "10",
+    "topic": "Technology integration",
+    "front": "Using technology to support content",
+    "back": "Using digital resources to support the teaching of subject matter.",
+    "sourceType": [
+      "file"
+    ],
+    "question": "Using technology to support content",
+    "answer": "Using digital resources to support the teaching of subject matter.",
+    "next_review": "2026-03-08T11:28:10.130Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "1",
+    "topic": "Definition",
+    "front": "Content-based",
+    "back": "A teaching method where the lesson content is the primary focus.",
+    "sourceType": [
+      "file"
+    ],
+    "question": "Content-based",
+    "answer": "A teaching method where the lesson content is the primary focus.",
+    "next_review": "2026-03-10T11:26:04.175Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "2",
+    "topic": "Types of Content-Based Learning",
+    "front": "There are two types: horizontal and vertical",
+    "back": "Horizontal content-based learning focuses on developing content knowledge, while vertical content-based learning builds on prior knowledge",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "There are two types: horizontal and vertical",
+    "answer": "Horizontal content-based learning focuses on developing content knowledge, while vertical content-based learning builds on prior knowledge",
+    "next_review": "2026-03-07T11:25:04.764Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "3",
+    "topic": "Horizontal Content-Based Learning",
+    "front": "Fosters a deep understanding of the subject matter",
+    "back": "Encourages critical thinking, analysis, and problem-solving skills",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "Fosters a deep understanding of the subject matter",
+    "answer": "Encourages critical thinking, analysis, and problem-solving skills",
+    "next_review": "2026-03-07T11:25:04.764Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "4",
+    "topic": "Vertical Content-Based Learning",
+    "front": "Builds on prior knowledge to develop deeper understanding",
+    "back": "Requires prior knowledge and experience in the subject matter",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "Builds on prior knowledge to develop deeper understanding",
+    "answer": "Requires prior knowledge and experience in the subject matter",
+    "next_review": "2026-03-07T11:25:04.764Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "5",
+    "topic": "Advantages of Content-Based Learning",
+    "front": "Develops deep knowledge and understanding of the subject matter",
+    "back": "Prepares students for complex, open-ended questions and problems",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "Develops deep knowledge and understanding of the subject matter",
+    "answer": "Prepares students for complex, open-ended questions and problems",
+    "next_review": "2026-03-07T11:25:04.764Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "6",
+    "topic": "Disadvantages of Content-Based Learning",
+    "front": "Can lead to narrow focus on content knowledge",
+    "back": "May not develop skills necessary for real-world applications",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "Can lead to narrow focus on content knowledge",
+    "answer": "May not develop skills necessary for real-world applications",
+    "next_review": "2026-03-07T11:25:04.764Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "7",
+    "topic": "Effective Content-Based Instruction",
+    "front": "Incorporates authentic, real-world examples",
+    "back": "Requires effective questioning and feedback strategies",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "Incorporates authentic, real-world examples",
+    "answer": "Requires effective questioning and feedback strategies",
+    "next_review": "2026-03-07T11:25:04.764Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "8",
+    "topic": "Role of the Instructor in Content-Based Learning",
+    "front": "Fosters a collaborative learning environment",
+    "back": "Encourages active learning, critical thinking, and problem-solving",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "Fosters a collaborative learning environment",
+    "answer": "Encourages active learning, critical thinking, and problem-solving",
+    "next_review": "2026-03-07T11:25:04.764Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "9",
+    "topic": "Content-Based Learning in Different Disciplines",
+    "front": "Common in STEM fields",
+    "back": "Also used in humanities and social sciences",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "Common in STEM fields",
+    "answer": "Also used in humanities and social sciences",
+    "next_review": "2026-03-07T11:25:04.764Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "10",
+    "topic": "Technology integration",
+    "front": "Using technology to support content",
+    "back": "Using digital resources to support the teaching of subject matter.",
+    "sourceType": [
+      "file"
+    ],
+    "question": "Using technology to support content",
+    "answer": "Using digital resources to support the teaching of subject matter.",
+    "next_review": "2026-03-08T11:28:10.130Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "1",
+    "topic": "Definition",
+    "front": "Content-based",
+    "back": "A teaching method where the lesson content is the primary focus.",
+    "sourceType": [
+      "file"
+    ],
+    "question": "Content-based",
+    "answer": "A teaching method where the lesson content is the primary focus.",
+    "next_review": "2026-03-10T11:26:04.175Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "2",
+    "topic": "Key Characteristics",
+    "front": "What are the key characteristics of content-based teaching?",
+    "back": "Involves the explicit teaching of facts, concepts, and skills.",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "What are the key characteristics of content-based teaching?",
+    "answer": "Involves the explicit teaching of facts, concepts, and skills.",
+    "next_review": "2026-03-07T11:25:21.566Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "3",
+    "topic": "Goals",
+    "front": "What are the goals of content-based teaching?",
+    "back": "To develop students' knowledge and skills in a specific subject area.",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "What are the goals of content-based teaching?",
+    "answer": "To develop students' knowledge and skills in a specific subject area.",
+    "next_review": "2026-03-07T11:25:21.566Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "4",
+    "topic": "Methods",
+    "front": "What methods are used in content-based teaching?",
+    "back": "Includes lectures, discussions, and written assignments.",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "What methods are used in content-based teaching?",
+    "answer": "Includes lectures, discussions, and written assignments.",
+    "next_review": "2026-03-07T11:25:21.566Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "5",
+    "topic": "Benefits",
+    "front": "What are the benefits of content-based teaching?",
+    "back": "Helps students develop a deeper understanding of the subject matter.",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "What are the benefits of content-based teaching?",
+    "answer": "Helps students develop a deeper understanding of the subject matter.",
+    "next_review": "2026-03-07T11:25:21.566Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "6",
+    "topic": "Limitations",
+    "front": "What are the limitations of content-based teaching?",
+    "back": "May not be as effective for students with different learning styles.",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "What are the limitations of content-based teaching?",
+    "answer": "May not be as effective for students with different learning styles.",
+    "next_review": "2026-03-07T11:25:21.566Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "7",
+    "topic": "Assessment",
+    "front": "How is assessment used in content-based teaching?",
+    "back": "Includes quizzes, tests, and written assignments.",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "How is assessment used in content-based teaching?",
+    "answer": "Includes quizzes, tests, and written assignments.",
+    "next_review": "2026-03-07T11:25:21.566Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "8",
+    "topic": "Technology Integration",
+    "front": "How can technology be integrated into content-based teaching?",
+    "back": "Using multimedia resources, online quizzes, and digital assignments.",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "How can technology be integrated into content-based teaching?",
+    "answer": "Using multimedia resources, online quizzes, and digital assignments.",
+    "next_review": "2026-03-07T11:25:21.566Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "9",
+    "topic": "Differentiated Instruction",
+    "front": "How can differentiated instruction be used in content-based teaching?",
+    "back": "Tailsoring instruction to meet the needs of diverse learners.",
+    "sourceType": [
+      "weblink"
+    ],
+    "question": "How can differentiated instruction be used in content-based teaching?",
+    "answer": "Tailsoring instruction to meet the needs of diverse learners.",
+    "next_review": "2026-03-07T11:25:21.566Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "10",
+    "topic": "Technology integration",
+    "front": "Using technology to support content",
+    "back": "Using digital resources to support the teaching of subject matter.",
+    "sourceType": [
+      "file"
+    ],
+    "question": "Using technology to support content",
+    "answer": "Using digital resources to support the teaching of subject matter.",
+    "next_review": "2026-03-08T11:28:10.130Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "1",
+    "topic": "Definition",
+    "front": "Content-based",
+    "back": "A teaching method where the lesson content is the primary focus.",
+    "sourceType": [
+      "file"
+    ],
+    "question": "Content-based",
+    "answer": "A teaching method where the lesson content is the primary focus.",
+    "next_review": "2026-03-10T11:26:04.175Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "2",
+    "topic": "Goals",
+    "front": "Learning objectives",
+    "back": "Establish clear learning objectives and outcomes.",
+    "sourceType": [
+      "file"
+    ],
+    "question": "Learning objectives",
+    "answer": "Establish clear learning objectives and outcomes.",
+    "next_review": "2026-03-07T11:25:34.237Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "3",
+    "topic": "Characteristics",
+    "front": "Focus on content",
+    "back": "Teaching methods are tailored to the subject matter.",
+    "sourceType": [
+      "file"
+    ],
+    "question": "Focus on content",
+    "answer": "Teaching methods are tailored to the subject matter.",
+    "next_review": "2026-03-07T11:25:34.237Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "4",
+    "topic": "Methods",
+    "front": "Expository teaching",
+    "back": "Direct instruction and lecture-based teaching.",
+    "sourceType": [
+      "file"
+    ],
+    "question": "Expository teaching",
+    "answer": "Direct instruction and lecture-based teaching.",
+    "next_review": "2026-03-07T11:25:34.237Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "5",
+    "topic": "Advantages",
+    "front": "In-depth learning",
+    "back": "Students gain a deep understanding of the subject matter.",
+    "sourceType": [
+      "file"
+    ],
+    "question": "In-depth learning",
+    "answer": "Students gain a deep understanding of the subject matter.",
+    "next_review": "2026-03-07T11:25:34.237Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "6",
+    "topic": "Disadvantages",
+    "front": "Limited flexibility",
+    "back": "Teaching methods can be inflexible and not adaptable to different learning styles.",
+    "sourceType": [
+      "file"
+    ],
+    "question": "Limited flexibility",
+    "answer": "Teaching methods can be inflexible and not adaptable to different learning styles.",
+    "next_review": "2026-03-07T11:25:34.237Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "7",
+    "topic": "Assessment",
+    "front": "Focus on content",
+    "back": "Assessments are often based on the subject matter.",
+    "sourceType": [
+      "file"
+    ],
+    "question": "Focus on content",
+    "answer": "Assessments are often based on the subject matter.",
+    "next_review": "2026-03-07T11:25:34.237Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "8",
+    "topic": "Examples",
+    "front": "History class",
+    "back": "Teaching a history class with a focus on specific historical events or periods.",
+    "sourceType": [
+      "file"
+    ],
+    "question": "History class",
+    "answer": "Teaching a history class with a focus on specific historical events or periods.",
+    "next_review": "2026-03-07T11:25:34.237Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "9",
+    "topic": "Student engagement",
+    "front": "Involving students in content",
+    "back": "Students are more engaged when the content is relevant to their lives.",
+    "sourceType": [
+      "file"
+    ],
+    "question": "Involving students in content",
+    "answer": "Students are more engaged when the content is relevant to their lives.",
+    "next_review": "2026-03-07T11:25:34.237Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "10",
+    "topic": "Technology integration",
+    "front": "Using technology to support content",
+    "back": "Using digital resources to support the teaching of subject matter.",
+    "sourceType": [
+      "file"
+    ],
+    "question": "Using technology to support content",
+    "answer": "Using digital resources to support the teaching of subject matter.",
+    "next_review": "2026-03-08T11:28:10.130Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "1",
+    "topic": "Definition",
+    "front": "A content-based approach in communication.",
+    "back": "Uses the message content to convey meaning.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "A content-based approach in communication.",
+    "answer": "Uses the message content to convey meaning.",
+    "next_review": "2026-03-07T11:33:57.160Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "2",
+    "topic": "Types",
+    "front": "There are two types of content-based approaches.",
+    "back": "Intracultural and intercultural.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "There are two types of content-based approaches.",
+    "answer": "Intracultural and intercultural.",
+    "next_review": "2026-03-07T11:33:57.160Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "3",
+    "topic": "Intracultural Content",
+    "front": "Uses the same content in both the sender and receiver's cultures.",
+    "back": "Preserves cultural differences.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "Uses the same content in both the sender and receiver's cultures.",
+    "answer": "Preserves cultural differences.",
+    "next_review": "2026-03-07T11:33:57.160Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "4",
+    "topic": "Intercultural Content",
+    "front": "Uses different content in the sender's and receiver's cultures.",
+    "back": "Adapts to cultural differences.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "Uses different content in the sender's and receiver's cultures.",
+    "answer": "Adapts to cultural differences.",
+    "next_review": "2026-03-07T11:33:57.160Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "5",
+    "topic": "Components",
+    "front": "Content-based approaches have the following components.",
+    "back": "Sender, message, channel, receiver, and feedback.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "Content-based approaches have the following components.",
+    "answer": "Sender, message, channel, receiver, and feedback.",
+    "next_review": "2026-03-07T11:33:57.160Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "6",
+    "topic": "Channel Selection",
+    "front": "Channel selection is an important aspect of content-based approaches.",
+    "back": "Must consider the audience and context.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "Channel selection is an important aspect of content-based approaches.",
+    "answer": "Must consider the audience and context.",
+    "next_review": "2026-03-07T11:33:57.160Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "7",
+    "topic": "Feedback Mechanism",
+    "front": "Feedback mechanism is a crucial component of content-based approaches.",
+    "back": "Helps to refine the message.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "Feedback mechanism is a crucial component of content-based approaches.",
+    "answer": "Helps to refine the message.",
+    "next_review": "2026-03-07T11:33:57.160Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "8",
+    "topic": "Ethics",
+    "front": "Content-based approaches raise ethical considerations.",
+    "back": "Respect for cultural differences and avoidance of harm.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "Content-based approaches raise ethical considerations.",
+    "answer": "Respect for cultural differences and avoidance of harm.",
+    "next_review": "2026-03-07T11:33:57.160Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "9",
+    "topic": "Strengths",
+    "front": "Content-based approaches have several strengths.",
+    "back": "Preserves cultural differences and adapts to context.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "Content-based approaches have several strengths.",
+    "answer": "Preserves cultural differences and adapts to context.",
+    "next_review": "2026-03-07T11:33:57.160Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "10",
+    "topic": "Weaknesses",
+    "front": "Content-based approaches also have some weaknesses.",
+    "back": "May not be effective in all situations.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "Content-based approaches also have some weaknesses.",
+    "answer": "May not be effective in all situations.",
+    "next_review": "2026-03-07T11:33:57.160Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "1",
+    "topic": "Definition of Content-Based",
+    "front": "Content-based learning refers to the process of acquiring knowledge and skills through the exploration of content areas such as literature, history, science, and art.",
+    "back": "It involves the use of authentic materials and experiences to promote deeper understanding and engagement.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "Content-based learning refers to the process of acquiring knowledge and skills through the exploration of content areas such as literature, history, science, and art.",
+    "answer": "It involves the use of authentic materials and experiences to promote deeper understanding and engagement.",
+    "next_review": "2026-03-07T11:34:15.928Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "2",
+    "topic": "Goals of Content-Based",
+    "front": "The primary goals of content-based learning include promoting cultural awareness, developing critical thinking and problem-solving skills, and fostering global citizenship.",
+    "back": "It also aims to improve language proficiency, enhance academic performance, and promote lifelong learning.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "The primary goals of content-based learning include promoting cultural awareness, developing critical thinking and problem-solving skills, and fostering global citizenship.",
+    "answer": "It also aims to improve language proficiency, enhance academic performance, and promote lifelong learning.",
+    "next_review": "2026-03-07T11:34:15.928Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "3",
+    "topic": "Characteristics of Content-Based",
+    "front": "Content-based learning is characterized by its focus on authentic materials, real-world applications, and student-centered activities.",
+    "back": "It is often used in language teaching to promote immersive learning experiences and to develop learners' ability to communicate effectively in real-world contexts.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "Content-based learning is characterized by its focus on authentic materials, real-world applications, and student-centered activities.",
+    "answer": "It is often used in language teaching to promote immersive learning experiences and to develop learners' ability to communicate effectively in real-world contexts.",
+    "next_review": "2026-03-07T11:34:15.928Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "4",
+    "topic": "Benefits of Content-Based",
+    "front": "Benefits of content-based learning include improved language proficiency, enhanced academic performance, and increased cultural awareness.",
+    "back": "It also promotes critical thinking, problem-solving, and global citizenship skills, which are essential for success in an increasingly interconnected world.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "Benefits of content-based learning include improved language proficiency, enhanced academic performance, and increased cultural awareness.",
+    "answer": "It also promotes critical thinking, problem-solving, and global citizenship skills, which are essential for success in an increasingly interconnected world.",
+    "next_review": "2026-03-07T11:34:15.928Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "5",
+    "topic": "Challenges of Content-Based",
+    "front": "Challenges of content-based learning include finding authentic materials, balancing content and language learning, and addressing the needs of diverse learners.",
+    "back": "It also requires teachers to be flexible and adaptable in their instructional strategies and to be willing to take risks in their teaching practices.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "Challenges of content-based learning include finding authentic materials, balancing content and language learning, and addressing the needs of diverse learners.",
+    "answer": "It also requires teachers to be flexible and adaptable in their instructional strategies and to be willing to take risks in their teaching practices.",
+    "next_review": "2026-03-07T11:34:15.928Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "6",
+    "topic": "Role of Technology in Content-Based",
+    "front": "Technology plays a significant role in content-based learning, enabling students to access a wide range of authentic materials and to engage in digital activities that promote learning and collaboration.",
+    "back": "It can also be used to support language learning, such as through online language learning platforms and language exchange websites.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "Technology plays a significant role in content-based learning, enabling students to access a wide range of authentic materials and to engage in digital activities that promote learning and collaboration.",
+    "answer": "It can also be used to support language learning, such as through online language learning platforms and language exchange websites.",
+    "next_review": "2026-03-07T11:34:15.928Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "7",
+    "topic": "Assessment in Content-Based",
+    "front": "Assessment in content-based learning should be flexible and adaptable to accommodate the diverse needs of learners.",
+    "back": "It should also be aligned with the learning objectives of the course and should provide students with ongoing feedback and support.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "Assessment in content-based learning should be flexible and adaptable to accommodate the diverse needs of learners.",
+    "answer": "It should also be aligned with the learning objectives of the course and should provide students with ongoing feedback and support.",
+    "next_review": "2026-03-07T11:34:15.928Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "8",
+    "topic": "Designing a Content-Based Course",
+    "front": "Designing a content-based course requires careful planning and consideration of the learning objectives, authentic materials, and student-centered activities.",
+    "back": "It also requires teachers to be flexible and adaptable in their instructional strategies and to be willing to take risks in their teaching practices.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "Designing a content-based course requires careful planning and consideration of the learning objectives, authentic materials, and student-centered activities.",
+    "answer": "It also requires teachers to be flexible and adaptable in their instructional strategies and to be willing to take risks in their teaching practices.",
+    "next_review": "2026-03-07T11:34:15.928Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "9",
+    "topic": "Content-Based and Language Acquisition",
+    "front": "Content-based learning can be used in conjunction with language acquisition to promote language learning and to develop learners' ability to communicate effectively in real-world contexts.",
+    "back": "It can also be used to support language learning, such as through online language learning platforms and language exchange websites.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "Content-based learning can be used in conjunction with language acquisition to promote language learning and to develop learners' ability to communicate effectively in real-world contexts.",
+    "answer": "It can also be used to support language learning, such as through online language learning platforms and language exchange websites.",
+    "next_review": "2026-03-07T11:34:15.928Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "10",
+    "topic": "Real-World Applications of Content-Based",
+    "front": "Real-world applications of content-based learning include promoting cultural awareness, developing critical thinking and problem-solving skills, and fostering global citizenship.",
+    "back": "It can also be used to prepare students for careers in fields such as international business, diplomacy, and education.",
+    "sourceType": [
+      "textbook"
+    ],
+    "question": "Real-world applications of content-based learning include promoting cultural awareness, developing critical thinking and problem-solving skills, and fostering global citizenship.",
+    "answer": "It can also be used to prepare students for careers in fields such as international business, diplomacy, and education.",
+    "next_review": "2026-03-07T11:34:15.928Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
   }
 ]
