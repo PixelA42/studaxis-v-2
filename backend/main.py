@@ -1233,18 +1233,6 @@ class ProfileRequest(BaseModel):
     user_role: Optional[str] = None  # student | teacher
 
 
-def _profile_to_dict(p: Optional[UserProfile]) -> dict[str, Any]:
-    """Convert UserProfile to JSON-serializable dict."""
-    if p is None:
-        return {"profile_name": None, "profile_mode": None, "class_code": None, "user_role": None}
-    return {
-        "profile_name": p.profile_name,
-        "profile_mode": p.profile_mode,
-        "class_code": p.class_code,
-        "user_role": p.user_role,
-    }
-
-
 @app.get("/api/user/profile")
 def user_profile_get():
     """Return persisted user profile (for AuthContext sync)."""

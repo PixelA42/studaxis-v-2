@@ -208,6 +208,57 @@ class AIEngine:
         self.templates = PromptTemplateLibrary()
         self.state_machine = AIStateMachine()
         self._log_lock = threading.Lock()
+        # RAG components (lazy-loaded from ai_chat)
+        self._rag_ready: bool = False
+        self._rag_retriever_fn: Optional[Any] = None
+        self._rag_textbook_fn: Optional[Any] = None
+        self._rag_llm: Optional[Any] = None
+        self._rag_prompt: Optional[Any] = None
+
+    # ── RAG integration (ai_chat pipeline) ────────────────────────────
+
+    def _init_rag(self) -> bool:
+        """Lazily import ai_chat components. Returns True if RAG is available."""
+        if self._rag_ready:
+            return True
+        try:
+            from ai_chat.main import get_retriever, get_textbook_context, llm, prompt
+            self._rag_retriever_fn = get_retriever
+            self._rag_textbook_fn = get_textbook_context
+            self._rag_llm = llm
+            self._rag_prompt = prompt
+            self._rag_ready = True
+            return True
+        except Exception as exc:
+            print(f"[ai_engine] RAG init failed (falling back to plain Ollama): {exc}")
+            return False
+
+    def _run_rag_inference(self, prompt_text: str, subject: Optional[str] = None) -> str:
+        """Run inference through ai_chat's LangChain RAG chain."""
+        retriever = self._rag_retriever_fn(subject)  # type: ignore[misc]
+        try:
+            docs = retriever.invoke(prompt_text)
+        except Exception:
+            docs = []
+
+        if docs:
+            context = "\n\n".join(
+                getattr(d, "page_content", str(d)) for d in docs
+            )
+        else:
+            context = "[No matching content found in vector store]"
+
+        textbook_ctx = self._rag_textbook_fn(subject) if self._rag_textbook_fn else ""  # type: ignore[misc]
+        if not textbook_ctx:
+            textbook_ctx = "[Textbook reference not available]"
+
+        chain = self._rag_prompt | self._rag_llm  # type: ignore[operator]
+        result = chain.invoke({
+            "context": context,
+            "textbook_context": textbook_ctx,
+            "question": prompt_text,
+        })
+        return str(result).strip()
 
     def request(
         self,
@@ -244,6 +295,7 @@ class AIEngine:
 
             target = self._select_inference_target(request)
             model_name = self._resolve_model_name(target)
+            subject = bounded_context.get("subject") or bounded_context.get("topic")
 
             self.state_machine.set_state(request.request_id, AIState.AI_PROCESSING)
             raw_response = self._run_inference_with_timeout(
@@ -251,6 +303,7 @@ class AIEngine:
                 model_name=model_name,
                 prompt=prompt,
                 timeout_seconds=self.config.AI_TIMEOUT_SECONDS,
+                subject=subject,
             )
 
             parsed = self._parse_response(
@@ -524,11 +577,20 @@ class AIEngine:
         model_name: str,
         prompt: str,
         timeout_seconds: int,
+        subject: Optional[str] = None,
     ) -> str:
         """
-        Run inference: Ollama for LOCAL target, simulated for CLOUD.
+        Run inference: try RAG pipeline first for LOCAL, fall back to plain Ollama.
+        CLOUD target uses simulated response until cloud API is configured.
         """
         if target == AIExecutionTarget.LOCAL:
+            # Try RAG-enhanced inference first
+            if self._init_rag():
+                try:
+                    return self._run_rag_inference(prompt, subject)
+                except Exception as exc:
+                    print(f"[ai_engine] RAG inference failed, falling back to Ollama: {exc}")
+            # Fallback: direct Ollama HTTP call
             return self._call_ollama(model_name, prompt, timeout_seconds)
 
         # CLOUD target: keep simulated until cloud API is configured
