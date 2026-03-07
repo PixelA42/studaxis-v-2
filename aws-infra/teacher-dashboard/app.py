@@ -353,7 +353,7 @@ with st.sidebar:
         help="Auto-refresh dashboard every 30 seconds to show latest student activity",
     )
     if auto_refresh:
-        refresh_interval = st.select_slider(
+        refresh_interval: int = st.select_slider(  # type: ignore[assignment]
             "Refresh interval",
             options=[15, 30, 60, 120],
             value=30,
@@ -384,13 +384,13 @@ with st.sidebar:
 if auto_refresh and refresh_interval > 0:
     if HAS_AUTOREFRESH:
         # Component-based: preserves session state across refreshes
-        tick = st_autorefresh(
+        tick = st_autorefresh(  # type: ignore[possibly-undefined]
             interval=refresh_interval * 1000,
             limit=0,
             key="live_refresh",
         )
         # Clear cached data on each tick so fresh DynamoDB/S3 data is fetched
-        if tick and tick > 0:
+        if tick and int(tick) > 0:
             st.cache_data.clear()
     else:
         # Fallback: meta tag refresh (loses state but works without pip install)
@@ -1254,16 +1254,17 @@ with tab6:
             route_label = "API Gateway → Lambda → Bedrock" if use_api_gw else "Direct Bedrock"
             with st.spinner(f"Generating {quiz_num_q}-question quiz on '{quiz_topic}' via {route_label}…"):
                 try:
+                    _quiz_diff = str(quiz_difficulty)
                     if use_api_gw:
                         quiz_result = api_gw_client.generate_quiz(
                             topic=quiz_topic.strip(),
-                            difficulty=quiz_difficulty,
+                            difficulty=_quiz_diff,
                             num_questions=quiz_num_q,
                         )
                     else:
                         quiz_result = bedrock_generate_quiz(
                             topic=quiz_topic.strip(),
-                            difficulty=quiz_difficulty,
+                            difficulty=_quiz_diff,
                             num_questions=quiz_num_q,
                             region=bedrock_region,
                         )
@@ -1278,15 +1279,16 @@ with tab6:
             route_label = "API Gateway → Lambda → Bedrock" if use_api_gw else "Direct Bedrock"
             with st.spinner(f"Generating study notes for '{summary_topic}' via {route_label}…"):
                 try:
+                    _grade = str(summary_grade or "Grade 10")
                     if use_api_gw:
                         summary_result = api_gw_client.generate_notes(
                             topic=summary_topic.strip(),
-                            grade_level=summary_grade,
+                            grade_level=_grade,
                         )
                     else:
                         summary_result = generate_lesson_summary(
                             topic=summary_topic.strip(),
-                            grade_level=summary_grade,
+                            grade_level=_grade,
                             region=bedrock_region,
                         )
                     st.session_state["ai_summary_result"] = summary_result
@@ -1548,10 +1550,10 @@ with tab7:
             with st.spinner("Publishing quiz to S3 + DynamoDB..."):
                 result = content_uploader.publish_quiz(
                     quiz_data=st.session_state["ai_quiz_result"],
-                    subject=pub_subject,
-                    difficulty=pub_difficulty.lower(),
+                    subject=str(pub_subject or "Mathematics"),
+                    difficulty=str(pub_difficulty).lower(),
                     assigned_to=assigned_students if assigned_students else None,
-                    time_limit_minutes=pub_time_limit,
+                    time_limit_minutes=int(pub_time_limit),
                     total_marks=pub_total_marks,
                     created_by="teacher",
                 )

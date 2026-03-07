@@ -106,3 +106,29 @@ class LocalStorage:
             )
         except OSError:
             pass
+
+    def initialize_user_stats(self, user_id: str = "student_001") -> dict[str, Any]:
+        """Create and persist a fresh user-stats dict, then return it."""
+        stats: dict[str, Any] = {
+            "user_id": user_id,
+            "topic_performance": {},
+            "flashcard_stats": {"total_reviewed": 0, "mastered": 0, "due_for_review": 0},
+            "chat_history": [],
+        }
+        self.save_user_stats(stats)
+        return stats
+
+    def add_chat_message(self, role: str, content: str, subject: str = "General") -> None:
+        """Append a chat message to the chat_history list in user stats."""
+        stats = self.load_user_stats()
+        history = stats.setdefault("chat_history", [])
+        history.append({
+            "role": role,
+            "content": content,
+            "subject": subject,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        # Cap history at 100 entries
+        if len(history) > 100:
+            stats["chat_history"] = history[-100:]
+        self.save_user_stats(stats)
