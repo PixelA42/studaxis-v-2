@@ -18,6 +18,17 @@ export default {
         success: "#22c55e",
         error: "#ef4444",
         warn: "#f59e0b",
+        /* Pastel accent palette */
+        "pastel-pink": "#FFB5C5",
+        "pastel-blue": "#A8D8EA",
+        "pastel-yellow": "#FFEAA7",
+        "heading-dark": "#0f172a",
+        "main-light": "#0F172A",
+        /* Warm accent palette (solid-card aesthetic) */
+        "accent-warm-1": "#FA5C5C",
+        "accent-warm-2": "#FD8A6B",
+        "accent-warm-3": "#FEC288",
+        "accent-warm-4": "#FBEF76",
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
@@ -29,6 +40,8 @@ export default {
       boxShadow: {
         glass: "0 8px 32px 0 rgba(0, 0, 0, 0.2)",
         "glass-subtle": "0 4px 24px -4px rgba(0, 0, 0, 0.15)",
+        soft: "0 20px 60px -15px rgba(0, 0, 0, 0.15), 0 10px 30px -10px rgba(0, 0, 0, 0.1)",
+        "soft-light": "0 25px 70px -20px rgba(15, 23, 42, 0.12), 0 12px 35px -12px rgba(15, 23, 42, 0.08)",
       },
       width: {
         sidebar: "var(--sidebar-width)",

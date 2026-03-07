@@ -7,6 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useEffect, useState } from "react";
 import { StatCard, FeatureCard, StatusIndicator } from "../components";
+import { Icons } from "../components/icons";
 import type { UserStats } from "../services/api";
 import { getUserStats } from "../services/api";
 
@@ -73,24 +74,24 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="ambient-glow" aria-hidden />
-      <header className="glass-panel rounded-xl border border-glass-border p-5 flex flex-wrap items-center justify-between gap-4">
+      <header className="glass-panel rounded-xl border border-glass-border p-5 flex flex-wrap items-center justify-between gap-4 shadow-soft">
         <div className="flex items-center gap-4">
           <div
-            className="w-12 h-12 rounded-xl bg-accent-blue/20 border border-accent-blue/40 flex items-center justify-center text-accent-blue font-semibold"
+            className="w-12 h-12 rounded-xl bg-pastel-blue/60 border border-pastel-blue/50 flex items-center justify-center text-heading-dark font-bold"
             aria-hidden
           >
             {initials}
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-primary">
-              Welcome back, {name}
+            <h1 className="text-xl font-extrabold text-heading-dark">
+              Welcome back, <span className="text-pastel-pink">{name}</span>
             </h1>
             <p className="text-sm text-primary/60">Personal Mastery - AI Tutor ready</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm font-medium text-primary/80">
-            🔥 {streak} day{streak !== 1 ? "s" : ""}
+          <span className="flex items-center gap-1.5 text-sm font-medium text-primary/80">
+            {Icons.streak} {streak} day{streak !== 1 ? "s" : ""}
           </span>
           <span className="px-2.5 py-1 rounded-lg border border-glass-border text-xs font-medium text-primary/70">
             {modeLabel}
@@ -103,14 +104,14 @@ export function DashboardPage() {
             title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >
-            {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
+            {theme === "dark" ? <>{Icons.sun} Light</> : <>{Icons.moon} Dark</>}
           </button>
         </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
-          icon="🔥"
+          icon={Icons.streak}
           iconColor="orange"
           value={String(streak)}
           label="Day Streak"
@@ -120,7 +121,7 @@ export function DashboardPage() {
           emptyHint={streak === 0 && quizAttempted === 0 && flashcardsMastered === 0 ? "Complete your first session to start your streak" : undefined}
         />
         <StatCard
-          icon="📊"
+          icon={Icons.chart}
           iconColor="blue"
           value={`${quizAvg}%`}
           label="Quiz Average"
@@ -128,7 +129,7 @@ export function DashboardPage() {
           emptyHint={quizAttempted === 0 ? "Take your first quiz to see your score here" : undefined}
         />
         <StatCard
-          icon="🃏"
+          icon={Icons.cards}
           iconColor="green"
           value={String(flashcardsMastered)}
           label="Cards Mastered"
@@ -139,12 +140,13 @@ export function DashboardPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FeatureCard
-          icon="🤖"
+          icon={Icons.ai}
           iconColor="blue"
           title="AI Tutor Chat"
           description="Ask questions from your textbooks and get curriculum-grounded answers — fully offline."
           meta="Powered by Llama 3.2 - RAG-grounded"
           variant="ai"
+          pastelBg="blue"
         >
           <Link
             to="/chat"
@@ -154,11 +156,12 @@ export function DashboardPage() {
           </Link>
         </FeatureCard>
         <FeatureCard
-          icon="📝"
+          icon={Icons.quiz}
           iconColor="orange"
           title="Quick Quiz"
           description="Test your knowledge with AI-generated questions. Get instant grading and feedback."
           meta={`${quizAttempted} attempt${quizAttempted !== 1 ? "s" : ""} - ${difficulty}`}
+          pastelBg="yellow"
         >
           <Link
             to="/quiz"
@@ -168,12 +171,13 @@ export function DashboardPage() {
           </Link>
         </FeatureCard>
         <FeatureCard
-          icon="🃏"
+          icon={Icons.cards}
           iconColor="green"
           title="Flashcards"
           description="Spaced-repetition review. Mark cards Easy or Hard to schedule the next review."
           meta={`${flashcardsDue > 0 ? flashcardsDue + " due" : "All caught up"} - AI-generated`}
           variant="flashcards"
+          pastelBg="pink"
         >
           <Link
             to="/flashcards"
@@ -183,12 +187,13 @@ export function DashboardPage() {
           </Link>
         </FeatureCard>
         <FeatureCard
-          icon="🚨"
+          icon={Icons.panic}
           iconColor="red"
           title="Panic Mode"
           description="Distraction-free exam simulator with a timer. AI assistance hidden until submission."
           meta="Timed - AI auto-graded - Full-screen"
           variant="panic"
+          pastelBg="pink"
         >
           <Link
             to="/panic-mode"

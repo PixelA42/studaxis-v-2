@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { PageChrome } from "../components/PageChrome";
 import { StatusIndicator } from "../components/StatusIndicator";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { Icons } from "../components/icons";
 import { useAuth } from "../contexts/AuthContext";
 import {
   getUserStats,
@@ -167,7 +168,7 @@ export function ChatPage() {
               className="w-10 h-10 rounded-xl bg-accent-blue/20 border border-accent-blue/40 flex items-center justify-center text-lg"
               aria-hidden
             >
-              🤖
+              {Icons.ai}
             </div>
             <div>
               <h2 className="text-lg font-semibold text-primary">AI Tutor Chat</h2>
@@ -205,7 +206,7 @@ export function ChatPage() {
         <div className="flex-1 overflow-y-auto space-y-4 pr-2">
           {messages.length === 0 && !loading && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="text-4xl mb-3 opacity-80">🤖</div>
+              <div className="mb-3 opacity-80">{Icons.aiLarge}</div>
               <p className="text-primary/80">
                 Ask me anything from your textbooks.
                 <br />
@@ -231,7 +232,7 @@ export function ChatPage() {
           {loading && (
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-lg bg-surface-light border border-glass-border flex items-center justify-center flex-shrink-0">
-                🤖
+                {Icons.ai}
               </div>
               <div className="flex-1 min-w-0">
                 <LoadingSpinner message="AI Tutor is preparing a response..." />
@@ -314,7 +315,7 @@ function ChatBubble({
           }`}
           aria-hidden
         >
-          🤖
+          {Icons.ai}
         </div>
         <div className="min-w-0 flex-1">
           <div

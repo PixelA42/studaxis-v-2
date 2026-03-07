@@ -28,6 +28,8 @@ export function PanicModePage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [results, setResults] = useState<QuizSubmitResult[]>([]);
+  const [weakTopicsText, setWeakTopicsText] = useState<string | null>(null);
+  const [recommendationText, setRecommendationText] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
 
   useEffect(() => {
@@ -70,6 +72,8 @@ export function PanicModePage() {
         answers: quiz.items.map((q) => ({ question_id: q.id, answer: answers[q.id] ?? "" })),
       });
       setResults(res.results);
+      setWeakTopicsText(res.weak_topics_text ?? null);
+      setRecommendationText(res.recommendation_text ?? null);
       setSubmitted(true);
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : "Submit failed.");
@@ -85,6 +89,8 @@ export function PanicModePage() {
     setSecondsLeft(null);
     setAnswers({});
     setResults([]);
+    setWeakTopicsText(null);
+    setRecommendationText(null);
   };
 
   if (loading || !quiz) {
@@ -175,6 +181,20 @@ export function PanicModePage() {
               ))}
             </div>
           </GlassCard>
+          {(weakTopicsText || recommendationText) && (
+            <div className="grid gap-4 md:grid-cols-2">
+              {weakTopicsText && (
+                <GlassCard title="Weak Topic Analysis">
+                  <p className="text-sm text-primary/80 whitespace-pre-wrap">{weakTopicsText}</p>
+                </GlassCard>
+              )}
+              {recommendationText && (
+                <GlassCard title="Study Recommendation">
+                  <p className="text-sm text-primary/80 whitespace-pre-wrap">{recommendationText}</p>
+                </GlassCard>
+              )}
+            </div>
+          )}
           <div className="flex gap-3">
             <button
               type="button"

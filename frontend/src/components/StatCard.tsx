@@ -33,7 +33,7 @@ export function StatCard({
   emptyHint,
 }: StatCardProps) {
   return (
-    <div className="glass-panel rounded-xl p-5 border border-glass-border">
+    <div className="glass-panel rounded-xl p-5 border border-glass-border shadow-soft">
       <div className="flex items-start gap-4">
         <div
           className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-lg border ${iconColorClasses[iconColor]}`}

@@ -3,45 +3,47 @@
  * Toggle state in localStorage.
  */
 
+import { type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { StatusIndicator } from "./StatusIndicator";
 import { useCallback, useEffect, useState } from "react";
+import { Icons } from "./icons";
 
 const STORAGE_SIDEBAR = "studaxis_sidebar_state";
 
 const navSections: {
   label: string;
-  items: { to: string; label: string; icon: string; badge?: number; panic?: boolean }[];
+  items: { to: string; label: string; icon: ReactNode; badge?: number; panic?: boolean }[];
 }[] = [
   {
     label: "Core Tools",
     items: [
-      { to: "/dashboard", label: "Dashboard", icon: "▦" },
-      { to: "/chat", label: "AI Chat", icon: "🤖" },
-      { to: "/flashcards", label: "Flashcards", icon: "🃏" },
-      { to: "/quiz", label: "Quiz", icon: "📝" },
+      { to: "/dashboard", label: "Dashboard", icon: Icons.dashboard },
+      { to: "/chat", label: "AI Chat", icon: Icons.ai },
+      { to: "/flashcards", label: "Flashcards", icon: Icons.cards },
+      { to: "/quiz", label: "Quiz", icon: Icons.quiz },
     ],
   },
   {
     label: "Analytics",
     items: [
-      { to: "/insights", label: "Insights", icon: "📈" },
-      { to: "/panic-mode", label: "Panic Mode", icon: "🚨", panic: true },
+      { to: "/insights", label: "Insights", icon: Icons.insights },
+      { to: "/panic-mode", label: "Panic Mode", icon: Icons.panic, panic: true },
     ],
   },
   {
     label: "System",
     items: [
-      { to: "/conflicts", label: "Conflicts", icon: "⚡", badge: 0 },
-      { to: "/sync", label: "Sync Status", icon: "🔄" },
+      { to: "/conflicts", label: "Conflicts", icon: Icons.conflicts, badge: 0 },
+      { to: "/sync", label: "Sync Status", icon: Icons.sync },
     ],
   },
   {
     label: "",
     items: [
-      { to: "/settings", label: "Settings", icon: "⚙" },
-      { to: "/profile", label: "Profile", icon: "👤" },
+      { to: "/settings", label: "Settings", icon: Icons.settings },
+      { to: "/profile", label: "Profile", icon: Icons.profile },
     ],
   },
 ];
@@ -70,7 +72,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`relative flex flex-col flex-shrink-0 glass-panel border-r border-t-0 border-b-0 border-l-0 rounded-r-2xl transition-all duration-300 z-10 ${
+      className={`relative flex flex-col flex-shrink-0 glass-panel shadow-soft border-r border-t-0 border-b-0 border-l-0 rounded-r-2xl transition-all duration-300 z-10 ${
         collapsed ? "w-sidebar-collapsed" : "w-sidebar"
       }`}
       aria-label="Main navigation"
@@ -121,7 +123,7 @@ export function Sidebar() {
                       }`
                     }
                   >
-                    <span className="text-lg flex-shrink-0 w-6 text-center" aria-hidden>
+                    <span className="flex-shrink-0 w-6 flex items-center justify-center" aria-hidden>
                       {item.icon}
                     </span>
                     {!collapsed && (

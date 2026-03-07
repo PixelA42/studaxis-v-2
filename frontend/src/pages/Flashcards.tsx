@@ -67,7 +67,7 @@ export function FlashcardsPage() {
   const [explainLoading, setExplainLoading] = useState(false);
   const [recommendLoading, setRecommendLoading] = useState(false);
   const [dueCount, setDueCount] = useState<number>(0);
-  const [loadingDue, setLoadingDue] = useState(false);
+  const [, setLoadingDue] = useState(false);
   const [loadingReview, setLoadingReview] = useState(false);
 
   useEffect(() => {
@@ -338,8 +338,8 @@ export function FlashcardsPage() {
             </LoadingSpinner>
           </div>
         </GlassCard>
-        </div>
-      </PageChrome>
+      </div>
+    </PageChrome>
     );
   }
 
@@ -452,6 +452,7 @@ export function FlashcardsPage() {
             </>
           )}
         </GlassCard>
+      </div>
       </div>
     </PageChrome>
   );

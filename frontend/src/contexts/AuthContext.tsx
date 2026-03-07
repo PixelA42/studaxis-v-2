@@ -68,7 +68,7 @@ interface AuthContextValue {
   profile: Profile;
   setProfile: (p: Partial<Profile>) => void;
   login: (usernameOrEmail: string, password: string) => Promise<void>;
-  signup: (authResponse: { access_token: string; username: string; email: string }) => void;
+  signup: (auth: AuthResponse) => void;
   logout: () => void;
   connectivityStatus: "online" | "offline" | "unknown";
 }
@@ -168,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfileState(defaultProfile);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(STORAGE_TOKEN);
-    navigate("/auth/login", { replace: true });
+    navigate("/auth", { replace: true });
   }, [navigate]);
 
   const value = useMemo(

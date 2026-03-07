@@ -11,6 +11,7 @@ export interface FeatureCardProps {
   description: string;
   meta?: string;
   variant?: "default" | "ai" | "flashcards" | "panic";
+  pastelBg?: "pink" | "blue" | "yellow";
   children?: ReactNode;
 }
 
@@ -21,16 +22,24 @@ const iconColorClasses = {
   red: "text-red-400 bg-red-500/10 border-red-500/30",
 };
 
+const pastelBgClasses = {
+  pink: "bg-pastel-pink/50",
+  blue: "bg-pastel-blue/50",
+  yellow: "bg-pastel-yellow/50",
+};
+
 export function FeatureCard({
   icon,
   iconColor = "blue",
   title,
   description,
   meta,
+  pastelBg,
   children,
 }: FeatureCardProps) {
+  const bgClass = pastelBg ? pastelBgClasses[pastelBg] : "glass-panel";
   return (
-    <div className="glass-panel rounded-xl p-5 border border-glass-border hover:border-glass-border/80 transition-colors">
+    <div className={`${bgClass} rounded-xl p-5 border border-white/20 shadow-soft hover:shadow-soft-lg transition-shadow`}>
       <div className="flex items-start gap-4">
         <div
           className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-xl border ${iconColorClasses[iconColor]}`}
@@ -39,7 +48,7 @@ export function FeatureCard({
           {icon}
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="font-semibold text-primary">{title}</h3>
+          <h3 className="font-bold text-primary">{title}</h3>
           <p className="text-sm text-primary/70 mt-1">{description}</p>
           {meta && (
             <p className="text-xs text-primary/50 mt-2 font-mono">{meta}</p>

@@ -5,8 +5,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { FlashcardDeckProvider } from "./contexts/FlashcardDeckContext";
 import { BootFlow } from "./pages/BootFlow";
 import { LandingPage } from "./pages/Landing";
-import { LoginPage } from "./pages/Login";
-import { SignupPage } from "./pages/Signup";
+import { Auth } from "./components/Auth";
 import { DashboardPage } from "./pages/Dashboard";
 import { ChatPage } from "./pages/Chat";
 import { FlashcardsPage } from "./pages/Flashcards";
@@ -38,9 +37,9 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
-      <Route path="/auth" element={<LoginPage />} />
-      <Route path="/auth/login" element={<LoginPage />} />
-      <Route path="/auth/signup" element={<SignupPage />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/auth/login" element={<Auth />} />
+      <Route path="/auth/signup" element={<Auth />} />
       <Route path="/teacher-insights" element={<TeacherInsightsPage />} />
       <Route path="/error-demo" element={<ErrorDemoPage />} />
       <Route element={<DashboardLayout />}>

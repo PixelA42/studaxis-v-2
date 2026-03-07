@@ -472,6 +472,8 @@ export interface QuizSubmitResult {
 export interface QuizSubmitResponse {
   results: QuizSubmitResult[];
   quiz_stats_updated: boolean;
+  weak_topics_text?: string | null;
+  recommendation_text?: string | null;
 }
 
 /**
@@ -517,9 +519,132 @@ export async function postQuizSubmit(
   );
 }
 
-/** Sync trigger (stub until SyncManager wired). */
-export async function postSync(): Promise<{ ok: boolean; message?: string }> {
-  return request<{ ok: boolean; message?: string }>("/api/sync", {
+// ——— Sync & Conflicts ———
+
+/** Sync status: queue, connectivity, last sync */
+export interface SyncStatusResponse {
+  sync_enabled: boolean;
+  last_sync_timestamp: string | null;
+  online: boolean;
+  queue: {
+    total: number;
+    quiz_attempts: number;
+    streak_updates: number;
+    oldest_item: string | null;
+  };
+}
+
+/** Single conflict from orchestrator */
+export interface SyncConflict {
+  conflict_detected: boolean;
+  entity_id: string;
+  entity_type: string;
+  reason: string;
+  local_version?: number;
+  cloud_version?: number;
+  local_updated_at?: string;
+  cloud_updated_at?: string;
+  local_data?: Record<string, unknown>;
+  cloud_data?: Record<string, unknown>;
+  conflicting_fields?: string[];
+  detected_at?: string;
+}
+
+/** Sync trigger — flush pending mutations via SyncManager */
+export interface PostSyncResponse {
+  ok: boolean;
+  message?: string;
+  synced?: number;
+  failed?: number;
+  pending?: number;
+  online?: boolean;
+  errors?: string[];
+}
+
+export async function getSyncStatus(): Promise<SyncStatusResponse> {
+  return request<SyncStatusResponse>("/api/sync/status");
+}
+
+export async function postSync(): Promise<PostSyncResponse> {
+  return request<PostSyncResponse>("/api/sync", {
+    method: "POST",
+  });
+}
+
+export async function getSyncConflicts(): Promise<{ conflicts: SyncConflict[]; message?: string }> {
+  return request<{ conflicts: SyncConflict[]; message?: string }>("/api/sync/conflicts");
+}
+
+export async function resolveConflict(
+  entityId: string,
+  choice: "keep_local" | "keep_cloud" | "merge"
+): Promise<{ ok: boolean; entity_id: string; choice: string }> {
+  return request<{ ok: boolean; entity_id: string; choice: string }>(
+    `/api/sync/conflicts/${encodeURIComponent(entityId)}/resolve`,
+    {
+      method: "POST",
+      body: JSON.stringify({ choice }),
+    }
+  );
+}
+
+// ——— Diagnostics & Storage (Settings) ———
+
+/** Diagnostics for Deployment Readiness panel */
+export interface DiagnosticsResponse {
+  app_version: string;
+  environment: string;
+  sync_enabled: boolean;
+  sync_state: string;
+  sync_readiness: string;
+  last_sync_timestamp: string | null;
+}
+
+export async function getDiagnostics(): Promise<DiagnosticsResponse> {
+  return request<DiagnosticsResponse>("/api/diagnostics");
+}
+
+/** Storage file item for Settings Storage panel */
+export interface StorageFileItem {
+  name: string;
+  size_bytes: number;
+  size_human: string;
+  description: string;
+}
+
+export interface StorageFilesResponse {
+  files: StorageFileItem[];
+}
+
+export async function getStorageFiles(): Promise<StorageFilesResponse> {
+  return request<StorageFilesResponse>("/api/storage/files");
+}
+
+// ——— Data export & clear (Settings) ———
+
+/** Export payload: user_stats, flashcards, profile */
+export interface DataExportPayload {
+  exported_at: string;
+  version: string;
+  user_stats: UserStats;
+  flashcards: FlashcardItem[];
+  profile: UserProfile;
+}
+
+/**
+ * Export all user data as JSON. Returns the full payload for backup/migration.
+ * Caller should trigger a file download (e.g. via blob URL).
+ */
+export async function getDataExport(): Promise<DataExportPayload> {
+  return request<DataExportPayload>("/api/data/export");
+}
+
+/**
+ * Clear local study data: reset user_stats, clear flashcards, reset profile.
+ * Does NOT delete auth (user accounts remain). Requires confirmation in UI.
+ */
+export async function postDataClear(): Promise<{ ok: boolean; message?: string }> {
+  return request<{ ok: boolean; message?: string }>("/api/data/clear", {
     method: "POST",
   });
 }

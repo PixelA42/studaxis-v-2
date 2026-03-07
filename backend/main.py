@@ -272,6 +272,8 @@ class QuizSubmitRequest(BaseModel):
 class QuizSubmitResponse(BaseModel):
     results: list[dict[str, Any]] = Field(..., description="Per-question grade and feedback")
     quiz_stats_updated: bool = True
+    weak_topics_text: Optional[str] = Field(default=None, description="AI weak-topic summary (panic mode only)")
+    recommendation_text: Optional[str] = Field(default=None, description="AI study recommendation (panic mode only)")
 
 
 # ---------------------------------------------------------------------------
@@ -366,6 +368,139 @@ def _get_hardware_result() -> dict[str, Any]:
 def hardware():
     """Hardware check for boot flow: ok / warn / block + specs + tips."""
     return _get_hardware_result()
+
+
+# ---------------------------------------------------------------------------
+# Diagnostics (Settings: Deployment Readiness)
+# ---------------------------------------------------------------------------
+
+def _get_sync_readiness() -> tuple[str, str]:
+    """Return (sync_state, sync_readiness) from user stats and SyncManager."""
+    stats = _load_user_stats()
+    prefs = stats.get("preferences") or {}
+    sync_enabled = prefs.get("sync_enabled", True)
+    last_sync = stats.get("last_sync_timestamp")
+
+    if not sync_enabled:
+        return "Disabled", "Cloud sync is disabled in Settings"
+
+    try:
+        from sync_manager import SyncManager
+        sm = SyncManager(base_path=str(BASE_PATH))
+        pending = sm.queue_size
+        online = sm.check_connectivity()
+        if pending > 0 and online:
+            return "Pending", f"{pending} item(s) queued — ready to sync"
+        if pending > 0 and not online:
+            return "Pending", f"{pending} item(s) queued — waiting for connection"
+        if online:
+            return "Idle", "Ready to sync"
+        return "Offline", "Waiting for connection"
+    except Exception:
+        pass
+
+    if last_sync:
+        return "Idle", "Ready to sync"
+    return "Idle", "Ready to sync"
+
+
+@app.get("/api/diagnostics")
+def diagnostics():
+    """
+    Deployment readiness: app version, environment, sync state, last sync.
+    Used by Settings Deployment Readiness panel.
+    """
+    stats = _load_user_stats()
+    prefs = stats.get("preferences") or {}
+    sync_enabled = prefs.get("sync_enabled", True)
+    last_sync = stats.get("last_sync_timestamp")
+    sync_state, sync_readiness = _get_sync_readiness()
+
+    return {
+        "app_version": getattr(app, "version", "1.0.0"),
+        "environment": os.environ.get("STUDAXIS_ENV", "Local"),
+        "sync_enabled": sync_enabled,
+        "sync_state": sync_state,
+        "sync_readiness": sync_readiness,
+        "last_sync_timestamp": last_sync,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Storage file list (Settings: Storage)
+# ---------------------------------------------------------------------------
+
+def _format_size(n: int) -> str:
+    """Format byte count as human-readable string."""
+    if n < 1024:
+        return f"{n} B"
+    if n < 1024 * 1024:
+        return f"{n / 1024:.1f} KB"
+    return f"{n / (1024 * 1024):.1f} MB"
+
+
+def _get_storage_files() -> list[dict[str, Any]]:
+    """List storage files in DATA_DIR with size and description."""
+    files: list[dict[str, Any]] = []
+    known = {
+        "user_stats.json": "Progress, streaks, quiz stats, chat history, preferences",
+        "flashcards.json": "Flashcard decks and SRS data",
+        "profile.json": "User profile (name, mode, class code)",
+        "users.db": "Auth database (accounts)",
+        "sync_queue.json": "Pending sync items",
+    }
+
+    for name, desc in known.items():
+        path = DATA_DIR / name
+        if path.exists():
+            try:
+                size = path.stat().st_size
+            except OSError:
+                size = 0
+            extra = ""
+            if name == "flashcards.json":
+                cards = _load_flashcards()
+                extra = f" — {len(cards)} cards" if cards else ""
+            elif name == "user_stats.json":
+                stats = _load_user_stats()
+                chat_len = len(stats.get("chat_history") or [])
+                if chat_len:
+                    extra = f" — {chat_len} chat messages"
+            files.append({
+                "name": name,
+                "size_bytes": size,
+                "size_human": _format_size(size),
+                "description": desc + extra,
+            })
+        elif name == "sync_queue.json":
+            files.append({
+                "name": name,
+                "size_bytes": 0,
+                "size_human": "0 B",
+                "description": desc + " — not created yet",
+            })
+
+    backups = DATA_DIR / "backups"
+    if backups.is_dir():
+        try:
+            count = sum(1 for _ in backups.iterdir() if _.is_file())
+            total = sum(_.stat().st_size for _ in backups.iterdir() if _.is_file())
+            files.append({
+                "name": "backups/",
+                "size_bytes": total,
+                "size_human": _format_size(total),
+                "description": f"Backup files ({count} file(s))",
+            })
+        except OSError:
+            pass
+
+    return files
+
+
+@app.get("/api/storage/files")
+def storage_files():
+    """List local storage files for Settings Storage panel."""
+    return {"files": _get_storage_files()}
 
 
 @app.post("/api/flashcards/generate", response_model=FlashcardGenerateResponse)
@@ -670,6 +805,7 @@ def quiz_submit(quiz_id: str, req: QuizSubmitRequest):
 
     items_list = PANIC_ITEMS if quiz_id == "panic" else QUIZ_ITEMS
     items_by_id = {q["id"]: q for q in items_list}
+    topic_scores: dict[str, list[float]] = {}
     for entry in req.answers:
         qid = entry.get("question_id") or entry.get("id")
         answer = entry.get("answer", "")
@@ -697,7 +833,9 @@ def quiz_submit(quiz_id: str, req: QuizSubmitRequest):
             feedback_text = grading.text
         except (ConnectionError, TimeoutError):
             feedback_text = "Grading unavailable."
-        results.append({"question_id": qid, "score": score, "feedback": feedback_text})
+        topic = item.get("topic", "General")
+        results.append({"question_id": qid, "score": score, "feedback": feedback_text, "topic": topic})
+        topic_scores.setdefault(topic, []).append(score)
 
         total_attempted = int(quiz_stats.get("total_attempted", 0)) + 1
         total_correct = int(quiz_stats.get("total_correct", 0)) + (1 if score >= 6.0 else 0)
@@ -706,13 +844,56 @@ def quiz_submit(quiz_id: str, req: QuizSubmitRequest):
         quiz_stats["total_correct"] = total_correct
         quiz_stats["average_score"] = round(((prev_avg * (total_attempted - 1)) + score) / total_attempted, 2)
         by_topic = quiz_stats.setdefault("by_topic", {})
-        topic = item.get("topic", "General")
         te = by_topic.setdefault(topic, {"attempts": 0, "avg_score": 0.0})
         te["attempts"] = int(te.get("attempts", 0)) + 1
         te["avg_score"] = round(((float(te.get("avg_score", 0)) * (te["attempts"] - 1)) + score) / te["attempts"], 2)
 
     _save_user_stats(stats)
-    return QuizSubmitResponse(results=results, quiz_stats_updated=True)
+
+    weak_topics_text: Optional[str] = None
+    recommendation_text: Optional[str] = None
+    if quiz_id == "panic" and topic_scores:
+        weak_topics_payload = {
+            topic: round(sum(vals) / len(vals), 2) for topic, vals in topic_scores.items()
+        }
+        try:
+            weak_topic_response = engine.request(
+                task_type=AITaskType.WEAK_TOPIC_DETECTION,
+                user_input="Identify weak topics from this exam result.",
+                context_data={
+                    "exam_mode": "panic_mode",
+                    "topic_scores": weak_topics_payload,
+                    "total_questions": len(items_list),
+                },
+                offline_mode=True,
+                privacy_sensitive=True,
+                user_id=None,
+            )
+            weak_topics_text = weak_topic_response.text
+            rec_response = engine.request(
+                task_type=AITaskType.STUDY_RECOMMENDATION,
+                user_input="Create a post-exam improvement plan.",
+                context_data={
+                    "exam_mode": "panic_mode",
+                    "topic_scores": weak_topics_payload,
+                    "weak_topics_summary": weak_topics_text,
+                    "study_time_minutes": 20,
+                },
+                offline_mode=True,
+                privacy_sensitive=True,
+                user_id=None,
+            )
+            recommendation_text = rec_response.text
+        except (ConnectionError, TimeoutError):
+            weak_topics_text = "AI unavailable for weak-topic analysis."
+            recommendation_text = "Complete more quizzes and review weak areas from your stats."
+
+    return QuizSubmitResponse(
+        results=results,
+        quiz_stats_updated=True,
+        weak_topics_text=weak_topics_text,
+        recommendation_text=recommendation_text,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -737,6 +918,54 @@ def user_stats_put(stats: dict[str, Any]):
             existing[key] = value
     _save_user_stats(existing)
     return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Data export & clear (Settings: Export Data, Clear Local Data)
+# ---------------------------------------------------------------------------
+
+def _profile_to_dict(p: Optional[UserProfile]) -> dict[str, Any]:
+    """Convert UserProfile to JSON-serializable dict."""
+    if p is None:
+        return {"profile_name": None, "profile_mode": None, "class_code": None, "user_role": None}
+    return {
+        "profile_name": p.profile_name,
+        "profile_mode": p.profile_mode,
+        "class_code": p.class_code,
+        "user_role": p.user_role,
+    }
+
+
+@app.get("/api/data/export")
+def data_export():
+    """
+    Export all user stats, flashcards, and profile as a single JSON payload.
+    Returns JSON suitable for backup or migration.
+    """
+    from datetime import datetime, timezone
+    stats = _load_user_stats()
+    cards = _load_flashcards()
+    profile = load_profile()
+    payload = {
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "version": "1.0",
+        "user_stats": stats,
+        "flashcards": cards,
+        "profile": _profile_to_dict(profile),
+    }
+    return payload
+
+
+@app.post("/api/data/clear")
+def data_clear():
+    """
+    Clear local study data: reset user_stats to defaults, clear flashcards,
+    reset profile. Does NOT delete auth (users.db) — user accounts remain.
+    """
+    _save_user_stats(dict(_DEFAULT_STATS))
+    _save_flashcards([])
+    save_profile(UserProfile())
+    return {"ok": True, "message": "Local data cleared. User stats, flashcards, and profile have been reset."}
 
 
 # ---------------------------------------------------------------------------
@@ -786,27 +1015,211 @@ def user_profile_post(req: ProfileRequest):
 
 
 # ---------------------------------------------------------------------------
-# Sync (stub)
+# Sync (SyncManager + ConflictAwareOrchestrator)
 # ---------------------------------------------------------------------------
+
+_orchestrator: Optional[Any] = None
+
+
+def _get_orchestrator():
+    """Lazy-load ConflictAwareOrchestrator for conflict endpoints."""
+    global _orchestrator
+    if _orchestrator is None:
+        try:
+            from conflict_resolution_engine import ConflictAwareOrchestrator
+            _orchestrator = ConflictAwareOrchestrator(base_path=str(BASE_PATH))
+        except ImportError:
+            pass
+    return _orchestrator
+
+
+def _persist_resolved_entity(entity_type: str, entity_id: str, resolved_data: dict) -> None:
+    """Persist resolved conflict data to local store based on entity type."""
+    stats = _load_user_stats()
+    et = (entity_type or "").lower()
+    if et in ("userstats", "user_stats") or entity_id in ("user_stats", "stats"):
+        _save_user_stats(resolved_data)
+    elif et in ("streakrecord", "streak"):
+        merged = dict(stats)
+        merged["streak"] = {**(stats.get("streak") or {}), **resolved_data}
+        _save_user_stats(merged)
+    elif et in ("quizstats", "quiz_stats"):
+        merged = dict(stats)
+        merged["quiz_stats"] = {**(stats.get("quiz_stats") or {}), **resolved_data}
+        _save_user_stats(merged)
+    else:
+        # Default: deep merge top-level keys into user_stats
+        for k, v in resolved_data.items():
+            if k in stats and isinstance(stats[k], dict) and isinstance(v, dict):
+                stats[k] = {**stats[k], **v}
+            else:
+                stats[k] = v
+        _save_user_stats(stats)
 
 
 @app.post("/api/sync")
 def sync_trigger():
-    """Trigger sync with AWS when online. Stub until SyncManager wired."""
-    return {"ok": True, "message": "Sync triggered (stub). Connect SyncManager when online."}
+    """Trigger sync with AWS when online. Uses SyncManager.try_sync()."""
+    try:
+        from sync_manager import SyncManager
+        sm = SyncManager(base_path=str(BASE_PATH))
+        result = sm.try_sync()
+        return {
+            "ok": True,
+            "synced": result.get("synced", 0),
+            "failed": result.get("failed", 0),
+            "pending": result.get("pending", 0),
+            "online": result.get("online", False),
+            "errors": result.get("errors", []),
+            "message": (
+                f"Synced {result.get('synced', 0)} item(s)"
+                if result.get("synced", 0) > 0
+                else ("Sync complete" if not result.get("pending") else "Some items pending")
+            ),
+        }
+    except ImportError as e:
+        return {"ok": False, "message": f"SyncManager unavailable: {e}", "synced": 0, "failed": 0, "pending": 0, "online": False, "errors": []}
+    except Exception as e:
+        return {"ok": False, "message": str(e), "synced": 0, "failed": 0, "pending": 0, "online": False, "errors": [str(e)]}
+
+
+@app.get("/api/sync/status")
+def sync_status():
+    """Return sync status: queue summary, connectivity, last sync."""
+    stats = _load_user_stats()
+    prefs = stats.get("preferences") or {}
+    sync_enabled = prefs.get("sync_enabled", True)
+    last_sync = stats.get("last_sync_timestamp")
+
+    out: dict[str, Any] = {
+        "sync_enabled": sync_enabled,
+        "last_sync_timestamp": last_sync,
+        "online": False,
+        "queue": {"total": 0, "quiz_attempts": 0, "streak_updates": 0, "oldest_item": None},
+    }
+
+    if not sync_enabled:
+        return out
+
+    try:
+        from sync_manager import SyncManager
+        sm = SyncManager(base_path=str(BASE_PATH))
+        out["online"] = sm.check_connectivity()
+        out["queue"] = sm.get_queue_summary()
+    except Exception:
+        pass
+
+    return out
+
+
+@app.get("/api/sync/conflicts")
+def get_conflicts():
+    """Return pending sync conflicts from ConflictAwareOrchestrator."""
+    orch = _get_orchestrator()
+    if orch is None:
+        return {"conflicts": [], "message": "Conflict orchestrator unavailable"}
+    conflicts = orch.get_pending_conflicts()
+    # Ensure reason is string for JSON
+    for c in conflicts:
+        if hasattr(c.get("reason"), "value"):
+            c["reason"] = c["reason"].value
+    return {"conflicts": conflicts}
+
+
+class ResolveConflictRequest(BaseModel):
+    choice: str = Field(..., description="keep_local | keep_cloud | merge")
+
+
+@app.post("/api/sync/conflicts/{entity_id}/resolve")
+def resolve_conflict(entity_id: str, body: ResolveConflictRequest):
+    """Resolve a conflict by entity_id. Persists resolved data and removes from pending."""
+    choice = (body.choice or "").strip().lower()
+    if choice not in ("keep_local", "keep_cloud", "merge"):
+        raise HTTPException(400, "choice must be keep_local, keep_cloud, or merge")
+
+    orch = _get_orchestrator()
+    if orch is None:
+        raise HTTPException(503, "Conflict orchestrator unavailable")
+
+    try:
+        # Get entity_type before resolve (resolve removes conflict from pending)
+        conflicts = orch.get_pending_conflicts()
+        conflict_dict = next((c for c in conflicts if c.get("entity_id") == entity_id), None)
+        entity_type = conflict_dict.get("entity_type", "UserStats") if conflict_dict else "UserStats"
+
+        resolved_data = orch.resolve_conflict_manual(entity_id, choice)
+        _persist_resolved_entity(entity_type, entity_id, resolved_data)
+        orch.trigger_sync_debounced()
+        return {"ok": True, "entity_id": entity_id, "choice": choice}
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+    except Exception as e:
+        raise HTTPException(500, str(e))
 
 
 # ---------------------------------------------------------------------------
-# RAG search (stub)
+# RAG search (ChromaDB semantic search)
 # ---------------------------------------------------------------------------
+
+_rag_vector_store: Optional[Any] = None
+
+
+def _get_rag_vector_store():
+    """Lazy-load ChromaDB vector store. Returns None if DB unavailable."""
+    global _rag_vector_store
+    if _rag_vector_store is not None:
+        return _rag_vector_store
+    try:
+        from ai_chat.vector import build_vector_store
+        _rag_vector_store = build_vector_store(rebuild=False)
+        return _rag_vector_store
+    except ImportError as e:
+        return None
+    except Exception:
+        return None
+
+
+def _rag_search(query: str, k: int = 5) -> tuple[list[dict[str, Any]], Optional[str]]:
+    """
+    Run semantic search over ChromaDB. Returns (results, error_message).
+    On success, error_message is None. On failure, results is [] and error_message describes the issue.
+    """
+    if not query or not query.strip():
+        return [], "Provide a non-empty query."
+
+    store = _get_rag_vector_store()
+    if store is None:
+        return [], "ChromaDB unavailable. Install langchain-chroma and langchain-huggingface, and ensure the vector store is initialized."
+
+    try:
+        retriever = store.as_retriever(search_kwargs={"k": k})
+        docs = retriever.invoke(query.strip())
+    except Exception as e:
+        return [], f"ChromaDB query failed: {str(e)}"
+
+    results: list[dict[str, Any]] = []
+    for doc in docs or []:
+        content = getattr(doc, "page_content", None) or str(doc)
+        metadata = getattr(doc, "metadata", None) or {}
+        if isinstance(metadata, dict):
+            results.append({
+                "content": content[:2000] + ("..." if len(content) > 2000 else ""),
+                "source": metadata.get("source", "unknown"),
+                "subject": metadata.get("subject", "general"),
+            })
+        else:
+            results.append({"content": content[:2000], "source": "unknown", "subject": "general"})
+
+    return results, None
 
 
 @app.get("/api/rag/search")
-def rag_search(q: str = ""):
-    """Semantic search over local ChromaDB. Stub until RAG wired."""
-    if not q.strip():
-        return {"results": [], "message": "Provide query parameter q."}
-    return {"results": [], "message": "RAG search stub. Wire ChromaDB when ready."}
+def rag_search(q: str = "", k: int = 5):
+    """Semantic search over local ChromaDB. Returns top-k matching chunks from embedded textbooks."""
+    results, err = _rag_search(q, k=min(max(1, k), 20))
+    if err:
+        return {"results": [], "message": err}
+    return {"results": results}
 
 
 # ---------------------------------------------------------------------------
