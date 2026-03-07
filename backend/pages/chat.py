@@ -291,9 +291,9 @@ def _process_ai_response() -> None:
         user_input=last_user_text,
         context_data={
             "difficulty": st.session_state.get("chat_difficulty", "Beginner"),
-            "chat_history": st.session_state.chat_messages[-20:],
-            "subject": st.session_state.get("active_subject", "[ACTIVE_SUBJECT]"),
-            "active_textbook": st.session_state.get("active_textbook", "[ACTIVE_TEXTBOOK]"),
+            "chat_history": st.session_state.chat_messages[-8:],
+            "subject": st.session_state.get("active_subject") or "",
+            "active_textbook": st.session_state.get("active_textbook") or "",
         },
         offline_mode=offline_mode,
         privacy_sensitive=True,
