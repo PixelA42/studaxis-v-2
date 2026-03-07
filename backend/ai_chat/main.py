@@ -111,8 +111,11 @@ def get_textbook_context(subject: str | None = None, max_chars: int = 2000) -> s
         print(f"[debug] Textbook directory not found: {books_dir}")
         return ""
 
-    # Find all text files
-    files: list[Path] = list(books_dir.glob("*.txt"))
+    # Find all supported text files
+    _TEXTBOOK_GLOBS = ("*.txt", "*.md", "*.csv")
+    files: list[Path] = []
+    for pattern in _TEXTBOOK_GLOBS:
+        files.extend(books_dir.glob(pattern))
     if not files:
         print(f"[debug] No textbook files found in: {books_dir}")
         return ""

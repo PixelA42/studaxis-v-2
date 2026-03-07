@@ -24,6 +24,21 @@ try:
 except ImportError:
     Docx2txtLoader = None
 
+try:
+    from langchain_community.document_loaders import UnstructuredMarkdownLoader
+except ImportError:
+    UnstructuredMarkdownLoader = None
+
+try:
+    from langchain_community.document_loaders import UnstructuredPowerPointLoader
+except ImportError:
+    UnstructuredPowerPointLoader = None
+
+try:
+    from langchain_community.document_loaders import UnstructuredExcelLoader
+except ImportError:
+    UnstructuredExcelLoader = None
+
 # loader for youtube transcripts
 try:
     from langchain_community.document_loaders import YoutubeLoader
@@ -133,25 +148,27 @@ def build_vector_store(rebuild: bool = False) -> Chroma:
             # choose loader based on suffix
             if suffix == ".pdf":
                 loader = PyPDFLoader(str(file))
-            elif suffix == ".txt":
+            elif suffix in (".txt", ".text"):
+                loader = TextLoader(str(file), encoding="utf-8")
+            elif suffix == ".md" and UnstructuredMarkdownLoader is not None:
+                loader = UnstructuredMarkdownLoader(str(file))
+            elif suffix == ".md":
+                # Fallback: load markdown as plain text
                 loader = TextLoader(str(file), encoding="utf-8")
             elif suffix == ".csv" and CSVLoader is not None:
                 loader = CSVLoader(str(file))
-            elif suffix in (".pptx", ".ppt"):
-                # Skipping PowerPoint formats by request; place converted text/PDF in folder instead
-                print(f"[info] Skipping PowerPoint file type: {file.name} (ppt/pptx not processed).")
-                continue
+            elif suffix in (".pptx", ".ppt") and UnstructuredPowerPointLoader is not None:
+                loader = UnstructuredPowerPointLoader(str(file))
+            elif suffix in (".xlsx", ".xls") and UnstructuredExcelLoader is not None:
+                loader = UnstructuredExcelLoader(str(file))
             elif suffix == ".docx" and Docx2txtLoader is not None:
                 loader = Docx2txtLoader(str(file))
-            # other office types could go here
+            elif suffix == ".doc":
+                print(f"[info] .doc format not supported, convert to .docx: {file.name}")
+                continue
             else:
-                # attempt to parse youtube links from txt files
-                if suffix == ".txt":
-                    # we'll handle post-loading
-                    loader = TextLoader(str(file), encoding="utf-8")
-                else:
-                    print(f"[debug] Unsupported file type, skipping: {file.name}")
-                    continue
+                print(f"[debug] Unsupported file type, skipping: {file.name}")
+                continue
 
             if loader is None:
                 print(f"[debug] No loader available for {file.name}, skipping")
