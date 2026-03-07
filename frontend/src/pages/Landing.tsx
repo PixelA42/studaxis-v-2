@@ -6,11 +6,11 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { Icons } from "../components/icons";
 
-/* Solid-card palette: pastel tokens — no white, no glassmorphism */
+/* Chunky color blocks — reference proportions (25% of layout) */
 const FEATURE_CARD_STYLES = [
-  { bgClass: "bg-pastel-pink" },
-  { bgClass: "bg-pastel-blue" },
-  { bgClass: "bg-pastel-yellow" },
+  { bgClass: "bg-chunk-pink" },
+  { bgClass: "bg-chunk-blue" },
+  { bgClass: "bg-chunk-yellow" },
 ] as const;
 
 const features = [
@@ -53,47 +53,47 @@ export function LandingPage() {
   const { userLoggedIn } = useAuth();
 
   return (
-    <div className="min-h-screen flex flex-col p-6 md:p-10">
+    <div className="min-h-screen flex flex-col bg-deep p-6 md:p-10">
       <div className="ambient-glow" aria-hidden />
       <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col gap-12 md:gap-16">
-        {/* Hero */}
-        <div className="glass-panel shadow-soft rounded-2xl border border-glass-border p-10 text-center">
-          <h1 className="text-3xl md:text-5xl font-extrabold text-primary leading-tight">
+        {/* Hero — content card with depth */}
+        <div className="content-card rounded-card border border-glass-border p-10 text-center">
+          <h1 className="text-3xl md:text-5xl font-extrabold font-anchor-bold text-heading-dark leading-tight">
             Organize{" "}
-            <span className="text-pastel-blue">everything</span>
+            <span className="text-chunk-blue">everything</span>
             <br />
             in your{" "}
-            <span className="text-pastel-pink">learning</span>
+            <span className="text-chunk-pink">learning</span>
           </h1>
-          <p className="text-primary/70 mt-4 text-lg">
+          <p className="text-heading-dark/80 mt-4 text-lg font-semibold">
             AI-powered offline tutor that works anywhere, anytime — even at 0
             kbps.
           </p>
           <div className="flex flex-wrap justify-center gap-3 mt-6">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-pastel-pink/40 text-heading-dark/90 text-xs font-medium">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-chunk-pink/30 text-heading-dark font-semibold text-xs">
               {Icons.offline} 100% Offline
             </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-pastel-blue/40 text-heading-dark/90 text-xs font-medium">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-chunk-blue/30 text-heading-dark font-semibold text-xs">
               {Icons.ai} Llama 3.2 on-device
             </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-pastel-yellow/40 text-heading-dark/90 text-xs font-medium">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-chunk-yellow/30 text-heading-dark font-semibold text-xs">
               {Icons.book} RAG-grounded
             </span>
           </div>
           <div className="mt-8">
             <Link
               to={userLoggedIn ? "/dashboard" : "/auth"}
-              className="inline-flex px-8 py-3 rounded-xl bg-accent-blue text-deep font-semibold hover:opacity-90 transition-opacity shadow-soft"
+              className="inline-flex px-8 py-3 rounded-xl bg-chunk-blue text-heading-dark font-extrabold hover:opacity-90 transition-opacity shadow-card"
             >
               Get Started →
             </Link>
           </div>
         </div>
 
-        {/* Features — Solid Card spec: pastel backgrounds, text-main-light, no glassmorphism */}
+        {/* Features — chunky color blocks (25% of layout) */}
         <section>
-          <h2 className="text-2xl md:text-3xl font-extrabold text-primary mb-6">
-            Our <span className="text-accent-blue">Features</span>
+          <h2 className="text-2xl md:text-3xl font-extrabold font-anchor-bold text-heading-dark mb-6">
+            Our <span className="text-chunk-blue">Features</span>
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {features.map((f, i) => {
@@ -101,23 +101,23 @@ export function LandingPage() {
               return (
                 <div
                   key={f.title}
-                  className={`${bgClass} rounded-2xl p-5 text-main-light shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] transition-all duration-300 ease hover:-translate-y-2 hover:shadow-[0_20px_25px_-5px_rgba(0,0,0,0.15)]`}
+                  className={`${bgClass} rounded-card p-5 text-heading-dark shadow-card transition-all duration-300 ease hover:-translate-y-1 hover:shadow-soft`}
                 >
-                  <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-xl text-main-light mb-3 [&>svg]:text-main-light">
+                  <div className="w-10 h-10 rounded-lg bg-white/90 flex items-center justify-center text-xl text-heading-dark mb-3 [&>svg]:text-heading-dark">
                     {f.icon}
                   </div>
-                  <h3 className="font-bold text-main-light">{f.title}</h3>
-                  <p className="text-sm text-main-light mt-1">{f.description}</p>
+                  <h3 className="font-extrabold font-anchor-bold text-heading-dark">{f.title}</h3>
+                  <p className="text-sm font-semibold text-heading-dark/85 mt-1">{f.description}</p>
                 </div>
               );
             })}
           </div>
         </section>
 
-        {/* Services — Solid Card spec: pastel backgrounds, text-main-light, no glassmorphism */}
+        {/* Services — chunky color blocks */}
         <section>
-          <h2 className="text-2xl md:text-3xl font-extrabold text-primary mb-6">
-            How It <span className="text-accent-warm-4">Works</span>
+          <h2 className="text-2xl md:text-3xl font-extrabold font-anchor-bold text-heading-dark mb-6">
+            How It <span className="text-chunk-yellow">Works</span>
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {services.map((s, i) => {
@@ -125,13 +125,13 @@ export function LandingPage() {
               return (
                 <div
                   key={s.title}
-                  className={`${bgClass} rounded-2xl p-5 text-main-light shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] transition-all duration-300 ease hover:-translate-y-2 hover:shadow-[0_20px_25px_-5px_rgba(0,0,0,0.15)]`}
+                  className={`${bgClass} rounded-card p-5 text-heading-dark shadow-card transition-all duration-300 ease hover:-translate-y-1 hover:shadow-soft`}
                 >
-                  <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-xl text-main-light mb-3 [&>svg]:text-main-light">
+                  <div className="w-10 h-10 rounded-lg bg-white/90 flex items-center justify-center text-xl text-heading-dark mb-3 [&>svg]:text-heading-dark">
                     {s.icon}
                   </div>
-                  <h3 className="font-bold text-main-light">{s.title}</h3>
-                  <p className="text-sm text-main-light mt-1">{s.description}</p>
+                  <h3 className="font-extrabold font-anchor-bold text-heading-dark">{s.title}</h3>
+                  <p className="text-sm font-semibold text-heading-dark/85 mt-1">{s.description}</p>
                 </div>
               );
             })}

@@ -326,6 +326,14 @@ export async function getHealth(): Promise<HealthResponse> {
 }
 
 /**
+ * Ping Ollama directly. Returns { ok: true } when local AI engine is responsive.
+ * Used by loading screen to wait until Ollama is ready.
+ */
+export async function checkOllamaPing(): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>("/api/ollama/ping");
+}
+
+/**
  * Generate a deck of flashcards from a topic or chapter name (local AI).
  * Calls POST /api/flashcards/generate.
  */

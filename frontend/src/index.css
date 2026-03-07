@@ -101,12 +101,20 @@
 }
 
 /* Thermal Vitreous — design tokens (ARCHITECTURE_NEW.md) */
-/* Pastel accent palette: soft pink, baby blue, warm sunny yellow */
+/* Reference: chunky color-blocking, high-contrast anchors, depth via shadow */
+
+/* Chunky palette — use as LARGE solid background fills, not just accents */
 :root {
-  --pastel-pink: #FFB5C5;
-  --pastel-blue: #A8D8EA;
-  --pastel-yellow: #FFEAA7;
-  --heading-dark: #0f172a;
+  --accent-pink: #FA5C5C;
+  --accent-coral: #FD8A6B;
+  --accent-peach: #FEC288;
+  --accent-yellow: #FBEF76;
+  --accent-blue: #00A8E8;
+  /* High-contrast anchor — all headings, nav, input text */
+  --heading-dark: #000000;
+  /* Card depth — soft drop shadow, 16px radius */
+  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+  --card-radius: 16px;
 }
 
 :root,
@@ -114,7 +122,6 @@
   --deep: #05070a;
   --surface-light: rgba(255, 255, 255, 0.03);
   --glass-border: rgba(255, 255, 255, 0.08);
-  --accent-blue: #00A8E8;
   --text-primary: #ffffff;
   --text-muted: rgba(255, 255, 255, 0.6);
   --text-subtle: rgba(255, 255, 255, 0.4);
@@ -125,19 +132,21 @@
   --sidebar-width-collapsed: 80px;
 }
 
+/* Light theme — reference proportions: 60% off-white bg, 25% chunky blocks, 15% dark anchors */
 [data-theme="light"] {
-  --deep: #ffffff;
-  --surface-light: rgba(15, 23, 42, 0.04);
-  --glass-border: rgba(15, 23, 42, 0.12);
-  --text-primary: #0f172a;
-  --text-muted: rgba(15, 23, 42, 0.65);
-  --text-subtle: rgba(15, 23, 42, 0.45);
+  --deep: #F1F5F9; /* Slate-100 — visibly off-white, not pure white */
+  --surface-light: #ffffff;
+  --glass-border: rgba(15, 23, 42, 0.1);
+  --text-primary: #000000;
+  --text-muted: rgba(0, 0, 0, 0.75);
+  --text-subtle: rgba(0, 0, 0, 0.55);
 }
 
 @layer base {
   body {
-    @apply bg-deep text-primary font-sans antialiased;
+    @apply bg-deep font-sans antialiased;
     background-color: var(--deep);
+    color: var(--text-primary);
   }
 }
 
@@ -155,16 +164,27 @@
     );
   }
 
-  /* Glass panel: surface-light bg, 24px backdrop blur, glass border */
+  /* Glass panel: surface-light bg, depth via shadow. Light: soft card shadow; dark: glassmorphism */
   .glass-panel {
     background: var(--surface-light);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--glass-border);
+    border-radius: var(--card-radius);
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
   }
 
-  /* Soft, large drop shadow for floating UI elements and cards — structural depth */
+  [data-theme="light"] .glass-panel {
+    box-shadow: var(--card-shadow);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  /* Card depth — reference: soft drop shadow, rounded corners (60% bg, 25% blocks, 15% anchors) */
+  .shadow-card {
+    box-shadow: var(--card-shadow);
+  }
+
   .shadow-soft {
     box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.15),
                 0 10px 30px -10px rgba(0, 0, 0, 0.1);
@@ -177,23 +197,41 @@
 
   [data-theme="light"] .shadow-soft,
   [data-theme="light"] .shadow-soft-lg {
-    box-shadow: 0 25px 70px -20px rgba(15, 23, 42, 0.12),
-                0 12px 35px -12px rgba(15, 23, 42, 0.08);
+    box-shadow: var(--card-shadow);
   }
 
-  /* Solid card — no glassmorphism, warm colors, high-contrast text */
+  /* White content card — lifts off background, 16px radius */
+  .content-card {
+    background: var(--surface-light);
+    border-radius: var(--card-radius);
+    box-shadow: var(--card-shadow);
+  }
+
+  [data-theme="dark"] .content-card {
+    background: #151a21;
+    border: 1px solid #2a3139;
+    box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.25);
+  }
+
+  /* Chunky color block — large solid fills for sections/feature cards */
+  .chunk-pink { background: #FA5C5C; }
+  .chunk-coral { background: #FD8A6B; }
+  .chunk-peach { background: #FEC288; }
+  .chunk-yellow { background: #FBEF76; }
+  .chunk-blue { background: #00A8E8; }
+
+  /* Solid card — auth, modals (legacy compat) */
   .solid-card {
     background: #151a21;
     border: 1px solid #2a3139;
-    box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.25),
-                0 10px 30px -10px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.25);
+    border-radius: var(--card-radius);
   }
 
   [data-theme="light"] .solid-card {
-    background: #fef9f3;
-    border: 1px solid #e8dcc8;
-    box-shadow: 0 25px 70px -20px rgba(15, 23, 42, 0.12),
-                0 12px 35px -12px rgba(15, 23, 42, 0.08);
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: var(--card-shadow);
   }
 
   /* Loading spinner — Thermal Vitreous (replaces Streamlit st.spinner) */

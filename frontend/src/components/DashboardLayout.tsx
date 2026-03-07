@@ -7,7 +7,7 @@ import { Sidebar } from "./Sidebar";
 
 export function DashboardLayout() {
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-deep">
       <div className="ambient-glow" aria-hidden />
       <Sidebar />
       <main className="flex-1 relative z-10 overflow-auto p-6">

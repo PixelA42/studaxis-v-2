@@ -33,7 +33,7 @@ export function StatCard({
   emptyHint,
 }: StatCardProps) {
   return (
-    <div className="glass-panel rounded-xl p-5 border border-glass-border shadow-soft">
+    <div className="content-card rounded-card p-5 border border-glass-border">
       <div className="flex items-start gap-4">
         <div
           className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-lg border ${iconColorClasses[iconColor]}`}
@@ -42,12 +42,12 @@ export function StatCard({
           {icon}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-2xl font-semibold text-primary tabular-nums">
+          <p className="text-2xl font-extrabold font-anchor-bold text-heading-dark tabular-nums">
             {value}
           </p>
-          <p className="text-sm font-medium text-primary/80">{label}</p>
+          <p className="text-sm font-semibold text-heading-dark/80">{label}</p>
           {sub && (
-            <p className="text-xs text-primary/60 mt-0.5">{sub}</p>
+            <p className="text-xs font-medium text-heading-dark/70 mt-0.5">{sub}</p>
           )}
           {progressPct != null && (
             <div className="mt-3" role="progressbar" aria-valuenow={progressPct} aria-label={progressLabel}>
@@ -58,12 +58,12 @@ export function StatCard({
                 />
               </div>
               {progressLabel && (
-                <p className="text-xs text-primary/50 mt-1">{progressLabel}</p>
+                <p className="text-xs text-heading-dark/60 mt-1 font-medium">{progressLabel}</p>
               )}
             </div>
           )}
           {emptyHint && (
-            <p className="text-xs text-primary/50 mt-2 italic">{emptyHint}</p>
+            <p className="text-xs text-heading-dark/60 mt-2 italic font-medium">{emptyHint}</p>
           )}
         </div>
       </div>

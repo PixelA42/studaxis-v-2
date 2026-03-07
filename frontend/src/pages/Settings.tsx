@@ -116,8 +116,8 @@ export function SettingsPage() {
   return (
     <PageChrome backTo="/dashboard" backLabel="← Back to Dashboard">
       <div className="space-y-6">
-        <h2 className="text-2xl font-semibold text-primary">Settings</h2>
-        <p className="text-primary/80">
+        <h2 className="text-2xl font-extrabold font-anchor-bold text-heading-dark">Settings</h2>
+        <p className="text-heading-dark/80 font-medium">
           Deployment readiness, diagnostics, sync, and personal preferences.
         </p>
 

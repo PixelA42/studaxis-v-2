@@ -162,17 +162,17 @@ export function ChatPage() {
     <PageChrome backTo="/dashboard" backLabel="← Back to Dashboard">
       <div className="flex flex-col h-[calc(100vh-8rem)] max-h-[700px]">
         {/* Header */}
-        <div className="glass-panel rounded-xl border border-glass-border p-4 flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div className="content-card rounded-card border border-glass-border p-4 flex flex-wrap items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
             <div
-              className="w-10 h-10 rounded-xl bg-accent-blue/20 border border-accent-blue/40 flex items-center justify-center text-lg"
+              className="w-10 h-10 rounded-xl bg-chunk-blue flex items-center justify-center text-white text-lg"
               aria-hidden
             >
               {Icons.ai}
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-primary">AI Tutor Chat</h2>
-              <p className="text-xs text-primary/60">Powered by Llama 3.2 - RAG-grounded</p>
+              <h2 className="text-lg font-extrabold font-anchor-bold text-heading-dark">AI Tutor Chat</h2>
+              <p className="text-xs font-medium text-heading-dark/70">Powered by Llama 3.2 - RAG-grounded</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -183,7 +183,7 @@ export function ChatPage() {
             <select
               value={difficulty}
               onChange={(e) => handleDifficultyChange(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-surface-light border border-glass-border text-primary text-sm font-medium"
+              className="px-3 py-2 rounded-lg bg-surface-light border border-glass-border text-heading-dark text-sm font-semibold"
               aria-label="Difficulty level"
             >
               {DIFFICULTY_OPTIONS.map((d) => (
@@ -195,7 +195,7 @@ export function ChatPage() {
             <button
               type="button"
               onClick={handleClear}
-              className="px-3 py-2 rounded-lg border border-glass-border text-primary/80 text-sm font-medium hover:bg-surface-light"
+              className="px-3 py-2 rounded-lg border border-glass-border text-heading-dark/80 text-sm font-semibold hover:bg-surface-light"
             >
               Clear
             </button>
@@ -254,14 +254,14 @@ export function ChatPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={`Ask a question… (${difficulty})`}
-            className="flex-1 px-4 py-3 rounded-xl bg-surface-light border border-glass-border text-primary placeholder:text-primary/50 focus:outline-none focus:ring-2 focus:ring-accent-blue"
+            className="flex-1 px-4 py-3 rounded-xl bg-surface-light border border-glass-border text-heading-dark font-medium placeholder:text-heading-dark/50 focus:outline-none focus:ring-2 focus:ring-accent-blue shadow-card"
             disabled={loading}
             aria-label="Chat message"
           />
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="px-5 py-3 rounded-xl bg-accent-blue text-deep font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-5 py-3 rounded-xl bg-chunk-blue text-heading-dark font-extrabold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-card"
           >
             Send
           </button>

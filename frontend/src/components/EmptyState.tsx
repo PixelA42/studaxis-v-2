@@ -19,15 +19,15 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
-      className="glass-panel rounded-xl p-10 text-center border border-glass-border"
+      className="content-card rounded-card p-10 text-center border border-glass-border"
       role="status"
     >
       <div className="text-4xl mb-4 opacity-80" aria-hidden>
         {icon}
       </div>
-      <h3 className="text-lg font-semibold text-primary">{title}</h3>
+      <h3 className="text-lg font-extrabold font-anchor-bold text-heading-dark">{title}</h3>
       {description && (
-        <p className="text-sm text-primary/70 mt-2 max-w-md mx-auto">
+        <p className="text-sm font-semibold text-heading-dark/75 mt-2 max-w-md mx-auto">
           {description}
         </p>
       )}

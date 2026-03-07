@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { AppStateProvider, useAppState } from "./contexts/AppStateContext";
@@ -19,6 +20,31 @@ import { SyncPage } from "./pages/Sync";
 import { TeacherInsightsPage } from "./pages/TeacherInsights";
 import { ErrorDemoPage } from "./pages/ErrorDemo";
 import { DashboardLayout } from "./components/DashboardLayout";
+import { OllamaLoadingScreen } from "./components/OllamaLoadingScreen";
+import { checkOllamaPing } from "./services/api";
+
+/** First thing when app opens: wait for Ollama to be ready, then show the app. */
+export function OllamaGate({ children }: { children: React.ReactNode }) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (ready) return;
+    const poll = async () => {
+      try {
+        const res = await checkOllamaPing();
+        if (res.ok) setReady(true);
+      } catch {
+        // Backend or network unavailable; keep polling
+      }
+    };
+    poll();
+    const id = setInterval(poll, 1500);
+    return () => clearInterval(id);
+  }, [ready]);
+
+  if (!ready) return <OllamaLoadingScreen onReady={() => setReady(true)} />;
+  return <>{children}</>;
+}
 
 function BootGuard({ children }: { children: React.ReactNode }) {
   const { bootComplete } = useAppState();
@@ -62,15 +88,15 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppStateProvider>
-        <ThemeProvider>
-          <FlashcardDeckProvider>
-            <BootGuard>
-              <AppRoutes />
-            </BootGuard>
-          </FlashcardDeckProvider>
-        </ThemeProvider>
-      </AppStateProvider>
-    </AuthProvider>
+        <AppStateProvider>
+          <ThemeProvider>
+            <FlashcardDeckProvider>
+              <BootGuard>
+                <AppRoutes />
+              </BootGuard>
+            </FlashcardDeckProvider>
+          </ThemeProvider>
+        </AppStateProvider>
+      </AuthProvider>
   );
 }

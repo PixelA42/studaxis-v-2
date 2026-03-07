@@ -72,7 +72,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`relative flex flex-col flex-shrink-0 glass-panel shadow-soft border-r border-t-0 border-b-0 border-l-0 rounded-r-2xl transition-all duration-300 z-10 ${
+      className={`relative flex flex-col flex-shrink-0 content-card border-r border-t-0 border-b-0 border-l-0 rounded-r-2xl transition-all duration-300 z-10 ${
         collapsed ? "w-sidebar-collapsed" : "w-sidebar"
       }`}
       aria-label="Main navigation"
@@ -80,7 +80,7 @@ export function Sidebar() {
       <button
         type="button"
         onClick={toggle}
-        className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-deep border border-glass-border flex items-center justify-center text-primary/80 hover:text-accent-blue hover:border-accent-blue/50 transition-colors"
+        className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white border border-heading-dark/10 flex items-center justify-center text-heading-dark/80 hover:text-accent-blue hover:border-accent-blue shadow-card transition-colors"
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         <span className={`text-xs transition-transform ${collapsed ? "rotate-180" : ""}`}>‹</span>
@@ -92,7 +92,7 @@ export function Sidebar() {
             S
           </div>
           {!collapsed && (
-            <span className="font-semibold text-primary truncate">Studaxis</span>
+            <span className="font-bold text-heading-dark truncate">Studaxis</span>
           )}
         </div>
       </div>
@@ -101,7 +101,7 @@ export function Sidebar() {
         {navSections.map((section) => (
           <div key={section.label || "footer"} className="mb-4">
             {section.label && !collapsed && (
-              <div className="px-4 py-1.5 text-[10px] font-mono uppercase tracking-wider text-primary/50">
+              <div className="px-4 py-1.5 text-[10px] font-mono uppercase tracking-wider text-heading-dark/60">
                 {section.label}
               </div>
             )}
@@ -112,14 +112,14 @@ export function Sidebar() {
                     to={item.to}
                     end={item.to === "/dashboard"}
                     className={({ isActive: active }) =>
-                      `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                      `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                         collapsed ? "justify-center" : ""
                       } ${
                         active
-                          ? "bg-accent-blue/20 text-accent-blue border-l-2 border-accent-blue"
+                          ? "bg-accent-blue text-white border-l-0"
                           : item.panic
-                            ? "text-primary/80 hover:bg-red-500/10 hover:text-red-400"
-                            : "text-primary/80 hover:bg-surface-light hover:text-primary"
+                            ? "text-heading-dark/80 hover:bg-chunk-pink/20 hover:text-chunk-pink"
+                            : "text-heading-dark/80 hover:bg-heading-dark/5 hover:text-heading-dark"
                       }`
                     }
                   >
@@ -146,7 +146,7 @@ export function Sidebar() {
       <div className={`p-3 border-t border-glass-border ${collapsed ? "flex justify-center" : ""}`}>
         {!collapsed && (
           <>
-            <p className="text-xs text-primary/50 truncate">{profileName}</p>
+            <p className="text-xs text-heading-dark/60 truncate font-medium">{profileName}</p>
             <div className="mt-2">
               <StatusIndicator status={connectivityStatus} />
             </div>

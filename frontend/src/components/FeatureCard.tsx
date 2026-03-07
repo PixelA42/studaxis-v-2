@@ -22,10 +22,11 @@ const iconColorClasses = {
   red: "text-red-400 bg-red-500/10 border-red-500/30",
 };
 
-const pastelBgClasses = {
-  pink: "bg-pastel-pink/50",
-  blue: "bg-pastel-blue/50",
-  yellow: "bg-pastel-yellow/50",
+/* Chunky color blocks — large solid fills per reference (25% of layout) */
+const chunkBgClasses = {
+  pink: "bg-chunk-pink",
+  blue: "bg-chunk-blue",
+  yellow: "bg-chunk-yellow",
 };
 
 export function FeatureCard({
@@ -37,9 +38,13 @@ export function FeatureCard({
   pastelBg,
   children,
 }: FeatureCardProps) {
-  const bgClass = pastelBg ? pastelBgClasses[pastelBg] : "glass-panel";
+  const isChunk = !!pastelBg;
+  const bgClass = pastelBg ? chunkBgClasses[pastelBg] : "content-card";
+  const textClass = isChunk ? "text-heading-dark" : "text-primary";
+  const subTextClass = isChunk ? "text-heading-dark/80" : "text-primary/70";
+  const metaClass = isChunk ? "text-heading-dark/70" : "text-primary/50";
   return (
-    <div className={`${bgClass} rounded-xl p-5 border border-white/20 shadow-soft hover:shadow-soft-lg transition-shadow`}>
+    <div className={`${bgClass} rounded-card p-5 shadow-card hover:shadow-soft transition-shadow ${!isChunk ? "border border-glass-border" : ""}`}>
       <div className="flex items-start gap-4">
         <div
           className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-xl border ${iconColorClasses[iconColor]}`}
@@ -48,10 +53,10 @@ export function FeatureCard({
           {icon}
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="font-bold text-primary">{title}</h3>
-          <p className="text-sm text-primary/70 mt-1">{description}</p>
+          <h3 className={`font-extrabold font-anchor-bold ${textClass}`}>{title}</h3>
+          <p className={`text-sm font-medium ${subTextClass} mt-1`}>{description}</p>
           {meta && (
-            <p className="text-xs text-primary/50 mt-2 font-mono">{meta}</p>
+            <p className={`text-xs font-mono mt-2 ${metaClass}`}>{meta}</p>
           )}
           {children && <div className="mt-4">{children}</div>}
         </div>

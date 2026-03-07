@@ -16,13 +16,13 @@ export function GlassCard({
   children,
   title,
   className = "",
-  contentClassName = "p-5 text-primary",
+  contentClassName = "p-5 text-heading-dark",
 }: GlassCardProps) {
   return (
-    <div className={`glass-panel rounded-xl overflow-hidden ${className}`}>
+    <div className={`content-card rounded-card overflow-hidden border border-glass-border ${className}`}>
       {title && (
         <div className="px-5 py-3 border-b border-glass-border">
-          <h3 className="text-primary font-sans font-medium text-base">
+          <h3 className="text-heading-dark font-sans font-bold text-base">
             {title}
           </h3>
         </div>

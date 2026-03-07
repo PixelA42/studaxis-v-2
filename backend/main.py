@@ -327,6 +327,19 @@ def health():
     return payload
 
 
+@app.get("/api/ollama/ping")
+def ollama_ping():
+    """Ping Ollama at localhost:11434. Used by loading screen to wait until local AI is ready."""
+    import requests
+    url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+    base = url.rstrip("/")
+    try:
+        r = requests.get(f"{base}/", timeout=3)
+        return {"ok": r.status_code == 200}
+    except Exception:
+        return {"ok": False}
+
+
 # ---------------------------------------------------------------------------
 # Hardware (Phase 8 — HardwareValidator)
 # ---------------------------------------------------------------------------

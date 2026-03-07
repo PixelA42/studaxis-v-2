@@ -74,33 +74,33 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="ambient-glow" aria-hidden />
-      <header className="glass-panel rounded-xl border border-glass-border p-5 flex flex-wrap items-center justify-between gap-4 shadow-soft">
+      <header className="content-card rounded-card border border-glass-border p-5 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div
-            className="w-12 h-12 rounded-xl bg-pastel-blue/60 border border-pastel-blue/50 flex items-center justify-center text-heading-dark font-bold"
+            className="w-12 h-12 rounded-xl bg-chunk-blue flex items-center justify-center text-white font-extrabold"
             aria-hidden
           >
             {initials}
           </div>
           <div>
-            <h1 className="text-xl font-extrabold text-heading-dark">
-              Welcome back, <span className="text-pastel-pink">{name}</span>
+            <h1 className="text-xl font-extrabold font-anchor-bold text-heading-dark">
+              Welcome back, <span className="text-chunk-pink">{name}</span>
             </h1>
-            <p className="text-sm text-primary/60">Personal Mastery - AI Tutor ready</p>
+            <p className="text-sm font-semibold text-heading-dark/70">Personal Mastery - AI Tutor ready</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <span className="flex items-center gap-1.5 text-sm font-medium text-primary/80">
+          <span className="flex items-center gap-1.5 text-sm font-semibold text-heading-dark/90">
             {Icons.streak} {streak} day{streak !== 1 ? "s" : ""}
           </span>
-          <span className="px-2.5 py-1 rounded-lg border border-glass-border text-xs font-medium text-primary/70">
+          <span className="px-2.5 py-1 rounded-lg border border-glass-border text-xs font-semibold text-heading-dark/80">
             {modeLabel}
           </span>
           <StatusIndicator status={connectivityStatus} />
           <button
             type="button"
             onClick={toggleTheme}
-            className="px-3 py-1.5 rounded-lg border border-glass-border text-xs font-medium text-primary/70 hover:bg-surface-light transition-colors"
+            className="px-3 py-1.5 rounded-lg border border-glass-border text-xs font-semibold text-heading-dark/80 hover:bg-surface-light transition-colors"
             title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >
@@ -207,12 +207,12 @@ export function DashboardPage() {
       <footer className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-glass-border">
         <div className="flex items-center gap-3">
           <StatusIndicator status={connectivityStatus} />
-          <span className="text-xs text-primary/50">Last sync: {lastSyncLabel}</span>
+          <span className="text-xs font-medium text-heading-dark/60">Last sync: {lastSyncLabel}</span>
         </div>
         <div className="flex gap-3">
           <Link
             to="/settings"
-            className="px-4 py-2 rounded-xl border border-glass-border text-primary/80 text-sm font-medium hover:bg-surface-light"
+            className="px-4 py-2 rounded-xl border border-glass-border text-heading-dark font-semibold text-sm hover:bg-surface-light transition-colors"
           >
             Settings
           </Link>
@@ -222,7 +222,7 @@ export function DashboardPage() {
               logout();
               navigate("/", { replace: true });
             }}
-            className="px-4 py-2 rounded-xl border border-glass-border text-primary/80 text-sm font-medium hover:bg-surface-light"
+            className="px-4 py-2 rounded-xl border border-glass-border text-heading-dark font-semibold text-sm hover:bg-surface-light transition-colors"
           >
             Logout
           </button>

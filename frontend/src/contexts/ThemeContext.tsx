@@ -24,7 +24,7 @@ function loadStoredTheme(): Theme {
   } catch {
     // ignore
   }
-  return "dark";
+  return "light";
 }
 
 function applyTheme(t: Theme) {
