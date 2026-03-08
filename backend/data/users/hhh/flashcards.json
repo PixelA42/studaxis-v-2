@@ -1,0 +1,152 @@
+[
+  {
+    "id": "1",
+    "topic": "Typhoid fever",
+    "front": "Typhoid fever is caused by",
+    "back": "Salmonella Typhi bacteria",
+    "sourceType": [
+      "topic"
+    ],
+    "question": "Typhoid fever is caused by",
+    "answer": "Salmonella Typhi bacteria",
+    "next_review": "2026-03-11T10:23:05.985Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "2",
+    "topic": "Typhoid fever",
+    "front": "Symptoms of typhoid fever include",
+    "back": "Fever, headache, and abdominal pain",
+    "sourceType": [
+      "topic"
+    ],
+    "question": "Symptoms of typhoid fever include",
+    "answer": "Fever, headache, and abdominal pain",
+    "next_review": "2026-03-09T10:23:06.750Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "3",
+    "topic": "Typhoid fever",
+    "front": "Typhoid fever can be spread through",
+    "back": "Contaminated food and water",
+    "sourceType": [
+      "topic"
+    ],
+    "question": "Typhoid fever can be spread through",
+    "answer": "Contaminated food and water",
+    "next_review": "2026-03-08T10:22:56.123Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "4",
+    "topic": "Typhoid Mary",
+    "front": "Who is Typhoid Mary?",
+    "back": "A nurse who carried Salmonella Typhi bacteria in her body",
+    "sourceType": [
+      "topic"
+    ],
+    "question": "Who is Typhoid Mary?",
+    "answer": "A nurse who carried Salmonella Typhi bacteria in her body",
+    "next_review": "2026-03-08T10:22:56.123Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "5",
+    "topic": "Typhoid Mary",
+    "front": "How did Typhoid Mary spread the disease?",
+    "back": "Through her interactions with patients and healthcare workers",
+    "sourceType": [
+      "topic"
+    ],
+    "question": "How did Typhoid Mary spread the disease?",
+    "answer": "Through her interactions with patients and healthcare workers",
+    "next_review": "2026-03-08T10:22:56.123Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "6",
+    "topic": "Typhoid vaccine",
+    "front": "What is the purpose of the typhoid vaccine?",
+    "back": "To provide immunity against Salmonella Typhi bacteria",
+    "sourceType": [
+      "topic"
+    ],
+    "question": "What is the purpose of the typhoid vaccine?",
+    "answer": "To provide immunity against Salmonella Typhi bacteria",
+    "next_review": "2026-03-08T10:22:56.123Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "7",
+    "topic": "Typhoid vaccine",
+    "front": "Who should get the typhoid vaccine?",
+    "back": "Travelers to areas with high typhoid risk, healthcare workers, and children in endemic areas",
+    "sourceType": [
+      "topic"
+    ],
+    "question": "Who should get the typhoid vaccine?",
+    "answer": "Travelers to areas with high typhoid risk, healthcare workers, and children in endemic areas",
+    "next_review": "2026-03-08T10:22:56.123Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "8",
+    "topic": "Typhoid risk groups",
+    "front": "Who is at high risk of getting typhoid fever?",
+    "back": "Travelers to areas with high typhoid risk, people with weakened immune systems, and those with certain medical conditions",
+    "sourceType": [
+      "topic"
+    ],
+    "question": "Who is at high risk of getting typhoid fever?",
+    "answer": "Travelers to areas with high typhoid risk, people with weakened immune systems, and those with certain medical conditions",
+    "next_review": "2026-03-08T10:22:56.123Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "9",
+    "topic": "Typhoid treatment",
+    "front": "How is typhoid fever treated?",
+    "back": "With antibiotics, rest, and hydration",
+    "sourceType": [
+      "topic"
+    ],
+    "question": "How is typhoid fever treated?",
+    "answer": "With antibiotics, rest, and hydration",
+    "next_review": "2026-03-08T10:22:56.123Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  },
+  {
+    "id": "10",
+    "topic": "Typhoid prevention",
+    "front": "How can typhoid fever be prevented?",
+    "back": "Through vaccination, proper hygiene, and safe food and water handling practices",
+    "sourceType": [
+      "topic"
+    ],
+    "question": "How can typhoid fever be prevented?",
+    "answer": "Through vaccination, proper hygiene, and safe food and water handling practices",
+    "next_review": "2026-03-08T10:22:56.123Z",
+    "interval": 1,
+    "repetitions": 0,
+    "ease_factor": 2.5
+  }
+]

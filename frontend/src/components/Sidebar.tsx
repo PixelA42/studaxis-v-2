@@ -6,6 +6,7 @@
 import { type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useNotification } from "../contexts/NotificationContext";
 import { StatusIndicator } from "./StatusIndicator";
 import { useCallback, useEffect, useState } from "react";
 import { Icons } from "./icons";
@@ -57,6 +58,7 @@ function getStoredCollapsed(): boolean {
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(getStoredCollapsed);
   const { profile, connectivityStatus } = useAuth();
+  const { unreadCount, openTray } = useNotification();
 
   const toggle = useCallback(() => {
     setCollapsed((c) => {
@@ -99,13 +101,42 @@ export function Sidebar() {
       </button>
 
       <div className={`flex-shrink-0 p-5 border-b border-glass-border ${collapsed ? "flex justify-center" : ""}`}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full">
           <div className="w-8 h-8 rounded-lg bg-accent-blue flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
             S
           </div>
           {!collapsed && (
-            <span className="font-bold text-heading-dark truncate">Studaxis</span>
+            <span className="font-bold text-heading-dark truncate flex-1">Studaxis</span>
           )}
+          <button
+            type="button"
+            onClick={openTray}
+            className="relative flex items-center justify-center text-heading-dark/80 hover:text-accent-blue transition-colors flex-shrink-0"
+            aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
+          >
+            {Icons.bell}
+            {unreadCount > 0 && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: -4,
+                  right: -4,
+                  background: "#FA5C5C",
+                  color: "white",
+                  borderRadius: "50%",
+                  width: 18,
+                  height: 18,
+                  fontSize: 9,
+                  fontWeight: 800,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 

@@ -8,27 +8,7 @@ import { useState, useEffect } from "react";
 import { getDashboardFlashcards } from "../services/api";
 import type { DashboardFlashcardItem } from "../services/api";
 import { LoadingSpinner } from "./LoadingSpinner";
-
-const SOURCE_MAP = {
-  textbook: "TX",
-  weblink: "WI",
-  semantics: "LS",
-  file: "FL",
-} as const;
-
-const BUTTONS: { key: keyof typeof SOURCE_MAP; label: string; title: string }[] = [
-  { key: "textbook", label: "TX", title: "Textbook" },
-  { key: "weblink", label: "WI", title: "Web Intelligence" },
-  { key: "semantics", label: "LS", title: "Semantics" },
-  { key: "file", label: "FL", title: "Files" },
-];
-
-function normalizeSourceTypes(
-  sourceType: string | string[] | undefined
-): string[] {
-  if (!sourceType) return [];
-  return Array.isArray(sourceType) ? sourceType : [sourceType];
-}
+import { MarkdownWithMath } from "./MarkdownWithMath";
 
 export interface AerogelDashboardCardProps {
   /** Optional: limit number of cards shown */
@@ -41,9 +21,24 @@ export interface AerogelDashboardCardProps {
   index?: number;
   /** Optional: called when user navigates to a different card */
   onIndexChange?: (i: number) => void;
+  /** Optional: show Easy/Hard/Explain on back when flipped (SRS review mode) */
+  onEasy?: () => void;
+  onHard?: () => void;
+  onExplain?: () => void;
+  explainLoading?: boolean;
 }
 
-export function AerogelDashboardCard({ limit = 6, className = "", cards: cardsProp, index: indexProp, onIndexChange }: AerogelDashboardCardProps) {
+export function AerogelDashboardCard({
+  limit = 6,
+  className = "",
+  cards: cardsProp,
+  index: indexProp,
+  onIndexChange,
+  onEasy,
+  onHard,
+  onExplain,
+  explainLoading = false,
+}: AerogelDashboardCardProps) {
   const [cards, setCards] = useState<DashboardFlashcardItem[]>([]);
   const [loading, setLoading] = useState(!cardsProp);
   const [error, setError] = useState<string | null>(null);
@@ -111,8 +106,6 @@ export function AerogelDashboardCard({ limit = 6, className = "", cards: cardsPr
     );
   }
 
-  const sources = normalizeSourceTypes(card?.sourceType);
-
   return (
     <div className={`aerogel-dashboard-card ${className}`}>
       <style>{AEROGEL_STYLES}</style>
@@ -130,33 +123,60 @@ export function AerogelDashboardCard({ limit = 6, className = "", cards: cardsPr
               <div className="aerogel-face aerogel-front">
                 <div className="text-area">
                   <h2>Question</h2>
-                  <p className="aerogel-question">{card?.conceptTitle ?? "—"}</p>
+                  <div className="aerogel-question">
+                    <MarkdownWithMath>{card?.conceptTitle ?? "—"}</MarkdownWithMath>
+                  </div>
                   <span className="aerogel-hint">Click to reveal answer</span>
                 </div>
               </div>
               <div className="aerogel-face aerogel-back">
                 <div className="text-area">
                   <h2>{card?.conceptTitle ?? "Concept"}</h2>
-                  <p>{card?.content ?? ""}</p>
+                  <div>
+                    <MarkdownWithMath>{card?.content ?? ""}</MarkdownWithMath>
+                  </div>
                 </div>
+                {(onEasy || onHard || onExplain) && (
+                  <div className="aerogel-back-actions" onClick={(e) => e.stopPropagation()}>
+                    {onEasy && (
+                      <button
+                        type="button"
+                        onClick={onEasy}
+                        className="aerogel-btn aerogel-btn-easy"
+                        aria-label="Mark easy"
+                      >
+                        Easy
+                      </button>
+                    )}
+                    {onHard && (
+                      <button
+                        type="button"
+                        onClick={onHard}
+                        className="aerogel-btn aerogel-btn-hard"
+                        aria-label="Mark hard"
+                      >
+                        Hard
+                      </button>
+                    )}
+                    {onExplain && (
+                      <button
+                        type="button"
+                        onClick={onExplain}
+                        disabled={explainLoading}
+                        className="aerogel-btn aerogel-btn-explain"
+                        aria-label="Explain with AI"
+                      >
+                        {explainLoading ? (
+                          <span className="aerogel-btn-spinner" aria-hidden />
+                        ) : (
+                          "Explain"
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-
-          <div className="controls" onClick={(e) => e.stopPropagation()}>
-            {BUTTONS.map(({ key, label, title }) => {
-              const active = sources.includes(key);
-              return (
-                <div
-                  key={key}
-                  className={`dot-btn ${active ? "active" : ""}`}
-                  title={title}
-                  aria-pressed={active}
-                >
-                  {label}
-                </div>
-              );
-            })}
           </div>
 
           <div
@@ -261,40 +281,6 @@ const AEROGEL_STYLES = `
   margin-top: 12px;
   color: #111827;
 }
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-  z-index: 10;
-}
-.dot-btn {
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  border: 1px solid rgba(17, 24, 39, 0.15);
-  background: rgba(255, 255, 255, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: default;
-  transition: 0.3s;
-  color: #111827;
-  font-size: 10px;
-  opacity: 0.6;
-}
-.dot-btn:hover { opacity: 1; transform: scale(1.05); }
-.dot-btn.active {
-  background: #0ea5e9;
-  border-color: #0ea5e9;
-  color: white;
-  opacity: 1;
-}
-.dot-btn.active:hover {
-  background: #0284c7;
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(14,165,233,0.35);
-}
 .dash {
   position: absolute;
   bottom: 20px;
@@ -376,4 +362,52 @@ const AEROGEL_STYLES = `
 }
 .aerogel-empty { align-items: center; justify-content: center; }
 .aerogel-empty-text { color: #111827; opacity: 0.7; text-align: center; padding: 20px; }
+/* SRS buttons on back */
+.aerogel-back-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(17, 24, 39, 0.08);
+}
+.aerogel-btn {
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+  border: 1px solid transparent;
+}
+.aerogel-btn-easy {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+.aerogel-btn-easy:hover { background: rgba(34, 197, 94, 0.25); }
+.aerogel-btn-hard {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+.aerogel-btn-hard:hover { background: rgba(245, 158, 11, 0.25); }
+.aerogel-btn-explain {
+  background: rgba(14, 165, 233, 0.1);
+  color: #0ea5e9;
+  border-color: rgba(14, 165, 233, 0.25);
+}
+.aerogel-btn-explain:hover:not(:disabled) { background: rgba(14, 165, 233, 0.2); }
+.aerogel-btn-explain:disabled { opacity: 0.6; cursor: not-allowed; }
+.aerogel-btn-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(14, 165, 233, 0.3);
+  border-top-color: #0ea5e9;
+  border-radius: 50%;
+  animation: aerogel-spin 0.8s linear infinite;
+}
+@keyframes aerogel-spin { to { transform: rotate(360deg); } }
 `;

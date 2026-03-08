@@ -293,10 +293,21 @@ function InsightCard({
 // ---------------------------------------------------------------------------
 
 export function InsightsPage() {
-  const [stats, setStats] = useState<UserStats | null>(null);
+  const [stats, setStats] = useState<UserStats | null>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("studaxis_stats_cache") ?? "null");
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
-    getUserStats().then(setStats).catch(() => setStats(null));
+    getUserStats()
+      .then((s) => {
+        setStats(s);
+        localStorage.setItem("studaxis_stats_cache", JSON.stringify(s));
+      })
+      .catch(() => {});
   }, []);
 
   const insights = useMemo(() => buildStudentInsightsFromStats(stats), [stats]);

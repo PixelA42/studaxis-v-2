@@ -128,6 +128,24 @@ class SyncManager:
         logger.info("Queued streak sync: %s → %d", user_id, current_streak)
         return True
 
+    def _enqueue_generic(self, sync_type: str, payload: Dict) -> bool:
+        """Queue a generic sync item (flashcard_review, quiz_result, flashcard_create)."""
+        item = {
+            "id": f"sync_{datetime.now(timezone.utc).timestamp()}",
+            "type": sync_type,
+            "mutation_type": sync_type,
+            "payload": payload,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "queued_at": datetime.now(timezone.utc).isoformat(),
+            "retries": 0,
+            "retry_count": 0,
+            "last_error": "",
+        }
+        self._queue.append(item)
+        self._save_queue()
+        logger.info("Queued %s sync (queue size: %d)", sync_type, len(self._queue))
+        return True
+
     # ═══════════════════════════════════════════════════════════════════════
     # PUBLIC API — Sync Execution
     # ═══════════════════════════════════════════════════════════════════════
@@ -185,7 +203,8 @@ class SyncManager:
             payload = item["payload"]
             retry_count = item.get("retry_count", 0)
 
-            if retry_count >= self.MAX_RETRIES:
+            max_retries = 3 if mutation_type in ("flashcard_review", "quiz_result", "flashcard_create") else self.MAX_RETRIES
+            if retry_count >= max_retries:
                 logger.warning("Dropping item after %d retries: %s", retry_count, mutation_type)
                 result["failed"] += 1
                 result["errors"].append(f"Max retries exceeded for {mutation_type}")
@@ -316,6 +335,9 @@ class SyncManager:
               }
             }
             """
+        elif mutation_type in ("flashcard_review", "quiz_result", "flashcard_create"):
+            # AWS may not have these mutations yet; fail so item retries then drops after 3
+            return False, "AWS sync not configured for this type"
         else:
             return False, f"Unknown mutation type: {mutation_type}"
 

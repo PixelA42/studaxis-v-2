@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { getFlashcards } from "../services/api";
+import { loadFlashcardsFromStorage, saveFlashcardsCardsToStorage } from "../services/storage";
 import type { FlashcardItem } from "../services/api";
 
 export interface FlashcardDeckItem {
@@ -20,13 +21,36 @@ export interface FlashcardDeckItem {
 
 const CARD_CLASSES = ["card-1", "card-2", "card-3", "card-4"] as const;
 
+function groupByTopic(cards: FlashcardItem[]): FlashcardDeckItem[] {
+  if (!cards?.length) return [];
+  const byTopic = new Map<string, FlashcardItem[]>();
+  for (const c of cards) {
+    const topic = c.topic?.trim() || "General";
+    if (!byTopic.has(topic)) byTopic.set(topic, []);
+    byTopic.get(topic)!.push(c);
+  }
+  return Array.from(byTopic.entries())
+    .sort((a, b) => b[1].length - a[1].length)
+    .slice(0, 4)
+    .map(([topic, topicCards]) => ({
+      topicName: topic,
+      textbook: "Stored",
+      selectedExistingTextbook: true,
+      link: "/flashcards",
+      cards: topicCards,
+    }));
+}
+
 export interface CascadingCardStackProps {
   /** Called when user clicks a deck to load it for review */
   onSelectDeck?: (cards: FlashcardItem[], topic: string) => void;
 }
 
 export function CascadingCardStack({ onSelectDeck }: CascadingCardStackProps) {
-  const [decks, setDecks] = useState<FlashcardDeckItem[]>([]);
+  const [decks, setDecks] = useState<FlashcardDeckItem[]>(() => {
+    const { cards } = loadFlashcardsFromStorage();
+    return groupByTopic((cards ?? []) as FlashcardItem[]);
+  });
   const [loading, setLoading] = useState(true);
   const stackRef = useRef<HTMLDivElement>(null);
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
@@ -35,28 +59,8 @@ export function CascadingCardStack({ onSelectDeck }: CascadingCardStackProps) {
     const fetchDecks = async () => {
       try {
         const { cards } = await getFlashcards();
-        if (!cards || cards.length === 0) {
-          setDecks([]);
-          return;
-        }
-        // Group by topic — each group becomes a deck
-        const byTopic = new Map<string, FlashcardItem[]>();
-        for (const c of cards) {
-          const topic = c.topic?.trim() || "General";
-          if (!byTopic.has(topic)) byTopic.set(topic, []);
-          byTopic.get(topic)!.push(c);
-        }
-        const deckList: FlashcardDeckItem[] = Array.from(byTopic.entries())
-          .sort((a, b) => b[1].length - a[1].length) // most cards first
-          .slice(0, 4)
-          .map(([topic, topicCards]) => ({
-            topicName: topic,
-            textbook: "Stored",
-            selectedExistingTextbook: true,
-            link: "/flashcards",
-            cards: topicCards,
-          }));
-        setDecks(deckList);
+        if (cards?.length) saveFlashcardsCardsToStorage(cards);
+        setDecks(cards?.length ? groupByTopic(cards) : []);
       } catch {
         setDecks([]);
       } finally {

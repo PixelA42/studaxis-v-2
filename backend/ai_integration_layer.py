@@ -30,6 +30,10 @@ OLLAMA_CONNECTION_FALLBACK = (
 class AITaskType(str, Enum):
     CHAT = "chat"
     CLARIFY = "clarify"
+    EXPLAIN_TOPIC = "explain_topic"
+    QUIZ_ME = "quiz_me"
+    FLASHCARDS = "flashcards"
+    STEP_BY_STEP = "step_by_step"
     GRADING = "grading"
     FLASHCARD_EXPLANATION = "flashcard_explanation"
     FLASHCARD_GENERATION = "flashcard_generation"
@@ -111,15 +115,19 @@ class PromptTemplateLibrary:
             AITaskType.CHAT: PromptTemplate(
                 name="[PROMPT_TEMPLATE_CHAT]",
                 system_instruction=(
-                    "You are Studaxis AI Tutor. Keep responses educational, "
-                    "grounded, and aligned with user-selected difficulty."
+                    "You are Studaxis AI Tutor — a supportive, professional educational assistant. "
+                    "Keep responses educational, grounded, and aligned with user-selected difficulty. "
+                    "You must refuse inappropriate, harmful, or non-educational queries gracefully. "
+                    "Example redirection: 'I am your educational tutor — let's keep our focus on your studies.'"
                 ),
                 context_rules=(
-                    "Inject subject, active textbook, and recent chat history. "
-                    "If context is missing, ask one concise follow-up."
+                    "Use the provided textbook context to answer. "
+                    "If the context is empty or irrelevant, use your own general knowledge, "
+                    "but clearly state: '(This comes from general knowledge — not from your loaded textbooks.)'"
                 ),
                 response_format_rules=(
-                    "Return clear explanation, optional bullet steps, and short recap."
+                    "Return clear explanation, optional bullet steps, and short recap. "
+                    "For math/science: use LaTeX ($...$ inline, $$...$$ for block equations)."
                 ),
             ),
             AITaskType.CLARIFY: PromptTemplate(
@@ -132,6 +140,71 @@ class PromptTemplateLibrary:
                 ),
                 response_format_rules=(
                     "Keep response within 50-100 words when possible."
+                ),
+            ),
+            AITaskType.EXPLAIN_TOPIC: PromptTemplate(
+                name="EXPLAIN_TOPIC",
+                system_instruction=(
+                    "You are a supportive AI tutor. Explain the topic using the textbook context. "
+                    "Use simple analogies suitable for a high school student. "
+                    "Keep explanations clear and structured."
+                ),
+                context_rules=(
+                    "Use the provided textbook context to ground your explanation. "
+                    "If context is empty or irrelevant, use your general knowledge but clearly state: "
+                    "'(This comes from general knowledge — not from your loaded textbooks.)'"
+                ),
+                response_format_rules=(
+                    "Return a clear, structured explanation with optional bullet points and one helpful analogy."
+                ),
+            ),
+            AITaskType.QUIZ_ME: PromptTemplate(
+                name="QUIZ_ME",
+                system_instruction=(
+                    "You are a supportive AI tutor. Generate exactly 3 multiple-choice questions "
+                    "based ONLY on the provided textbook context. Each question must have 4 options (A, B, C, D)."
+                ),
+                context_rules=(
+                    "Use the provided textbook context to create questions. "
+                    "If context is empty or irrelevant, use your general knowledge but clearly state: "
+                    "'(These questions are from general knowledge — not from your loaded textbooks.)'"
+                ),
+                response_format_rules=(
+                    "Format each question as: Q1: [question] A) ... B) ... C) ... D) ... Answer: X. "
+                    "Number questions 1–3. Include the correct answer letter at the end of each question."
+                ),
+            ),
+            AITaskType.FLASHCARDS: PromptTemplate(
+                name="FLASHCARDS",
+                system_instruction=(
+                    "You are a supportive AI tutor. Generate flashcard pairs (front/back) from the "
+                    "provided textbook context. Extract key definitions, formulas, or concepts."
+                ),
+                context_rules=(
+                    "Use the provided textbook context to create flashcards. "
+                    "If context is empty or irrelevant, use your general knowledge but clearly state: "
+                    "'(These flashcards are from general knowledge — not from your loaded textbooks.)'"
+                ),
+                response_format_rules=(
+                    "Format each card as: **Front:** [question/term] **Back:** [answer/definition]. "
+                    "Return 4–6 flashcard pairs. Be concise."
+                ),
+            ),
+            AITaskType.STEP_BY_STEP: PromptTemplate(
+                name="STEP_BY_STEP",
+                system_instruction=(
+                    "You are a supportive AI tutor. Break down the problem or concept into numbered, "
+                    "logical steps. Be methodical and easy to follow."
+                ),
+                context_rules=(
+                    "Use the provided textbook context for worked examples and procedures. "
+                    "If context is empty or irrelevant, use your general knowledge but clearly state: "
+                    "'(This walkthrough uses general knowledge — not from your loaded textbooks.)'"
+                ),
+                response_format_rules=(
+                    "Return numbered steps (1., 2., 3., …). Add brief explanations for each step. "
+                    "For math/science problems, show calculations where relevant. "
+                    "Format all equations in LaTeX: inline math with $...$, block equations with $$...$$."
                 ),
             ),
             AITaskType.GRADING: PromptTemplate(
@@ -218,6 +291,7 @@ class AIEngine:
         # RAG components (lazy-loaded from ai_chat)
         self._rag_ready: bool = False
         self._rag_retriever_fn: Optional[Any] = None
+        self._rag_topic_aware_retrieve_fn: Optional[Any] = None
         self._rag_textbook_fn: Optional[Any] = None
         self._rag_llm: Optional[Any] = None
         self._rag_prompt: Optional[Any] = None
@@ -229,10 +303,17 @@ class AIEngine:
         if self._rag_ready:
             return True
         try:
-            from ai_chat.main import get_retriever, get_textbook_context, _ensure_initialized, prompt
+            from ai_chat.main import (
+                get_retriever,
+                topic_aware_retrieve,
+                get_textbook_context,
+                _ensure_initialized,
+                prompt,
+            )
             _ensure_initialized()  # trigger lazy init of vector_store + llm
             from ai_chat.main import llm  # now populated
             self._rag_retriever_fn = get_retriever
+            self._rag_topic_aware_retrieve_fn = topic_aware_retrieve
             self._rag_textbook_fn = get_textbook_context
             self._rag_llm = llm
             self._rag_prompt = prompt
@@ -242,50 +323,140 @@ class AIEngine:
             print(f"[ai_engine] RAG init failed (falling back to plain Ollama): {exc}")
             return False
 
+    _GUARDRAILS_OVERLAY = (
+        "You are Studaxis — a supportive, professional AI tutor. "
+        "You must refuse inappropriate, harmful, or non-educational queries gracefully. "
+        "Example: 'I am your educational tutor — let's keep our focus on your studies.' "
+        "Never print raw JSON, metadata, or internal labels. Return only learner-facing content. "
+        "Math & Scientific Formatting (CRUCIAL): Whenever the user asks a math, physics, or chemistry question, "
+        "you MUST format all equations, variables, and formulas using LaTeX. "
+        "Use single dollar signs for inline math (e.g. The area of a circle is $\\pi r^2$). "
+        "Use double dollar signs for standalone block equations on a new line (e.g. $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$). "
+        "Never use plain text approximations for complex math symbols like pi, sqrt, fractions, integrals, or Greek letters.\n\n"
+    )
+
+    _FALLBACK_INSTRUCTION = (
+        "Use the provided textbook context to answer. "
+        "If the context is empty or irrelevant, use your own general knowledge, "
+        "but clearly state: '(This comes from general knowledge — not from your loaded textbooks.)'\n\n"
+    )
+
+    def _build_rag_prompt(
+        self,
+        task_type: AITaskType,
+        user_input: str,
+        context_data: dict[str, Any],
+        retrieved_context: str,
+        textbook_context: str,
+    ) -> str:
+        """Build task-specific RAG prompt with guardrails and fallback instruction."""
+        template = self.templates.select(task_type)
+        subject = context_data.get("subject") or context_data.get("topic") or ""
+        difficulty = context_data.get("difficulty", "Beginner")
+        chat_history = context_data.get("chat_history", [])
+
+        history_block = ""
+        if isinstance(chat_history, list) and chat_history:
+            lines = []
+            for item in chat_history[-6:]:
+                if isinstance(item, dict):
+                    role = str(item.get("role", "user")).strip().title()
+                    content = str(item.get("content", ""))[:400]
+                    if content:
+                        lines.append(f"{role}: {content}")
+            history_block = "\n".join(lines) if lines else ""
+
+        subject_prefix = ""
+        if subject and str(subject).strip().lower() not in ("", "general"):
+            subj = str(subject).strip()
+            subject_prefix = (
+                f"Subject context: {subj}. Difficulty: {difficulty}. "
+                f"Focus all content on {subj}.\n\n"
+            )
+
+        combined_context = retrieved_context
+        if textbook_context and textbook_context.strip():
+            combined_context = f"{retrieved_context}\n\n{textbook_context}".strip()
+
+        # Strict token budget for 4GB RAM (limit context size)
+        max_ctx_chars = 3200
+        if len(combined_context) > max_ctx_chars:
+            combined_context = combined_context[:max_ctx_chars] + "\n[...truncated...]"
+
+        return (
+            f"{self._GUARDRAILS_OVERLAY}"
+            f"{subject_prefix}"
+            f"{template.system_instruction}\n\n"
+            f"{self._FALLBACK_INSTRUCTION}\n"
+            f"TEXTBOOK CONTEXT:\n{combined_context}\n\n"
+            f"Response style: {template.response_format_rules}\n\n"
+            + (f"Recent conversation:\n{history_block}\n\n" if history_block else "")
+            + f"User question:\n{user_input}\n\n"
+            "Answer directly for the learner. Do not repeat instructions."
+        )
+
     def _run_rag_inference(
         self,
-        prompt_text: str,
+        task_type: AITaskType,
+        user_input: str,
+        context_data: dict[str, Any],
         subject: Optional[str] = None,
         textbook_id: Optional[str] = None,
         query_for_retrieval: Optional[str] = None,
     ) -> str:
-        """Run inference through ai_chat's LangChain RAG chain."""
-        retriever = self._rag_retriever_fn(subject, textbook_id)  # type: ignore[misc]
-        retrieval_query = (query_for_retrieval or prompt_text).strip()
-        try:
-            docs = retriever.invoke(retrieval_query)
-        except Exception:
-            docs = []
+        """Run inference through RAG: topic-aware retrieval when textbook_id given, else standard."""
+        rag_subject = None
+        if subject and str(subject).strip().lower() not in ("", "general"):
+            rag_subject = str(subject).strip()
+        retrieval_query = (query_for_retrieval or user_input).strip()
+
+        docs: list[Any] = []
+        if textbook_id and self._rag_topic_aware_retrieve_fn:
+            try:
+                docs = self._rag_topic_aware_retrieve_fn(
+                    query=retrieval_query,
+                    subject=rag_subject,
+                    textbook_id=textbook_id,
+                    top_k=5,
+                )
+            except Exception as e:
+                print(f"[ai_engine] Topic-aware retrieval failed, fallback to standard: {e}")
+        if not docs:
+            retriever = self._rag_retriever_fn(rag_subject, textbook_id)  # type: ignore[misc]
+            try:
+                docs = retriever.invoke(retrieval_query)
+            except Exception:
+                docs = []
 
         if docs:
             raw_context = "\n\n".join(
                 getattr(d, "page_content", str(d)) for d in docs
             )
-            if textbook_id:
-                context = (
-                    "Use the following excerpts from the student's "
-                    "textbook to ground your answer:\n\n"
-                    f"{raw_context}\n\n"
-                    "Always cite which part of the textbook you are referencing."
-                )
-            else:
-                context = raw_context
+            retrieved_context = (
+                "The following content from the student's textbook is relevant to their question. "
+                "Focus your answer on these specific concepts, not on chapter structure or headings:\n\n"
+                f"{raw_context}"
+            )
         else:
-            context = "[No matching content found in vector store]"
+            retrieved_context = "[No matching content found in vector store]"
 
         textbook_ctx = ""
-        if not textbook_id:
-            textbook_ctx = self._rag_textbook_fn(subject) if self._rag_textbook_fn else ""  # type: ignore[misc]
-        if not textbook_ctx:
-            textbook_ctx = "[Textbook reference not available]" if not textbook_id else ""
+        if not textbook_id and self._rag_textbook_fn:
+            textbook_ctx = self._rag_textbook_fn(subject or "")  # type: ignore[misc]
+        textbook_ctx = (textbook_ctx or "").strip() or ""
 
-        chain = self._rag_prompt | self._rag_llm  # type: ignore[operator]
-        result = chain.invoke({
-            "context": context,
-            "textbook_context": textbook_ctx,
-            "question": prompt_text,
-        })
-        return str(result).strip()
+        prompt = self._build_rag_prompt(
+            task_type=task_type,
+            user_input=user_input,
+            context_data=context_data,
+            retrieved_context=retrieved_context,
+            textbook_context=textbook_ctx,
+        )
+        return self._call_ollama(
+            self._resolve_model_name(AIExecutionTarget.LOCAL),
+            prompt,
+            self.config.AI_TIMEOUT_SECONDS,
+        )
 
     def request(
         self,
@@ -335,6 +506,9 @@ class AIEngine:
                 subject=subject,
                 textbook_id=textbook_id,
                 query_for_retrieval=query_for_retrieval,
+                task_type=request.task_type,
+                user_input=sanitized_input,
+                context_data=bounded_context,
             )
 
             parsed = self._parse_response(
@@ -464,17 +638,53 @@ class AIEngine:
             back = context_data.get("back", "[answer unknown]")
             return (
                 f"You are an expert AI tutor. Explain the following flashcard clearly and simply. "
-                f"Topic: {topic}. Question: {front}. Answer: {back}. User query: {user_input}"
+                f"Topic: {topic}. Question: {front}. Answer: {back}. User query: {user_input}\n\n"
+                "CRUCIAL: Format ALL math equations and scientific formulas using LaTeX. "
+                "Use single dollar signs for inline math (e.g. $\\pi r^2$ for area of circle). "
+                "Use double dollar signs for block equations on their own line (e.g. $$\\frac{1}{2}$$). "
+                "Never use plain text for Greek letters, fractions, roots, integrals, or exponents."
             )
         if task_type == AITaskType.FLASHCARD_GENERATION:
-            input_text = context_data.get("topic_or_chapter", "").strip() or "[unspecified topic]"
-            count = context_data.get("count", 10)
-            input_type = context_data.get("input_type", "topic")
-            scope = "topic" if input_type == "Topic Name" else "textbook chapter"
+            topic = context_data.get("topic_or_chapter", "").strip() or "[unspecified topic]"
+            num_cards = context_data.get("count", 10)
+            subject = context_data.get("subject", "General")
+            difficulty = context_data.get("difficulty", "Beginner")
+            context_chunk = context_data.get("source_content")
+            if context_chunk is not None:
+                context_chunk = str(context_chunk).strip() or None
+            if not context_chunk:
+                context_chunk = (
+                    f"Use your knowledge as a {subject} expert to generate questions about: {topic}"
+                )
+                no_context_note = (
+                    f"Since no source material was provided, generate questions based on standard "
+                    f"{subject} curriculum for {difficulty} level students. "
+                )
+            else:
+                no_context_note = ""
             return (
-                f"Generate {count} flashcards about the {scope}: {input_text}. "
-                "You MUST respond ONLY with a raw JSON array of objects. Do not include markdown formatting or explanations. "
-                'Format: [{"id": "1", "topic": "...", "front": "...", "back": "..."}, ...]'
+                f"You are creating exam-style flashcards for a {difficulty} level {subject} student.\n\n"
+                f"Topic: {topic}\n"
+                f"Context from source material: {context_chunk}\n\n"
+                f"Generate {num_cards} flashcards about this topic.\n"
+                f"{no_context_note}\n"
+                "RULES:\n"
+                "- Front must be a QUESTION, never just the topic name\n"
+                "- Questions must be specific and testable\n"
+                "- Back must be a direct answer, max 2 sentences\n"
+                "- Each card must test a DIFFERENT aspect of the topic\n"
+                '- Do NOT write "What is {topic}?" as the only question\n\n'
+                "Good question types to use:\n"
+                '  "What causes...?"\n'
+                '  "How does X differ from Y?"\n'
+                '  "What are the main components of...?"\n'
+                '  "Why does...?"\n'
+                '  "Give an example of..."\n'
+                '  "What happens when...?"\n\n'
+                f"Source content to base questions on:\n{context_chunk}\n\n"
+                "Return ONLY a valid JSON array. No markdown. No backticks. Start with [ end with ]\n\n"
+                "Each item:\n"
+                '  {"front": "specific question about the topic", "back": "concise direct answer"}'
             )
         if task_type == AITaskType.QUIZ_GENERATION:
             subject = context_data.get("subject", "General")
@@ -495,6 +705,35 @@ class AIEngine:
                 f"You are an AI study planner. The student is studying {topic}. "
                 f"They have {time_budget_minutes} minutes. "
                 f"Provide a highly focused, bulleted study plan."
+            )
+        if task_type == AITaskType.EXPLAIN_TOPIC:
+            subject = context_data.get("subject") or context_data.get("topic", "General")
+            return (
+                f"You are a supportive AI tutor. Explain the topic: {user_input} "
+                f"using simple analogies suitable for a high school student (subject: {subject}). "
+                "If you don't have textbook context, use general knowledge and state it. "
+                "Keep explanations clear and structured."
+            )
+        if task_type == AITaskType.QUIZ_ME:
+            subject = context_data.get("subject") or context_data.get("topic", "General")
+            return (
+                f"You are a supportive AI tutor. Generate exactly 3 multiple-choice questions "
+                f"on the topic: {user_input} (subject: {subject}). "
+                "Each question must have 4 options (A, B, C, D). "
+                "Format: Q1: [question] A) ... B) ... C) ... D) ... Answer: X."
+            )
+        if task_type == AITaskType.FLASHCARDS:
+            subject = context_data.get("subject") or context_data.get("topic", "General")
+            return (
+                f"You are a supportive AI tutor. Generate 4–6 flashcard pairs (front/back) "
+                f"for the topic: {user_input} (subject: {subject}). "
+                "Format each: **Front:** [term] **Back:** [definition]."
+            )
+        if task_type == AITaskType.STEP_BY_STEP:
+            subject = context_data.get("subject") or context_data.get("topic", "General")
+            return (
+                f"You are a supportive AI tutor. Break down the following into numbered steps: {user_input} "
+                f"(subject: {subject}). Be methodical. Format as 1., 2., 3., ..."
             )
         if task_type == AITaskType.GRADING:
             question = context_data.get("question", "[question unknown]")
@@ -657,17 +896,25 @@ class AIEngine:
         subject: Optional[str] = None,
         textbook_id: Optional[str] = None,
         query_for_retrieval: Optional[str] = None,
+        task_type: Optional[AITaskType] = None,
+        user_input: Optional[str] = None,
+        context_data: Optional[dict[str, Any]] = None,
     ) -> str:
         """
         Run inference: try RAG pipeline first for LOCAL, fall back to plain Ollama.
         CLOUD target uses simulated response until cloud API is configured.
         """
         if target == AIExecutionTarget.LOCAL:
-            # Try RAG-enhanced inference first
-            if self._init_rag():
+            # Try RAG-enhanced inference first (uses task-specific prompts)
+            if self._init_rag() and task_type is not None and user_input is not None:
                 try:
                     return self._run_rag_inference(
-                        prompt, subject, textbook_id, query_for_retrieval
+                        task_type=task_type,
+                        user_input=user_input,
+                        context_data=context_data or {},
+                        subject=subject,
+                        textbook_id=textbook_id,
+                        query_for_retrieval=query_for_retrieval,
                     )
                 except Exception as exc:
                     print(f"[ai_engine] RAG inference failed, falling back to Ollama: {exc}")
@@ -797,6 +1044,14 @@ class AIEngine:
                 "Do you want a simpler explanation?",
                 "Should I provide a quick practice question?",
             ]
+        if task_type == AITaskType.EXPLAIN_TOPIC:
+            return ["Quiz me on this", "Show step-by-step", "Create flashcards"]
+        if task_type == AITaskType.QUIZ_ME:
+            return ["Explain the answers", "More questions", "Flashcards for wrong ones"]
+        if task_type == AITaskType.FLASHCARDS:
+            return ["Explain a card", "Quiz me on these", "Add more cards"]
+        if task_type == AITaskType.STEP_BY_STEP:
+            return ["Simplify this", "Quiz me", "Another example"]
         return ["Would you like a concise action plan next?"]
 
     def _make_fallback_response(

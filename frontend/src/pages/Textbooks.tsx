@@ -36,10 +36,13 @@ export function TextbooksPage() {
   >([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const refreshTextbooks = useCallback(() => {
-    getTextbooks()
-      .then((r) => setExistingTextbooks(r.textbooks))
-      .catch(() => setExistingTextbooks([]));
+  const refreshTextbooks = useCallback(async () => {
+    try {
+      const r = await getTextbooks();
+      setExistingTextbooks(r.textbooks);
+    } catch {
+      setExistingTextbooks([]);
+    }
   }, []);
 
   useEffect(() => {
@@ -92,7 +95,8 @@ export function TextbooksPage() {
               : q
           )
         );
-        refreshTextbooks();
+        await refreshTextbooks();
+        fileInputRef.current && (fileInputRef.current.value = "");
       } catch (err) {
         setQueue((prev) =>
           prev.map((q) =>
@@ -134,10 +138,6 @@ export function TextbooksPage() {
     e.stopPropagation();
   }, []);
 
-  const handleClick = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
@@ -166,7 +166,6 @@ export function TextbooksPage() {
             className="tb-drop-zone"
             onDrop={handleDrop}
             onDragOver={handleDragOver}
-            onClick={handleClick}
             onMouseMove={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               const x = ((e.clientX - rect.left) / rect.width) * 100;

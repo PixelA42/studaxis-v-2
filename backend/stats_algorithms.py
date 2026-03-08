@@ -97,13 +97,20 @@ def update_quiz_stats(stats: dict[str, Any], score: float, max_score: float) -> 
     qs["last_score"] = round((score / max_score) * 100)
 
 
+def _normalize_review_date(s: str) -> str:
+    """Extract YYYY-MM-DD from ISO or date string for consistent comparison."""
+    if not s or len(s) < 10:
+        return s
+    return s[:10]
+
+
 def update_flashcard_stats_from_cards(
     stats: dict[str, Any],
     cards: list[dict[str, Any]],
 ) -> None:
     """
     Recompute total_mastered and due_for_review from card list.
-    Due: next_review <= today or missing.
+    Due: next_review date <= today or missing.
     Mastered: card has next_review > 21 days from now (long interval = retained).
     """
     from datetime import datetime, timezone, timedelta
@@ -124,10 +131,11 @@ def update_flashcard_stats_from_cards(
         if not cid:
             continue
         next_review = c.get("next_review") or ""
-        if not next_review or next_review <= now:
+        nr_date = _normalize_review_date(next_review)
+        if not next_review or nr_date <= now:
             due_for_review += 1
         entry = cards_dict.get(cid, {})
-        if entry.get("mastered") or (next_review and next_review > mastered_threshold):
+        if entry.get("mastered") or (nr_date and nr_date > mastered_threshold):
             total_mastered += 1
 
     fc["mastered"] = total_mastered

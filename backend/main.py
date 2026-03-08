@@ -20,6 +20,7 @@ import json
 import os
 import re
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated, Any, Optional
 
@@ -41,6 +42,14 @@ from auth_routes import router as auth_router
 from database import User, init_db
 from dependencies import get_current_user, get_user_id
 from profile_store import UserProfile, load_profile, save_profile, load_profile_for_user, save_profile_for_user
+from recommendation_service import (
+    _has_flashcard_topic,
+    _has_quiz_data,
+    _get_quiz_profile,
+    build_flashcard_based_prompt,
+    build_quiz_only_prompt,
+    parse_ai_response,
+)
 from stats_algorithms import (
     ensure_flashcard_structure,
     ensure_streak_structure,
@@ -73,13 +82,181 @@ def _stats_file(user_id: str) -> Path:
 
 
 def _flashcards_file(user_id: str) -> Path:
-    """Return path to per-user flashcards.json."""
+    """Return path to per-user flashcards.json (legacy)."""
     return _user_dir(user_id) / "flashcards.json"
+
+
+# New deck-based flashcard storage: data/flashcards/{user_id}.json
+def _flashcard_decks_file(user_id: str) -> Path:
+    """Return path to per-user flashcard decks JSON."""
+    d = DATA_DIR / "flashcards"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / f"{user_id}.json"
+
+
+def _load_flashcard_decks(user_id: str) -> list[dict[str, Any]]:
+    """Load decks from new structure. Migrates from legacy if needed."""
+    decks_path = _flashcard_decks_file(user_id)
+    legacy_path = _flashcards_file(user_id)
+
+    # Migrate legacy flat cards to deck format if new file missing
+    if not decks_path.exists() and legacy_path.exists():
+        try:
+            raw = legacy_path.read_text(encoding="utf-8")
+            legacy = json.loads(raw)
+            cards = legacy if isinstance(legacy, list) else []
+            if cards:
+                by_topic: dict[str, list] = {}
+                for c in cards:
+                    topic = str(c.get("topic") or "General")
+                    by_topic.setdefault(topic, []).append(c)
+                decks = []
+                for topic, topic_cards in by_topic.items():
+                    deck_id = f"deck_{uuid.uuid4().hex[:12]}"
+                    created = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                    decks.append({
+                        "id": deck_id,
+                        "title": topic,
+                        "subject": topic,
+                        "created_at": created,
+                        "cards": [_normalize_card_for_deck(c) for c in topic_cards],
+                    })
+                data = {"decks": decks}
+                decks_path.write_text(
+                    json.dumps(data, indent=2, ensure_ascii=False),
+                    encoding="utf-8",
+                )
+        except (OSError, json.JSONDecodeError):
+            pass
+
+    if not decks_path.exists():
+        return []
+
+    try:
+        raw = decks_path.read_text(encoding="utf-8")
+        data = json.loads(raw)
+        return data.get("decks", []) if isinstance(data, dict) else []
+    except (OSError, json.JSONDecodeError):
+        return []
+
+
+def _normalize_card_for_deck(c: dict[str, Any]) -> dict[str, Any]:
+    """Ensure card has required deck fields; preserve extra fields."""
+    base = {
+        "id": str(c.get("id") or uuid.uuid4().hex),
+        "front": str(c.get("front") or c.get("question") or ""),
+        "back": str(c.get("back") or c.get("answer") or ""),
+        "ease": str(c.get("ease") or "medium"),
+        "next_review": str(c.get("next_review") or datetime.now(timezone.utc).strftime("%Y-%m-%d")),
+        "review_count": int(c.get("review_count", 0)),
+        "mastered": bool(c.get("mastered", False)),
+    }
+    for k, v in c.items():
+        if k not in base and v is not None:
+            base[k] = v
+    return base
+
+
+def _save_flashcard_decks(decks: list[dict[str, Any]], user_id: str) -> None:
+    """Save decks to new structure."""
+    try:
+        path = _flashcard_decks_file(user_id)
+        path.write_text(
+            json.dumps({"decks": decks}, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
+def _enqueue_sync(base_path: Path, user_id: str, sync_type: str, payload: dict[str, Any]) -> None:
+    """Add item to sync queue for AWS when online."""
+    try:
+        from sync_manager import SyncManager
+        sm = SyncManager(base_path=str(base_path), user_id=user_id)
+        if sync_type == "flashcard_review":
+            sm._enqueue_generic("flashcard_review", payload)
+        elif sync_type == "quiz_result":
+            sm._enqueue_generic("quiz_result", payload)
+        elif sync_type == "flashcard_create":
+            sm._enqueue_generic("flashcard_create", payload)
+        elif sync_type == "assignment_complete":
+            sm._enqueue_generic("assignment_complete", payload)
+    except Exception:
+        pass
 
 
 def _chat_history_file(user_id: str) -> Path:
     """Return path to per-user chat_history.json."""
     return _user_dir(user_id) / "chat_history.json"
+
+
+def _notifications_file(user_id: str) -> Path:
+    """Return path to per-user notifications.json."""
+    d = DATA_DIR / "notifications"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / f"{user_id}.json"
+
+
+def _assignments_dir() -> Path:
+    d = DATA_DIR / "assignments"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _assignments_file(class_code: str) -> Path:
+    safe = re.sub(r"[^a-zA-Z0-9_-]", "_", class_code or "default")[:64]
+    return _assignments_dir() / f"{safe}.json"
+
+
+def _load_assignments(class_code: str) -> list[dict[str, Any]]:
+    try:
+        path = _assignments_file(class_code)
+        if path.is_file():
+            data = json.loads(path.read_text(encoding="utf-8"))
+            return data if isinstance(data, list) else []
+    except (OSError, json.JSONDecodeError):
+        pass
+    return []
+
+
+def _save_assignments(class_code: str, items: list[dict[str, Any]]) -> None:
+    try:
+        _assignments_file(class_code).write_text(
+            json.dumps(items, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
+def _load_notifications(user_id: str) -> list[dict[str, Any]]:
+    """Load notifications from JSON file; return [] on missing/error."""
+    try:
+        f = _notifications_file(user_id)
+        if f.exists():
+            raw = f.read_text(encoding="utf-8")
+            data = json.loads(raw)
+            if isinstance(data, list):
+                return data
+            if isinstance(data, dict) and "notifications" in data:
+                return data["notifications"]
+    except (OSError, json.JSONDecodeError):
+        pass
+    return []
+
+
+def _save_notifications(notifications: list[dict[str, Any]], user_id: str) -> None:
+    """Persist notifications to JSON file."""
+    try:
+        f = _notifications_file(user_id)
+        f.write_text(
+            json.dumps(notifications, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
 
 app = FastAPI(
     title="Studaxis API",
@@ -220,8 +397,8 @@ class FlashcardGenerateResponse(BaseModel):
 class FlashcardExplainRequest(BaseModel):
     front: str = Field(..., description="Card question/front")
     back: str = Field(..., description="Card answer/back")
-    topic: str = Field(default="General", description="Card topic")
-    user_query: Optional[str] = Field(default=None, description="Optional user prompt (e.g. 'Explain this flashcard: ...')")
+    subject: str = Field(default="General", description="Deck/subject of the card")
+    difficulty: str = Field(default="Beginner", description="User profile difficulty level")
 
 
 class FlashcardExplainResponse(BaseModel):
@@ -237,15 +414,39 @@ class StudyRecommendationRequest(BaseModel):
     offline_mode: bool = Field(default=True)
 
 
+class FlashcardRecommendRequest(BaseModel):
+    deck_id: str = Field(default="", description="Current deck id (optional for quiz-only mode)")
+    subject: str = Field(default="", description="Current subject/topic (optional for quiz-only mode)")
+    hard_cards: list[str] = Field(default_factory=list, description="Card fronts marked Hard")
+    easy_count: int = Field(default=0)
+    hard_count: int = Field(default=0)
+    difficulty: str = Field(default="Beginner")
+    insights: Optional[dict[str, Any]] = Field(default=None, description="weak_subjects, avg_quiz_score, streak")
+
+
 class StudyRecommendationResponse(BaseModel):
     text: str
     confidence_score: float = 0.0
+
+
+class AdaptiveRecommendationResponse(BaseModel):
+    """Structured adaptive recommendation (weak topic, action, difficulty)."""
+    weak_topic: str = Field(..., description="Weak area to focus on")
+    suggested_action: str = Field(..., description="Specific recommendation")
+    difficulty_adjustment: str = Field(..., description="Easier / medium / harder")
+    text: str = Field(default="", description="Full human-readable summary")
+    confidence_score: float = 0.0
+    has_data: bool = Field(default=True, description="False when no flashcard or quiz data")
 
 
 # --- Chat ---
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, description="User message")
     is_clarification: bool = Field(default=False, description="True if this is a follow-up clarification")
+    task_type: Optional[str] = Field(
+        default="chat",
+        description="Task type: chat, clarify, explain_topic, quiz_me, flashcards, step_by_step",
+    )
     context: Optional[dict[str, Any]] = Field(default=None, description="Optional: difficulty, chat_history, subject, etc.")
     subject: Optional[str] = Field(default=None, description="Selected subject (e.g. General, Maths)")
     textbook_id: Optional[str] = Field(default=None, description="Attached textbook id (filename) for RAG")
@@ -318,8 +519,10 @@ class QuizSubmitRequest(BaseModel):
 
 
 class QuizSubmitResponse(BaseModel):
-    results: list[dict[str, Any]] = Field(..., description="Per-question grade and feedback")
-    quiz_stats_updated: bool = True
+    score: float = Field(default=0, description="Total score")
+    max_score: float = Field(default=0, description="Max possible score")
+    percent: int = Field(default=0, description="Percentage score")
+    results: list[dict[str, Any]] = Field(default_factory=list, description="Per-question: question_id, correct, correct_answer, explanation")
     weak_topics_text: Optional[str] = Field(default=None, description="AI weak-topic summary (panic mode only)")
     recommendation_text: Optional[str] = Field(default=None, description="AI study recommendation (panic mode only)")
 
@@ -703,7 +906,208 @@ def _extract_text_from_file(path: Path) -> str:
     return ""
 
 
-def _generate_cards_from_content(content: str, count: int, source_type: str) -> FlashcardGenerateResponse:
+def _chunks_from_text(text: str, chunk_size: int = 800, overlap: int = 200) -> list[str]:
+    """Split text into overlapping chunks for finding relevant content per topic."""
+    chunks: list[str] = []
+    start = 0
+    while start < len(text):
+        end = min(start + chunk_size, len(text))
+        chunks.append(text[start:end].strip())
+        if end >= len(text):
+            break
+        start += chunk_size - overlap
+    return [c for c in chunks if len(c) > 50]
+
+
+def _find_relevant_chunk_for_topic(content: str, topic: str) -> str:
+    """Find the chunk that best matches the topic (contains topic or has high overlap)."""
+    chunks = _chunks_from_text(content)
+    if not chunks:
+        return content[:600] if len(content) > 600 else content
+    topic_lower = topic.lower()
+    topic_words = set(topic_lower.split())
+    best_chunk = chunks[0]
+    best_score = 0
+    for c in chunks:
+        c_lower = c.lower()
+        if topic_lower in c_lower or any(w in c_lower for w in topic_words if len(w) > 2):
+            overlap = sum(1 for w in topic_words if len(w) > 2 and w in c_lower)
+            if overlap > best_score:
+                best_score = overlap
+                best_chunk = c
+    return best_chunk[:800] if len(best_chunk) > 800 else best_chunk
+
+
+def _generate_single_flashcard_via_ollama(
+    topic: str, relevant_chunk: str, subject: str, difficulty: str = "Beginner"
+) -> dict[str, Any] | None:
+    """Generate one flashcard for a topic using Ollama. Returns {front, back} or None."""
+    import requests
+    if not relevant_chunk or not str(relevant_chunk).strip():
+        context_chunk = (
+            f"""Use your knowledge as a {subject} expert to generate questions about: {topic}"""
+        )
+        no_context_note = (
+            f"Since no source material was provided, generate questions based on standard {subject} "
+            f"curriculum for {difficulty} level students. "
+        )
+    else:
+        context_chunk = str(relevant_chunk).strip()
+        no_context_note = ""
+
+    prompt = f"""You are creating exam-style flashcards for a {difficulty} level {subject} student.
+
+Topic: {topic}
+Context from source material: {context_chunk}
+
+Generate 1 flashcard about this topic.
+{no_context_note}
+RULES:
+- Front must be a QUESTION, never just the topic name
+- Questions must be specific and testable
+- Back must be a direct answer, max 2 sentences
+- Each card must test a DIFFERENT aspect of the topic
+- Do NOT write "What is {{topic}}?" as the only question
+
+Good question types to use:
+  "What causes...?"
+  "How does X differ from Y?"
+  "What are the main components of...?"
+  "Why does...?"
+  "Give an example of..."
+  "What happens when...?"
+
+Source content to base questions on:
+{context_chunk}
+
+Return ONLY a valid JSON array.
+No markdown. No backticks. Start with [ end with ]
+
+Each item:
+{{
+  "front": "specific question about the topic",
+  "back": "concise direct answer"
+}}"""
+    try:
+        resp = requests.post(
+            "http://localhost:11434/api/generate",
+            json={"model": "llama3.2", "prompt": prompt, "stream": False},
+            timeout=60,
+        )
+        resp.raise_for_status()
+        raw = (resp.json().get("response") or "").strip()
+        cleaned = re.sub(r"```json|```", "", raw).strip()
+        obj = {}
+        arr_match = re.search(r"\[.*\]", cleaned, re.DOTALL)
+        if arr_match:
+            try:
+                parsed = json.loads(arr_match.group())
+                if isinstance(parsed, list) and parsed and isinstance(parsed[0], dict):
+                    obj = parsed[0]
+                elif isinstance(parsed, dict):
+                    obj = parsed
+            except json.JSONDecodeError:
+                pass
+        if not obj:
+            match = re.search(r"\{[^{}]*\"front\"[^{}]*\"back\"[^{}]*\}", cleaned, re.DOTALL)
+            if not match:
+                match = re.search(r"\{.*?\}", cleaned, re.DOTALL)
+            if match:
+                try:
+                    obj = json.loads(match.group())
+                except json.JSONDecodeError:
+                    pass
+        if obj:
+            front = str(obj.get("front", "")).strip() or "?"
+            back = str(obj.get("back", "")).strip() or "—"
+            return {"front": front, "back": back, "topic": topic}
+    except Exception as e:
+        print(f"[flashcard] Ollama failed for topic {topic}: {e}")
+    return None
+
+
+def _generate_cards_from_textbook(
+    content: str, count: int, textbook_id: str
+) -> FlashcardGenerateResponse:
+    """Topic-based flashcard generation from textbook: extract topics, 1-2 cards per topic."""
+    from rag.topic_extractor import extract_dominant_topics
+
+    truncated = content[:12000] if len(content) > 12000 else content
+    subject = Path(textbook_id).stem.split("_")[0] if "_" in Path(textbook_id).stem else Path(textbook_id).stem
+    if not subject:
+        subject = "General"
+
+    topics = extract_dominant_topics(truncated, num_topics=max(5, count // 2))
+    if not topics:
+        return _generate_cards_from_content(content, count, "textbook", subject, "Beginner")
+
+    cards: list[dict[str, Any]] = []
+    for topic in topics:
+        if len(cards) >= count:
+            break
+        relevant = _find_relevant_chunk_for_topic(truncated, topic)
+        for _ in range(2):
+            if len(cards) >= count:
+                break
+            card = _generate_single_flashcard_via_ollama(topic, relevant, subject, "Beginner")
+            if card:
+                card["id"] = str(uuid.uuid4())[:8]
+                card["topic"] = topic
+                cards.append(card)
+
+    if not cards:
+        return _generate_cards_from_content(content, count, "textbook", subject, "Beginner")
+
+    normalized = _normalize_cards([{"id": c.get("id"), "topic": c.get("topic"), "front": c.get("front"), "back": c.get("back")} for c in cards])
+    for c in normalized:
+        c["sourceType"] = "textbook"
+    return FlashcardGenerateResponse(
+        cards=[FlashcardItem(**c) for c in normalized],
+        topic=subject or "Textbook",
+    )
+
+
+def _generate_cards_topic_aware(
+    content: str, count: int, subject: str, source_type: str, difficulty: str = "Beginner"
+) -> FlashcardGenerateResponse:
+    """Topic extraction + per-topic flashcard generation for URL/file/paste sources."""
+    from rag.topic_extractor import extract_dominant_topics
+
+    truncated = content[:8000] if len(content) > 8000 else content
+    subj = (subject or "General").strip()
+    topics = extract_dominant_topics(truncated, num_topics=max(5, count // 2))
+    if not topics:
+        return _generate_cards_from_content(content, count, source_type, subj, difficulty)
+
+    cards: list[dict[str, Any]] = []
+    for topic in topics:
+        if len(cards) >= count:
+            break
+        relevant = _find_relevant_chunk_for_topic(truncated, topic)
+        for _ in range(2):
+            if len(cards) >= count:
+                break
+            card = _generate_single_flashcard_via_ollama(topic, relevant, subj, difficulty)
+            if card:
+                card["id"] = str(uuid.uuid4())[:8]
+                card["topic"] = topic
+                cards.append(card)
+
+    if not cards:
+        return _generate_cards_from_content(content, count, source_type, subj, difficulty)
+
+    normalized = _normalize_cards([{"id": c.get("id"), "topic": c.get("topic"), "front": c.get("front"), "back": c.get("back")} for c in cards])
+    for c in normalized:
+        c["sourceType"] = source_type
+    return FlashcardGenerateResponse(
+        cards=[FlashcardItem(**c) for c in normalized],
+        topic=subj or "General",
+    )
+
+
+def _generate_cards_from_content(
+    content: str, count: int, source_type: str, subject: str = "General", difficulty: str = "Beginner"
+) -> FlashcardGenerateResponse:
     """Generate flashcards from extracted text via AI."""
     if not content or not content.strip():
         raise HTTPException(status_code=422, detail="No extractable text from source")
@@ -712,12 +1116,14 @@ def _generate_cards_from_content(content: str, count: int, source_type: str) -> 
     try:
         response = engine.request(
             task_type=AITaskType.FLASHCARD_GENERATION,
-            user_input=f"Generate {count} flashcards from this content. Return a JSON array of objects with id, topic, front, back.",
+            user_input="",
             context_data={
                 "input_type": "Textbook Chapter",
                 "topic_or_chapter": "Content-based",
                 "count": count,
                 "source_content": truncated,
+                "subject": subject,
+                "difficulty": difficulty,
             },
             offline_mode=True,
             privacy_sensitive=True,
@@ -738,6 +1144,110 @@ def _generate_cards_from_content(content: str, count: int, source_type: str) -> 
     for c in cards:
         c["sourceType"] = source_type
     return FlashcardGenerateResponse(cards=[FlashcardItem(**c) for c in cards], topic="Content-based")
+
+
+def _generate_mcq_questions_via_ai(topic: str, subject: str, difficulty: str, count: int) -> list[dict[str, Any]]:
+    """Generate MCQ questions via AI. Returns list of {id, text, options, correct, explanation}."""
+    engine = get_ai_engine()
+    prompt = f"""Generate exactly {count} multiple choice questions about {topic} for a {difficulty} level {subject} student.
+
+Return ONLY a valid JSON array. No markdown. No backticks. Start with [ end with ]
+
+Each item:
+{{
+  "id": "q1",
+  "text": "question text",
+  "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
+  "correct": 0,
+  "explanation": "why this answer is correct"
+}}
+
+Use correct index 0-3 for the right option. Ensure exactly 4 options per question."""
+    try:
+        response = engine.request(
+            task_type=AITaskType.QUIZ_GENERATION,
+            user_input=prompt,
+            context_data={"subject": subject, "count": count, "difficulty": difficulty},
+            offline_mode=True,
+            privacy_sensitive=True,
+            user_id=None,
+        )
+    except (ConnectionError, TimeoutError) as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    try:
+        parsed = _parse_ai_json(response.text)
+    except (ValueError, json.JSONDecodeError):
+        raise HTTPException(status_code=422, detail="AI could not generate valid MCQ questions.")
+    out: list[dict[str, Any]] = []
+    for i, item in enumerate(parsed) if isinstance(parsed, list) else []:
+        if not isinstance(item, dict):
+            continue
+        qid = str(item.get("id", f"q{i+1}_{uuid.uuid4().hex[:6]}"))
+        text = str(item.get("text", item.get("question", ""))).strip() or "?"
+        opts = item.get("options", [])
+        if not isinstance(opts, list):
+            opts = []
+        options = [str(o) for o in opts[:4]]
+        while len(options) < 4:
+            options.append("(No option)")
+        correct = int(item.get("correct", 0))
+        if correct < 0 or correct >= 4:
+            correct = 0
+        explanation = str(item.get("explanation", "")).strip() or ""
+        out.append({
+            "id": qid,
+            "text": text,
+            "options": options,
+            "correct": correct,
+            "explanation": explanation,
+        })
+    return out[:count]
+
+
+def _generate_open_ended_questions_via_ai(topic: str, subject: str, difficulty: str, count: int) -> list[dict[str, Any]]:
+    """Generate open-ended questions via AI. Returns list of {id, text, sample_answer, rubric}."""
+    engine = get_ai_engine()
+    prompt = f"""Generate exactly {count} open-ended questions about {topic} for a {difficulty} level {subject} student.
+
+Return ONLY a valid JSON array. No markdown. Start with [ end with ]
+
+Each item:
+{{
+  "id": "q1",
+  "text": "question text",
+  "sample_answer": "ideal answer",
+  "rubric": "what to look for when grading"
+}}"""
+    try:
+        response = engine.request(
+            task_type=AITaskType.QUIZ_GENERATION,
+            user_input=prompt,
+            context_data={"subject": subject, "count": count, "difficulty": difficulty},
+            offline_mode=True,
+            privacy_sensitive=True,
+            user_id=None,
+        )
+    except (ConnectionError, TimeoutError) as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    try:
+        parsed = _parse_ai_json(response.text)
+    except (ValueError, json.JSONDecodeError):
+        raise HTTPException(status_code=422, detail="AI could not generate valid open-ended questions.")
+    out: list[dict[str, Any]] = []
+    for i, item in enumerate(parsed) if isinstance(parsed, list) else []:
+        if not isinstance(item, dict):
+            continue
+        qid = str(item.get("id", f"q{i+1}_{uuid.uuid4().hex[:6]}"))
+        text = str(item.get("text", item.get("question", ""))).strip() or "?"
+        sample = str(item.get("sample_answer", item.get("expected_answer", ""))).strip() or ""
+        rubric = str(item.get("rubric", "")).strip() or "Assess comprehension and accuracy."
+        out.append({
+            "id": qid,
+            "text": text,
+            "sample_answer": sample,
+            "rubric": rubric,
+        })
+    return out[:count]
 
 
 def _generate_quiz_from_content(content: str, subject: str, count: int = 5) -> list[dict[str, Any]]:
@@ -786,7 +1296,7 @@ class TextbookGenerateRequest(BaseModel):
 
 @app.post("/api/flashcards/generate/textbook", response_model=FlashcardGenerateResponse)
 def flashcards_generate_textbook(req: TextbookGenerateRequest):
-    """Generate flashcards from a textbook file. Falls back to topic if content cannot be loaded."""
+    """Generate flashcards from a textbook file. Uses topic-aware extraction when possible."""
     path = SAMPLE_TEXTBOOKS_DIR / req.textbook_id
     if not path.is_file():
         raise HTTPException(status_code=404, detail=f"Textbook '{req.textbook_id}' not found")
@@ -794,7 +1304,7 @@ def flashcards_generate_textbook(req: TextbookGenerateRequest):
         content = _extract_text_from_file(path)
         if not content.strip():
             raise HTTPException(status_code=422, detail="Could not extract text from textbook")
-        return _generate_cards_from_content(content, req.count, "textbook")
+        return _generate_cards_from_textbook(content, req.count, req.textbook_id)
     except HTTPException:
         raise
     except Exception:
@@ -827,6 +1337,159 @@ def flashcards_generate_weblink(req: WeblinkGenerateRequest):
     text = re.sub(r"<[^>]+>", " ", html)
     text = re.sub(r"\s+", " ", text).strip()
     return _generate_cards_from_content(text, req.count, "weblink")
+
+
+class GenerateFromUrlRequest(BaseModel):
+    url: str = Field(..., min_length=1)
+    subject: str = Field(default="General")
+    num_cards: int = Field(default=10, ge=5, le=20)
+    difficulty: str = Field(default="Beginner")
+
+
+@app.post("/api/flashcards/generate-from-url", response_model=FlashcardGenerateResponse)
+def flashcards_generate_from_url(req: GenerateFromUrlRequest):
+    """Scrape URL with BeautifulSoup, topic extraction, smart flashcard generation."""
+    url = req.url.strip()
+    text = ""
+    try:
+        import httpx
+        from bs4 import BeautifulSoup
+    except ImportError:
+        httpx = None
+        BeautifulSoup = None
+
+    if httpx is not None and BeautifulSoup is not None:
+        try:
+            response = httpx.get(
+                url,
+                timeout=10,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0"},
+            )
+            if response.status_code in (401, 403):
+                raise HTTPException(
+                    status_code=422,
+                    detail="This website blocked access. Try pasting the article text directly.",
+                )
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, "html.parser")
+            for tag in soup(["nav", "footer", "script", "style", "header", "aside"]):
+                tag.decompose()
+            text = soup.get_text(separator="\n", strip=True)[:8000]
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code in (401, 403):
+                raise HTTPException(
+                    status_code=422,
+                    detail="This website blocked access. Try pasting the article text directly.",
+                ) from e
+            raise HTTPException(
+                status_code=422,
+                detail="Could not fetch that URL. Try another link or paste the text directly instead.",
+            ) from e
+        except (httpx.TimeoutException, httpx.ConnectError, httpx.RequestError):
+            raise HTTPException(
+                status_code=422,
+                detail="Could not fetch that URL. Try another link or paste the text directly instead.",
+            )
+    else:
+        import requests
+        try:
+            r = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+            if r.status_code in (401, 403):
+                raise HTTPException(
+                    status_code=422,
+                    detail="This website blocked access. Try pasting the article text directly.",
+                )
+            r.raise_for_status()
+            text = re.sub(r"<[^>]+>", " ", r.text)
+            text = re.sub(r"\s+", " ", text).strip()[:8000]
+        except requests.exceptions.RequestException:
+            raise HTTPException(
+                status_code=422,
+                detail="Could not fetch that URL. Try another link or paste the text directly instead.",
+            )
+
+    if len(text) < 200:
+        raise HTTPException(
+            status_code=422,
+            detail="Not enough content found at that URL. Try a different link.",
+        )
+
+    cnt = max(5, min(20, req.num_cards))
+    return _generate_cards_topic_aware(text, cnt, req.subject, "weblink", req.difficulty)
+
+
+class GenerateFromTextRequest(BaseModel):
+    text: str = Field(..., min_length=1)
+    subject: str = Field(default="General")
+    num_cards: int = Field(default=10, ge=5, le=20)
+    difficulty: str = Field(default="Beginner")
+
+
+@app.post("/api/flashcards/generate-from-text", response_model=FlashcardGenerateResponse)
+def flashcards_generate_from_text(req: GenerateFromTextRequest):
+    """Paste text: topic extraction + smart flashcard generation."""
+    text = req.text.strip()
+    if len(text) < 150:
+        raise HTTPException(
+            status_code=422,
+            detail="Please paste at least a paragraph of text to generate flashcards from",
+        )
+    cnt = max(5, min(20, req.num_cards))
+    return _generate_cards_topic_aware(text[:3000], cnt, req.subject, "paste", req.difficulty)
+
+
+@app.post("/api/flashcards/generate-from-file", response_model=FlashcardGenerateResponse)
+def flashcards_generate_from_file(
+    file: UploadFile = File(...),
+    subject: str = Form("General"),
+    num_cards: int = Form(10, ge=5, le=20),
+):
+    """Multipart: PDF or PPT only. Topic extraction + smart flashcard generation."""
+    if not file or not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+    suf = Path(file.filename).suffix.lower()
+    if suf not in (".pdf", ".ppt", ".pptx"):
+        raise HTTPException(status_code=422, detail="Only PDF and PPT files are supported")
+
+    tmp_path = DATA_DIR / "tmp_upload" / Path(file.filename).name
+    tmp_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        content = file.file.read()
+        tmp_path.write_bytes(content)
+        if suf == ".pdf":
+            text = _extract_text_from_pdf(tmp_path)
+        elif suf in (".ppt", ".pptx"):
+            try:
+                from pptx import Presentation
+                prs = Presentation(str(tmp_path))
+                parts = []
+                for slide in prs.slides:
+                    for shape in slide.shapes:
+                        if hasattr(shape, "text") and shape.text:
+                            parts.append(shape.text)
+                text = "\n".join(parts) if parts else ""
+            except ImportError:
+                try:
+                    from langchain_community.document_loaders import UnstructuredPowerPointLoader
+                    docs = UnstructuredPowerPointLoader(str(tmp_path)).load()
+                    text = "\n".join(d.page_content for d in docs)
+                except ImportError:
+                    raise HTTPException(
+                        status_code=501,
+                        detail="PPT support requires python-pptx or unstructured (pip install python-pptx)",
+                    )
+        else:
+            text = ""
+        if not text or len(text.strip()) < 100:
+            raise HTTPException(status_code=422, detail="Could not extract enough text from the file")
+    finally:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+    cnt = max(5, min(20, num_cards))
+    return _generate_cards_topic_aware(text[:12000], cnt, subject or "General", "file", "Beginner")
 
 
 @app.post("/api/flashcards/generate/files", response_model=FlashcardGenerateResponse)
@@ -892,6 +1555,9 @@ def flashcards_generate(req: FlashcardGenerateRequest):
                 "input_type": req.input_type,
                 "topic_or_chapter": req.topic_or_chapter.strip(),
                 "count": req.count,
+                "subject": "General",
+                "difficulty": "Beginner",
+                "source_content": None,
             },
             offline_mode=req.offline_mode,
             privacy_sensitive=True,
@@ -935,34 +1601,82 @@ def flashcards_generate(req: FlashcardGenerateRequest):
 # Flashcards storage (mirror LocalStorage: flashcards.json)
 # ---------------------------------------------------------------------------
 
+def _all_cards_from_decks(decks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Flatten all cards from all decks (for backward compat)."""
+    cards = []
+    for d in decks:
+        deck_cards = d.get("cards") or []
+        for c in deck_cards:
+            c2 = dict(c)
+            c2["topic"] = c2.get("topic") or d.get("subject") or d.get("title") or "General"
+            cards.append(c2)
+    return cards
+
+
 def _load_flashcards(user_id: str) -> list[dict[str, Any]]:
-    """Load per-user flashcards.json; return [] on missing/error."""
-    try:
-        f = _flashcards_file(user_id)
-        if f.exists():
-            raw = f.read_text(encoding="utf-8")
-            data = json.loads(raw)
-            if isinstance(data, list):
-                return data
-    except (OSError, json.JSONDecodeError):
-        pass
-    return []
+    """Load all cards by flattening from deck structure."""
+    decks = _load_flashcard_decks(user_id)
+    return _all_cards_from_decks(decks)
 
 
 def _save_flashcards(cards: list[dict[str, Any]], user_id: str) -> None:
-    """Overwrite per-user flashcards.json."""
-    try:
-        f = _flashcards_file(user_id)
-        f.write_text(json.dumps(cards, indent=2, ensure_ascii=False), encoding="utf-8")
-    except OSError:
-        pass
+    """Overwrite by saving as single deck (legacy compat)."""
+    deck_id = f"deck_{uuid.uuid4().hex[:12]}"
+    normalized = [_normalize_card_for_deck(c) for c in cards]
+    deck = {
+        "id": deck_id,
+        "title": "All Cards",
+        "subject": "General",
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "cards": normalized,
+    }
+    _save_flashcard_decks([deck], user_id)
 
 
-def _append_flashcards(new_cards: list[dict[str, Any]], user_id: str) -> None:
-    """Append cards to per-user flashcards.json."""
-    existing = _load_flashcards(user_id)
-    existing.extend(new_cards)
-    _save_flashcards(existing, user_id)
+def _recompute_deck_counts(deck: dict[str, Any]) -> None:
+    """Update easy_count, hard_count, mastered from cards."""
+    cards = deck.get("cards") or []
+    easy_count = sum(1 for c in cards if (c.get("ease") or "").lower() == "easy")
+    hard_count = sum(1 for c in cards if (c.get("ease") or "").lower() == "hard")
+    deck["easy_count"] = easy_count
+    deck["hard_count"] = hard_count
+    deck["mastered"] = easy_count == len(cards) and len(cards) > 0
+
+
+def _merge_flashcards(new_cards: list[dict[str, Any]], user_id: str) -> int:
+    """
+    Merge new cards into decks. Cards with matching id update; new ids append to first deck.
+    """
+    decks = _load_flashcard_decks(user_id)
+    if not decks:
+        deck_id = f"deck_{uuid.uuid4().hex[:12]}"
+        decks = [{
+            "id": deck_id,
+            "title": "Imported",
+            "subject": "General",
+            "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "cards": [],
+        }]
+    first_deck = decks[0]
+    first_cards = first_deck.get("cards") or []
+    merged_count = 0
+    for c in new_cards:
+        cid = c.get("id")
+        norm = _normalize_card_for_deck(c)
+        if not cid:
+            first_cards.append(norm)
+            merged_count += 1
+            continue
+        idx = next((i for i, x in enumerate(first_cards) if (x.get("id") or "") == cid), None)
+        if idx is not None:
+            first_cards[idx] = {**first_cards[idx], **norm}
+            merged_count += 1
+        else:
+            first_cards.append(norm)
+            merged_count += 1
+    first_deck["cards"] = first_cards
+    _save_flashcard_decks(decks, user_id)
+    return merged_count
 
 
 def _get_due_cards(user_id: str) -> list[dict[str, Any]]:
@@ -980,7 +1694,13 @@ def _get_due_cards(user_id: str) -> list[dict[str, Any]]:
 
 @app.get("/api/flashcards")
 def flashcards_list(user_id: str = Depends(get_user_id)):
-    """Return all stored flashcards for the authenticated user."""
+    """Return all decks for the authenticated user."""
+    return {"decks": _load_flashcard_decks(user_id)}
+
+
+@app.get("/api/flashcards/cards")
+def flashcards_list_cards(user_id: str = Depends(get_user_id)):
+    """Return all cards flattened (backward compat for frontend)."""
     return {"cards": _load_flashcards(user_id)}
 
 
@@ -1024,15 +1744,41 @@ def flashcards_due(user_id: str = Depends(get_user_id)):
 
 class FlashcardsAppendRequest(BaseModel):
     cards: list[dict[str, Any]] = Field(..., description="Cards to append (id, topic, front, back, next_review, etc.)")
+    deck_id: Optional[str] = Field(default=None, description="If provided, create/update deck with this id")
+    deck_title: Optional[str] = Field(default=None)
+    deck_subject: Optional[str] = Field(default=None)
 
 
 @app.post("/api/flashcards")
 def flashcards_append(req: FlashcardsAppendRequest, user_id: str = Depends(get_user_id)):
-    """Append generated cards to storage for the authenticated user."""
+    """Merge generated cards into storage. If deck_id provided, create/update that deck."""
     if not req.cards:
         return {"ok": True, "appended": 0}
-    _append_flashcards(req.cards, user_id)
-    return {"ok": True, "appended": len(req.cards)}
+    if req.deck_id:
+        decks = _load_flashcard_decks(user_id)
+        existing = next((d for d in decks if (d.get("id") or "") == req.deck_id), None)
+        normalized = [_normalize_card_for_deck(c) for c in req.cards]
+        title = req.deck_title or (req.cards[0].get("topic") if req.cards else "General")
+        subject = req.deck_subject or title
+        if existing:
+            by_id = {c.get("id"): c for c in (existing.get("cards") or [])}
+            for c in normalized:
+                by_id[c.get("id", "")] = c
+            existing["cards"] = list(by_id.values())
+            _recompute_deck_counts(existing)
+        else:
+            decks.insert(0, {
+                "id": req.deck_id,
+                "title": title,
+                "subject": subject,
+                "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                "cards": normalized,
+            })
+            _recompute_deck_counts(decks[0])
+        _save_flashcard_decks(decks, user_id)
+        return {"ok": True, "appended": len(req.cards)}
+    n = _merge_flashcards(req.cards, user_id)
+    return {"ok": True, "appended": n}
 
 
 class FlashcardsReplaceRequest(BaseModel):
@@ -1066,33 +1812,247 @@ def flashcards_review(req: FlashcardReviewRequest, user_id: str = Depends(get_us
     ensure_flashcard_structure(stats)
     mastered = req.ease == "easy"
     update_flashcard_entry(stats, req.card_id, req.ease, req.next_review, mastered=mastered)
-    cards = _load_flashcards(user_id)
-    for c in cards:
-        if (c.get("id") or "") == req.card_id:
-            c["next_review"] = req.next_review
-            break
-    _save_flashcards(cards, user_id)
-    update_flashcard_stats_from_cards(stats, cards)
-    _update_streak(stats)
-    _save_user_stats(stats, user_id)
+    decks = _load_flashcard_decks(user_id)
+    for d in decks:
+        for c in d.get("cards") or []:
+            if (c.get("id") or "") == req.card_id:
+                c["ease"] = req.ease
+                c["next_review"] = req.next_review
+                c["review_count"] = int(c.get("review_count", 0)) + 1
+                c["mastered"] = mastered
+                _save_flashcard_decks(decks, user_id)
+                update_flashcard_stats_from_cards(stats, _all_cards_from_decks(decks))
+                _update_streak(stats)
+                _save_user_stats(stats, user_id)
+                _enqueue_sync(BASE_PATH, user_id, "flashcard_review", {
+                    "userId": user_id,
+                    "cardId": req.card_id,
+                    "ease": req.ease,
+                    "nextReview": req.next_review,
+                })
+                return {"ok": True}
     return {"ok": True}
+
+
+class FlashcardDeckCreateRequest(BaseModel):
+    """Create empty deck. Also accepts full deck save when 'cards' is provided."""
+    id: Optional[str] = Field(default=None)
+    title: str = Field(..., min_length=1)
+    subject: str = Field(default="General")
+    source: Optional[str] = Field(default=None)
+    card_count: Optional[int] = Field(default=None)
+    easy_count: Optional[int] = Field(default=None)
+    hard_count: Optional[int] = Field(default=None)
+    cards: Optional[list[dict[str, Any]]] = Field(default=None)
+    created_at: Optional[str] = Field(default=None)
+    last_studied: Optional[str] = Field(default=None)
+
+
+class FlashcardCardAddRequest(BaseModel):
+    deck_id: str = Field(...)
+    front: str = Field(..., min_length=1)
+    back: str = Field(..., min_length=1)
+
+
+class FlashcardReviewPatchRequest(BaseModel):
+    deck_id: Optional[str] = Field(default=None, description="Deck identifier (required for deck progress)")
+    card_id: str = Field(...)
+    ease: str = Field(..., description="'hard' | 'medium' | 'easy'")
+    next_review: Optional[str] = Field(default=None, description="Next review date (computed if omitted)")
+
+
+class FlashcardsFromQuizRequest(BaseModel):
+    wrong_questions: list[dict[str, Any]] = Field(default_factory=list, description="List of {question_id, text, correct_answer, explanation}")
+
+
+@app.post("/api/flashcards/from-quiz")
+def flashcards_from_quiz(req: FlashcardsFromQuizRequest, user_id: str = Depends(get_user_id)):
+    """Create a flashcard deck from wrong quiz questions. Front=question, back=correct_answer."""
+    if not req.wrong_questions:
+        return {"ok": True, "deck_id": None, "card_count": 0}
+    decks = _load_flashcard_decks(user_id)
+    deck_id = f"quiz_{uuid.uuid4().hex[:12]}"
+    cards: list[dict[str, Any]] = []
+    for i, wq in enumerate(req.wrong_questions):
+        text = str(wq.get("text", wq.get("question", ""))).strip() or "?"
+        correct = str(wq.get("correct_answer", "")).strip() or "—"
+        expl = str(wq.get("explanation", "")).strip()
+        back = correct
+        if expl:
+            back = f"{correct}\n\n{expl}"
+        cards.append({
+            "id": str(wq.get("question_id", f"fc_{uuid.uuid4().hex[:8]}")),
+            "front": text,
+            "back": back,
+            "ease": "medium",
+            "next_review": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "review_count": 0,
+            "mastered": False,
+        })
+    decks.insert(0, {
+        "id": deck_id,
+        "title": "Quiz Review — Wrong Answers",
+        "subject": "General",
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "cards": cards,
+        "easy_count": 0,
+        "hard_count": len(cards),
+        "mastered_count": 0,
+    })
+    _save_flashcard_decks(decks, user_id)
+    return {"ok": True, "deck_id": deck_id, "card_count": len(cards)}
+
+
+@app.post("/api/flashcards/deck")
+def flashcard_create_deck(req: FlashcardDeckCreateRequest, user_id: str = Depends(get_user_id)):
+    """Create empty deck or save full deck (when cards provided)."""
+    decks = _load_flashcard_decks(user_id)
+    # Handle full deck save (cards provided)
+    if req.cards and len(req.cards) > 0:
+        deck_id = req.id or f"deck_{uuid.uuid4().hex[:12]}"
+        normalized = [_normalize_card_for_deck(c) for c in req.cards]
+        deck = {
+            "id": deck_id,
+            "title": req.title,
+            "subject": req.subject,
+            "source": req.source,
+            "card_count": req.card_count or len(normalized),
+            "easy_count": req.easy_count or 0,
+            "hard_count": req.hard_count or 0,
+            "created_at": req.created_at or datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "last_studied": req.last_studied or datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "cards": normalized,
+        }
+        _recompute_deck_counts(deck)
+        decks = [d for d in decks if (d.get("id") or "") != deck_id]
+        decks.insert(0, deck)
+        _save_flashcard_decks(decks, user_id)
+        _enqueue_sync(BASE_PATH, user_id, "flashcard_create", {
+            "userId": user_id,
+            "deckId": deck_id,
+            "title": req.title,
+            "subject": req.subject,
+        })
+        return {"ok": True}
+    # Create empty deck (legacy)
+    deck_id = f"deck_{uuid.uuid4().hex[:12]}"
+    deck = {
+        "id": deck_id,
+        "title": req.title,
+        "subject": req.subject,
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "cards": [],
+    }
+    decks.append(deck)
+    _save_flashcard_decks(decks, user_id)
+    _enqueue_sync(BASE_PATH, user_id, "flashcard_create", {
+        "userId": user_id,
+        "deckId": deck_id,
+        "title": req.title,
+        "subject": req.subject,
+    })
+    return deck
+
+
+@app.post("/api/flashcards/card")
+def flashcard_add_card(req: FlashcardCardAddRequest, user_id: str = Depends(get_user_id)):
+    """Add a card to a deck."""
+    decks = _load_flashcard_decks(user_id)
+    card_id = f"card_{uuid.uuid4().hex[:12]}"
+    card = {
+        "id": card_id,
+        "front": req.front,
+        "back": req.back,
+        "ease": "medium",
+        "next_review": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "review_count": 0,
+        "mastered": False,
+    }
+    for d in decks:
+        if d.get("id") == req.deck_id:
+            d.setdefault("cards", []).append(card)
+            _save_flashcard_decks(decks, user_id)
+            return card
+    raise HTTPException(status_code=404, detail="Deck not found")
+
+
+@app.patch("/api/flashcards/review")
+def flashcard_patch_review(req: FlashcardReviewPatchRequest, user_id: str = Depends(get_user_id)):
+    """Update card ease and next_review; update deck easy_count, hard_count, mastered when deck_id provided."""
+    stats = _load_user_stats(user_id)
+    ensure_streak_structure(stats)
+    ensure_flashcard_structure(stats)
+    mastered = req.ease == "easy"
+    next_review = req.next_review or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    update_flashcard_entry(stats, req.card_id, req.ease, next_review, mastered=mastered)
+    decks = _load_flashcard_decks(user_id)
+    if req.deck_id:
+        deck = next((d for d in decks if (d.get("id") or "") == req.deck_id), None)
+        if not deck:
+            raise HTTPException(status_code=404, detail="Deck not found")
+        target_decks = [deck]
+    else:
+        target_decks = [d for d in decks if any((c.get("id") or "") == req.card_id for c in (d.get("cards") or []))]
+    for deck in target_decks:
+        for c in deck.get("cards") or []:
+            if (c.get("id") or "") == req.card_id:
+                c["ease"] = req.ease
+                c["next_review"] = next_review
+                c["review_count"] = int(c.get("review_count", 0)) + 1
+                c["mastered"] = mastered
+                _recompute_deck_counts(deck)
+                _save_flashcard_decks(decks, user_id)
+                update_flashcard_stats_from_cards(stats, _all_cards_from_decks(decks))
+                _update_streak(stats)
+                _save_user_stats(stats, user_id)
+                _enqueue_sync(BASE_PATH, user_id, "flashcard_review", {
+                    "userId": user_id,
+                    "deckId": req.deck_id or deck.get("id"),
+                    "cardId": req.card_id,
+                    "ease": req.ease,
+                    "nextReview": next_review,
+                })
+                return {"ok": True}
+    raise HTTPException(status_code=404, detail="Card not found")
+
+
+@app.delete("/api/flashcards/{card_id}")
+def flashcard_delete_card(card_id: str, user_id: str = Depends(get_user_id)):
+    """Delete a card by id."""
+    decks = _load_flashcard_decks(user_id)
+    for d in decks:
+        cards = d.get("cards") or []
+        for i, c in enumerate(cards):
+            if (c.get("id") or "") == card_id:
+                cards.pop(i)
+                d["cards"] = cards
+                _save_flashcard_decks(decks, user_id)
+                return {"ok": True}
+    raise HTTPException(status_code=404, detail="Card not found")
 
 
 @app.post("/api/flashcards/explain", response_model=FlashcardExplainResponse)
 def flashcards_explain(req: FlashcardExplainRequest):
     """
-    Get an AI explanation for a flashcard (front/back). Uses local LLM.
+    Get an AI explanation for a flashcard (front/back). Uses local LLM (Ollama).
     """
     engine = get_ai_engine()
-    user_input = req.user_query or f"Explain this flashcard: {req.front}"
+    prompt = (
+        f"You are a {req.subject} tutor explaining a flashcard concept to a {req.difficulty} student.\n\n"
+        f"Concept: {req.front}\n"
+        f"Answer: {req.back}\n\n"
+        "Give a clear, concise explanation in 3-4 sentences. Use a simple analogy if helpful. "
+        "Do not repeat the question. Just explain why the answer is correct and help the student truly understand it."
+    )
     try:
         response = engine.request(
             task_type=AITaskType.FLASHCARD_EXPLANATION,
-            user_input=user_input,
+            user_input=prompt,
             context_data={
-                "topic": req.topic,
+                "subject": req.subject,
                 "front": req.front,
                 "back": req.back,
+                "difficulty": req.difficulty,
             },
             offline_mode=True,
             privacy_sensitive=True,
@@ -1105,6 +2065,80 @@ def flashcards_explain(req: FlashcardExplainRequest):
         text=response.text,
         confidence_score=response.confidence_score,
     )
+
+
+_NO_DATA_MESSAGE = "Complete a quiz or create flashcards to receive personalized recommendations."
+
+
+@app.post("/api/flashcards/recommend", response_model=AdaptiveRecommendationResponse)
+def flashcards_recommend(req: FlashcardRecommendRequest, user_id: str = Depends(get_user_id)):
+    """
+    Adaptive study recommendation. NEVER generic plans.
+    - If flashcard topic exists: use it (+ quiz data if available)
+    - Else if quiz history exists: use quiz avg score, weak topics
+    - Else: return has_data=False for UI to show empty message
+    """
+    stats = _load_user_stats(user_id)
+    has_fc = _has_flashcard_topic(req.subject, req.hard_cards)
+    has_quiz = _has_quiz_data(stats)
+
+    if not has_fc and not has_quiz:
+        return AdaptiveRecommendationResponse(
+            weak_topic="",
+            suggested_action="",
+            difficulty_adjustment="",
+            text=_NO_DATA_MESSAGE,
+            confidence_score=0.0,
+            has_data=False,
+        )
+
+    quiz_profile = _get_quiz_profile(stats) if has_quiz else None
+    difficulty = req.difficulty or (stats.get("preferences") or {}).get("difficulty_level") or "Beginner"
+
+    if has_fc:
+        subject = req.subject.strip() or "General"
+        prompt = build_flashcard_based_prompt(
+            subject=subject,
+            difficulty=difficulty,
+            hard_cards=req.hard_cards or [],
+            easy_count=req.easy_count or 0,
+            hard_count=req.hard_count or 0,
+            quiz_profile=quiz_profile,
+        )
+        fallback_weak = subject
+    else:
+        prompt = build_quiz_only_prompt(difficulty=difficulty, quiz_profile=quiz_profile)
+        weak_list = quiz_profile.get("weak_topics") or []
+        fallback_weak = weak_list[0][0] if weak_list else "Your weakest topic"
+
+    engine = get_ai_engine()
+    try:
+        response = engine.request(
+            task_type=AITaskType.STUDY_RECOMMENDATION,
+            user_input=prompt,
+            context_data={
+                "deck_id": req.deck_id,
+                "subject": req.subject,
+                "hard_cards": req.hard_cards,
+                "easy_count": req.easy_count,
+                "hard_count": req.hard_count,
+                "difficulty": difficulty,
+            },
+            offline_mode=True,
+            privacy_sensitive=True,
+            user_id=user_id,
+        )
+        rec = parse_ai_response(response.text, fallback_weak=fallback_weak)
+        return AdaptiveRecommendationResponse(
+            weak_topic=rec.weak_topic,
+            suggested_action=rec.suggested_action,
+            difficulty_adjustment=rec.difficulty_adjustment,
+            text=rec.text,
+            confidence_score=response.confidence_score,
+            has_data=True,
+        )
+    except (ConnectionError, TimeoutError) as e:
+        raise HTTPException(status_code=503, detail=str(e))
 
 
 @app.post("/api/study/recommendation", response_model=StudyRecommendationResponse)
@@ -1141,9 +2175,25 @@ def study_recommendation(req: StudyRecommendationRequest):
 # ---------------------------------------------------------------------------
 
 
+def _resolve_chat_task_type(req: ChatRequest) -> AITaskType:
+    """Map ChatRequest fields to AITaskType."""
+    if req.is_clarification:
+        return AITaskType.CLARIFY
+    raw = (req.task_type or "chat").strip().lower()
+    mapping = {
+        "chat": AITaskType.CHAT,
+        "clarify": AITaskType.CLARIFY,
+        "explain_topic": AITaskType.EXPLAIN_TOPIC,
+        "quiz_me": AITaskType.QUIZ_ME,
+        "flashcards": AITaskType.FLASHCARDS,
+        "step_by_step": AITaskType.STEP_BY_STEP,
+    }
+    return mapping.get(raw, AITaskType.CHAT)
+
+
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(req: ChatRequest, user_id: str = Depends(get_user_id)):
-    """Turn-based chat with local LLM. Supports clarification follow-ups and RAG context."""
+    """Turn-based chat with local LLM. Supports clarification, Explain, Quiz, Flashcards, Step-by-Step."""
     stats = _load_user_stats(user_id)
     ensure_streak_structure(stats)
     _update_streak(stats)
@@ -1155,9 +2205,10 @@ def chat(req: ChatRequest, user_id: str = Depends(get_user_id)):
         ctx["subject"] = req.subject
     if req.textbook_id is not None:
         ctx["textbook_id"] = req.textbook_id
+    task_type = _resolve_chat_task_type(req)
     try:
         response = engine.request(
-            task_type=AITaskType.CHAT,
+            task_type=task_type,
             user_input=req.message,
             context_data=ctx,
             offline_mode=True,
@@ -1223,6 +2274,87 @@ def chat_history_get(user_id: str = Depends(get_user_id)):
     return sessions
 
 
+# ---------------------------------------------------------------------------
+# Notifications
+# ---------------------------------------------------------------------------
+
+
+class NotificationPushRequest(BaseModel):
+    type: Optional[str] = Field(default="info")
+    title: str = Field(..., min_length=1)
+    message: Optional[str] = None
+    tag: Optional[str] = None
+    pinned: Optional[bool] = False
+    action: Optional[dict[str, str]] = None
+
+
+@app.get("/api/notifications")
+def notifications_get(user_id: str = Depends(get_user_id)):
+    """Return notifications from backend/data/notifications/{user_id}.json."""
+    notifs = _load_notifications(user_id)
+    return {"notifications": notifs}
+
+
+@app.post("/api/notifications/push")
+def notifications_push(
+    req: NotificationPushRequest, user_id: str = Depends(get_user_id)
+):
+    """Add a notification and return the created item."""
+    notifs = _load_notifications(user_id)
+    nid = str(uuid.uuid4())
+    ts = datetime.now(timezone.utc).isoformat()
+    notif: dict[str, Any] = {
+        "id": nid,
+        "type": req.type or "info",
+        "title": req.title,
+        "message": req.message,
+        "tag": req.tag,
+        "pinned": req.pinned or False,
+        "read": False,
+        "timestamp": ts,
+        "action": req.action,
+    }
+    notifs.insert(0, notif)
+    _save_notifications(notifs, user_id)
+    return notif
+
+
+@app.patch("/api/notifications/{notif_id}/read")
+def notifications_mark_read(
+    notif_id: str, user_id: str = Depends(get_user_id)
+):
+    """Mark one notification as read."""
+    notifs = _load_notifications(user_id)
+    for n in notifs:
+        if n.get("id") == notif_id:
+            n["read"] = True
+            _save_notifications(notifs, user_id)
+            return {"ok": True}
+    raise HTTPException(status_code=404, detail="Notification not found")
+
+
+@app.delete("/api/notifications/{notif_id}")
+def notifications_delete(notif_id: str, user_id: str = Depends(get_user_id)):
+    """Remove one notification."""
+    notifs = _load_notifications(user_id)
+    prev_len = len(notifs)
+    notifs[:] = [n for n in notifs if n.get("id") != notif_id]
+    if len(notifs) == prev_len:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    _save_notifications(notifs, user_id)
+    return {"ok": True}
+
+
+@app.delete("/api/notifications/all")
+@app.delete("/api/notifications/clear")
+def notifications_clear_all(user_id: str = Depends(get_user_id)):
+    """Clear all non-pinned notifications. Supports /all and /clear."""
+    notifs = _load_notifications(user_id)
+    notifs[:] = [n for n in notifs if n.get("pinned")]
+    _save_notifications(notifs, user_id)
+    return {"ok": True}
+
+
 @app.post("/api/grade", response_model=GradeResponse)
 def grade(req: GradeRequest):
     """Grade subjective/objective answers using AI engine with Red Pen–style feedback."""
@@ -1269,18 +2401,105 @@ def grade(req: GradeRequest):
 # ---------------------------------------------------------------------------
 
 
+@app.get("/api/quiz/history")
+def quiz_history(user_id: str = Depends(get_user_id)):
+    """Return all past quiz results for the authenticated user."""
+    return {"results": _load_quiz_history(user_id)}
+
+
 @app.get("/api/quiz/{quiz_id}")
-def quiz_get(quiz_id: str):
-    """Get quiz content by id. Returns stub list for known ids."""
+def quiz_get(quiz_id: str, user_id: str = Depends(get_user_id)):
+    """Get quiz content by id. Loads from user file first, then static stubs."""
+    loaded = _load_quiz_from_file(user_id, quiz_id)
+    if loaded:
+        return loaded
     if quiz_id == "default" or quiz_id == "quick":
         return {"id": quiz_id, "items": QUIZ_ITEMS, "title": "Quick Quiz"}
     if quiz_id == "panic":
         return {"id": quiz_id, "items": PANIC_ITEMS, "title": "Panic Mode Exam"}
-    # Single-item quiz by question id
     for item in QUIZ_ITEMS + PANIC_ITEMS:
         if item["id"] == quiz_id:
             return {"id": quiz_id, "items": [item], "title": f"Quiz: {item['topic']}"}
     raise HTTPException(status_code=404, detail=f"Quiz {quiz_id} not found")
+
+
+@app.post("/api/quiz/generate")
+def quiz_generate(req: QuizGenerateRequest, user_id: str = Depends(get_user_id)):
+    """Generate quiz from materials or topic. Saves to data/quizzes/{user_id}/{quiz_id}.json."""
+    topic = (req.topic_text or "").strip()
+    if req.source == "materials" and req.source_ids:
+        texts: list[str] = []
+        for tid in req.source_ids[:5]:
+            path = SAMPLE_TEXTBOOKS_DIR / tid
+            if path.is_file():
+                try:
+                    texts.append(_extract_text_from_file(path))
+                except Exception:
+                    pass
+        if texts:
+            topic = "\n\n".join(texts)[:15000]
+        if not topic.strip():
+            topic = req.subject
+    if not topic.strip():
+        topic = req.subject or "General Knowledge"
+    count = max(1, min(20, req.num_questions))
+    difficulty = req.difficulty or "Beginner"
+    subject = req.subject or "General"
+    if req.question_type == "open_ended":
+        items = _generate_open_ended_questions_via_ai(topic, subject, difficulty, count)
+        question_type = "open_ended"
+    else:
+        items = _generate_mcq_questions_via_ai(topic, subject, difficulty, count)
+        question_type = "mcq"
+    quiz_id = f"gen_{uuid.uuid4().hex[:12]}"
+    payload: dict[str, Any] = {
+        "id": quiz_id,
+        "title": f"Quiz — {subject}",
+        "subject": subject,
+        "difficulty": difficulty,
+        "question_type": question_type,
+        "items": items,
+    }
+    path = _quiz_file(user_id, quiz_id)
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    return {"id": quiz_id, "title": payload["title"], "items": items, "subject": subject, "difficulty": difficulty, "question_type": question_type}
+
+
+class GradeAnswerRequest(BaseModel):
+    question: str = Field(...)
+    user_answer: str = Field(default="")
+    sample_answer: str = Field(default="")
+    rubric: str = Field(default="")
+    difficulty: str = Field(default="Beginner")
+
+
+@app.post("/api/quiz/grade-answer")
+def quiz_grade_answer(req: GradeAnswerRequest):
+    """Grade a single open-ended answer. Returns { score: float, feedback: string }."""
+    engine = get_ai_engine()
+    try:
+        response = engine.request(
+            task_type=AITaskType.GRADING,
+            user_input=req.user_answer,
+            context_data={
+                "question": req.question,
+                "expected_answer": req.sample_answer,
+                "rubric": req.rubric or "Assess comprehension and accuracy.",
+                "difficulty": req.difficulty,
+            },
+            offline_mode=True,
+            privacy_sensitive=True,
+            user_id=None,
+        )
+        text = response.text or ""
+        score = 5.0
+        match = re.search(r"Score:\s*(\d+(?:\.\d+)?)\s*/\s*10", text, re.IGNORECASE)
+        if match:
+            score = float(match.group(1))
+        return {"score": min(10.0, max(0.0, score)), "feedback": text}
+    except (ConnectionError, TimeoutError) as e:
+        fallback = _local_score(req.user_answer, req.sample_answer)
+        return {"score": fallback, "feedback": "AI grading unavailable; scored locally."}
 
 
 def _local_score(answer: str, expected: str) -> float:
@@ -1306,6 +2525,16 @@ class PanicGenerateWeblinkRequest(BaseModel):
     subject: str = Field(..., min_length=1)
     url: str = Field(..., min_length=1)
     count: int = Field(default=5, ge=3, le=15)
+
+
+class QuizGenerateRequest(BaseModel):
+    source: str = Field(..., description="materials | topic")
+    subject: str = Field(default="General")
+    source_ids: Optional[list[str]] = Field(default=None, description="Textbook ids when source=materials")
+    topic_text: Optional[str] = Field(default=None, description="Topic or pasted text when source=topic")
+    question_type: str = Field(default="mcq", description="mcq | open_ended")
+    num_questions: int = Field(default=10, ge=1, le=20)
+    difficulty: str = Field(default="Beginner")
 
 
 @app.post("/api/quiz/panic/generate/textbook")
@@ -1348,6 +2577,184 @@ def panic_generate_weblink(req: PanicGenerateWeblinkRequest):
     return {"id": "panic", "title": f"Panic Mode — {req.subject}", "items": items}
 
 
+class QuizGenerateFromUrlRequest(BaseModel):
+    url: str = Field(..., min_length=1)
+    subject: str = Field(default="General")
+    num_questions: int = Field(default=10, ge=1, le=20)
+    question_type: str = Field(default="mcq", description="mcq | open_ended")
+    difficulty: str = Field(default="Beginner")
+
+
+@app.post("/api/quiz/generate-from-url")
+def quiz_generate_from_url(req: QuizGenerateFromUrlRequest, user_id: str = Depends(get_user_id)):
+    """Scrape URL, extract content, generate quiz. Returns same format as /api/quiz/generate."""
+    url = req.url.strip()
+    text = ""
+    try:
+        import httpx
+        from bs4 import BeautifulSoup
+    except ImportError:
+        httpx = None
+        BeautifulSoup = None
+    if httpx is not None and BeautifulSoup is not None:
+        try:
+            response = httpx.get(
+                url, timeout=10,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0"},
+            )
+            if response.status_code in (401, 403):
+                raise HTTPException(
+                    status_code=422,
+                    detail="This website blocked access. Try pasting the article text directly.",
+                )
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, "html.parser")
+            for tag in soup(["nav", "footer", "script", "style", "header", "aside"]):
+                tag.decompose()
+            text = soup.get_text(separator="\n", strip=True)[:8000]
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code in (401, 403):
+                raise HTTPException(
+                    status_code=422,
+                    detail="This website blocked access. Try pasting the article text directly.",
+                ) from e
+            raise HTTPException(
+                status_code=422,
+                detail="Could not fetch that URL. Try another link or paste the text directly.",
+            ) from e
+        except (httpx.TimeoutException, httpx.ConnectError, httpx.RequestError):
+            raise HTTPException(
+                status_code=422,
+                detail="Could not fetch that URL. Try another link or paste the text directly.",
+            )
+    else:
+        import requests as req_lib
+        try:
+            r = req_lib.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+            if r.status_code in (401, 403):
+                raise HTTPException(
+                    status_code=422,
+                    detail="This website blocked access. Try pasting the article text directly.",
+                )
+            r.raise_for_status()
+            text = re.sub(r"<[^>]+>", " ", r.text)
+            text = re.sub(r"\s+", " ", text).strip()[:8000]
+        except Exception:
+            raise HTTPException(
+                status_code=422,
+                detail="Could not fetch that URL. Try another link or paste the text directly.",
+            )
+    if len(text) < 200:
+        raise HTTPException(
+            status_code=422,
+            detail="Not enough content found at that URL. Try a different link.",
+        )
+    return _save_and_return_quiz(user_id, text, req.subject, req.num_questions, req.question_type, req.difficulty)
+
+
+class QuizGenerateFromTextRequest(BaseModel):
+    text: str = Field(..., min_length=1)
+    subject: str = Field(default="General")
+    num_questions: int = Field(default=10, ge=1, le=20)
+    question_type: str = Field(default="mcq", description="mcq | open_ended")
+    difficulty: str = Field(default="Beginner")
+
+
+@app.post("/api/quiz/generate-from-text")
+def quiz_generate_from_text(req: QuizGenerateFromTextRequest, user_id: str = Depends(get_user_id)):
+    """Generate quiz from pasted text. Returns same format as /api/quiz/generate."""
+    text = req.text.strip()
+    if len(text) < 150:
+        raise HTTPException(
+            status_code=422,
+            detail="Please paste at least a paragraph of text to generate a quiz from.",
+        )
+    return _save_and_return_quiz(user_id, text[:3000], req.subject, req.num_questions, req.question_type, req.difficulty)
+
+
+@app.post("/api/quiz/generate-from-file")
+def quiz_generate_from_file(
+    file: UploadFile = File(...),
+    subject: str = Form("General"),
+    num_questions: int = Form(10, ge=1, le=20),
+    question_type: str = Form("mcq"),
+    difficulty: str = Form("Beginner"),
+    user_id: str = Depends(get_user_id),
+):
+    """Generate quiz from uploaded PDF or PPT. Returns same format as /api/quiz/generate."""
+    if not file or not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+    suf = Path(file.filename).suffix.lower()
+    if suf not in (".pdf", ".ppt", ".pptx"):
+        raise HTTPException(status_code=422, detail="Only PDF and PPT files are supported")
+    tmp_path = DATA_DIR / "tmp_upload" / Path(file.filename).name
+    tmp_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        content = file.file.read()
+        tmp_path.write_bytes(content)
+        if suf == ".pdf":
+            text = _extract_text_from_pdf(tmp_path)
+        elif suf in (".ppt", ".pptx"):
+            try:
+                from pptx import Presentation
+                prs = Presentation(str(tmp_path))
+                parts = []
+                for slide in prs.slides:
+                    for shape in slide.shapes:
+                        if hasattr(shape, "text") and shape.text:
+                            parts.append(shape.text)
+                text = "\n".join(parts) if parts else ""
+            except ImportError:
+                try:
+                    from langchain_community.document_loaders import UnstructuredPowerPointLoader
+                    docs = UnstructuredPowerPointLoader(str(tmp_path)).load()
+                    text = "\n".join(d.page_content for d in docs)
+                except ImportError:
+                    raise HTTPException(
+                        status_code=501,
+                        detail="PPT support requires python-pptx (pip install python-pptx)",
+                    )
+        else:
+            text = ""
+        if not text or len(text.strip()) < 100:
+            raise HTTPException(status_code=422, detail="Could not extract enough text from the file")
+    finally:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+    return _save_and_return_quiz(user_id, text[:12000], subject, num_questions, question_type, difficulty)
+
+
+def _save_and_return_quiz(
+    user_id: str,
+    content: str,
+    subject: str,
+    num_questions: int,
+    question_type: str,
+    difficulty: str,
+) -> Any:
+    """Extract content, generate questions, save to quizzes dir, return API response."""
+    count = max(1, min(20, num_questions))
+    subj = subject or "General"
+    if question_type == "open_ended":
+        items = _generate_open_ended_questions_via_ai(content, subj, difficulty, count)
+    else:
+        items = _generate_mcq_questions_via_ai(content, subj, difficulty, count)
+    quiz_id = f"gen_{uuid.uuid4().hex[:12]}"
+    payload: dict[str, Any] = {
+        "id": quiz_id,
+        "title": f"Quiz — {subj}",
+        "subject": subj,
+        "difficulty": difficulty,
+        "question_type": question_type,
+        "items": items,
+    }
+    path = _quiz_file(user_id, quiz_id)
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    return {"id": quiz_id, "title": payload["title"], "items": items, "subject": subj, "difficulty": difficulty, "question_type": question_type}
+
+
 @app.post("/api/quiz/panic/generate/files")
 def panic_generate_files(
     files: list[UploadFile] = File(...),
@@ -1387,10 +2794,64 @@ def panic_generate_files(
     return {"id": "panic", "title": f"Panic Mode — {subject}", "items": items}
 
 
-def _resolve_quiz_items(quiz_id: str, items_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Resolve quiz items for grading (from req.items or static QUIZ_ITEMS/PANIC_ITEMS)."""
+def _quizzes_dir(user_id: str) -> Path:
+    """Return per-user quiz directory: data/quizzes/{user_id}/"""
+    d = DATA_DIR / "quizzes" / user_id
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _quiz_file(user_id: str, quiz_id: str) -> Path:
+    """Path for a saved quiz: data/quizzes/{user_id}/{quiz_id}.json"""
+    return _quizzes_dir(user_id) / f"{quiz_id}.json"
+
+
+def _load_quiz_from_file(user_id: str, quiz_id: str) -> dict[str, Any] | None:
+    """Load quiz from user's quiz directory if exists."""
+    path = _quiz_file(user_id, quiz_id)
+    if not path.is_file():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _quiz_result_file(user_id: str, quiz_id: str, attempt_id: str) -> Path:
+    """Path for a single quiz result file."""
+    return _quizzes_dir(user_id) / f"{quiz_id}_{attempt_id}_result.json"
+
+
+def _save_quiz_result(user_id: str, quiz_id: str, result: dict[str, Any]) -> str:
+    """Save quiz result to JSON; returns attempt_id."""
+    attempt_id = f"{int(datetime.now(timezone.utc).timestamp())}_{uuid.uuid4().hex[:8]}"
+    path = _quiz_result_file(user_id, quiz_id, attempt_id)
+    path.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+    return attempt_id
+
+
+def _load_quiz_history(user_id: str) -> list[dict[str, Any]]:
+    """Load all quiz results from user's quiz directory."""
+    d = _quizzes_dir(user_id)
+    results = []
+    for p in sorted(d.iterdir(), reverse=True):
+        if p.is_file() and p.suffix == ".json" and "_result" in p.stem:
+            try:
+                data = json.loads(p.read_text(encoding="utf-8"))
+                results.append(data)
+            except (OSError, json.JSONDecodeError):
+                pass
+    return results
+
+
+def _resolve_quiz_items(quiz_id: str, items_list: list[dict[str, Any]] | None, user_id: str | None = None) -> list[dict[str, Any]]:
+    """Resolve quiz items for grading (from req.items, user file, or static)."""
     if items_list:
         return items_list
+    if user_id:
+        loaded = _load_quiz_from_file(user_id, quiz_id)
+        if loaded and loaded.get("items"):
+            return loaded["items"]
     if quiz_id in ("quick", "default"):
         return QUIZ_ITEMS
     if quiz_id == "panic":
@@ -1401,6 +2862,21 @@ def _resolve_quiz_items(quiz_id: str, items_list: list[dict[str, Any]]) -> list[
     return []
 
 
+def _score_mcq_answer(user_answer: str, item: dict[str, Any]) -> float:
+    """Score MCQ: user_answer can be index (0-3) or option text."""
+    opts = item.get("options") or []
+    correct_idx = int(item.get("correct", 0))
+    correct_text = opts[correct_idx] if correct_idx < len(opts) else ""
+    try:
+        idx = int(user_answer.strip())
+        return 10.0 if 0 <= idx < len(opts) and idx == correct_idx else 0.0
+    except (ValueError, TypeError):
+        pass
+    ua = (user_answer or "").strip().lower()
+    ct = (correct_text or "").strip().lower()
+    return 10.0 if ua and ct and ua in ct else _local_score(user_answer, correct_text)
+
+
 @app.post("/api/quiz/{quiz_id}/submit", response_model=QuizSubmitResponse)
 def quiz_submit(quiz_id: str, req: QuizSubmitRequest, user_id: str = Depends(get_user_id)):
     """Submit quiz answers; grade via AI/local and update user stats."""
@@ -1409,20 +2885,24 @@ def quiz_submit(quiz_id: str, req: QuizSubmitRequest, user_id: str = Depends(get
     ensure_streak_structure(stats)
     quiz_stats = stats.setdefault("quiz_stats", {})
     topic_scores: dict[str, list[float]] = {}
-    items_list = _resolve_quiz_items(quiz_id, req.items or [])
+    items_list = _resolve_quiz_items(quiz_id, req.items, user_id)
     total_score = 0.0
     max_score = len(req.answers) * 10.0 if req.answers else 0.0
 
     for r in req.answers:
         qid = r.get("question_id", "")
-        answer_text = r.get("answer", "")
+        answer_text = str(r.get("user_answer") or r.get("answer", "")).strip()
         score = float(r.get("score", 0))
         if score == 0 and items_list:
             for it in items_list:
                 if it.get("id") == qid:
-                    score = _local_score(answer_text, it.get("expected_answer", ""))
+                    if it.get("options"):
+                        score = _score_mcq_answer(answer_text, it)
+                    else:
+                        score = _local_score(answer_text, it.get("expected_answer", it.get("sample_answer", "")))
                     break
         r["score"] = score
+        r["answer"] = answer_text
         r["topic"] = r.get("topic") or next(
             (it.get("topic", "General") for it in items_list if it.get("id") == qid),
             "General",
@@ -1488,15 +2968,146 @@ def quiz_submit(quiz_id: str, req: QuizSubmitRequest, user_id: str = Depends(get
         if not recommendation_text:
             recommendation_text = "Complete more quizzes and review weak areas from your stats."
 
-    # Enqueue for AWS sync (AppSync recordQuizAttempt) when sync enabled
+    subject = next((r.get("topic", "General") for r in req.answers), "General") if req.answers else "General"
+    percent = int(round((total_score / max_score * 100))) if max_score > 0 else 0
+    quiz_meta = _load_quiz_from_file(user_id, quiz_id) or {}
+    qtype = quiz_meta.get("question_type", "open_ended")
+
+    def _correct_answer_and_explanation(qid: str, it: dict[str, Any], scr: float) -> tuple[str, str]:
+        opts = it.get("options")
+        if opts:
+            idx = int(it.get("correct", 0))
+            correct = opts[idx] if idx < len(opts) else ""
+            expl = str(it.get("explanation", "")).strip()
+            return correct, expl
+        return (
+            str(it.get("sample_answer", it.get("expected_answer", ""))).strip(),
+            str(it.get("explanation", "")).strip(),
+        )
+
+    results_out: list[dict[str, Any]] = []
+    for r in req.answers:
+        qid = r.get("question_id", "")
+        scr = float(r.get("score", 0))
+        correct = scr >= 6.0
+        correct_ans, explanation = "", ""
+        for it in items_list:
+            if it.get("id") == qid:
+                correct_ans, explanation = _correct_answer_and_explanation(qid, it, scr)
+                break
+        if not correct and r.get("feedback"):
+            explanation = r.get("feedback", explanation)
+        results_out.append({
+            "question_id": qid,
+            "correct": correct,
+            "score": scr,
+            "correct_answer": correct_ans,
+            "explanation": explanation,
+        })
+
+    answers_payload = [
+        {
+            "question_id": r.get("question_id", ""),
+            "user_answer": r.get("answer", ""),
+            "correct": float(r.get("score", 0)) >= 6.0,
+            "score": float(r.get("score", 0)),
+            "correct_answer": next((ro["correct_answer"] for ro in results_out if ro["question_id"] == r.get("question_id")), ""),
+            "explanation": next((ro["explanation"] for ro in results_out if ro["question_id"] == r.get("question_id")), r.get("feedback", "")),
+        }
+        for r in req.answers
+    ]
+    result_payload = {
+        "quiz_id": quiz_id,
+        "completed_at": datetime.now(timezone.utc).isoformat(),
+        "score": total_score,
+        "max_score": max_score,
+        "percent": percent,
+        "subject": subject,
+        "question_type": qtype,
+        "answers": answers_payload,
+    }
+    _save_quiz_result(user_id, quiz_id, result_payload)
+    _enqueue_sync(BASE_PATH, user_id, "quiz_result", {
+        "userId": user_id,
+        "quizId": quiz_id,
+        "result": result_payload,
+    })
+
     if req.answers:
         _enqueue_panic_quiz_for_sync(req.answers, len(items_list), user_id)
 
-    results = [
-        {"question_id": r.get("question_id", ""), "score": r.get("score", 0), "topic": r.get("topic", "General")}
-        for r in req.answers
-    ]
-    return {"results": results, "weak_topics_text": weak_topics_text, "recommendation_text": recommendation_text}
+    return {
+        "score": total_score,
+        "max_score": max_score,
+        "percent": percent,
+        "results": results_out,
+        "weak_topics_text": weak_topics_text,
+        "recommendation_text": recommendation_text,
+    }
+
+
+@app.get("/api/student/assignments")
+def student_assignments(class_code: str = "", user_id: str = Depends(get_user_id)):
+    """Return assignments for class. Used when profile.class_code is set (teacher_linked)."""
+    items = _load_assignments(class_code)
+    return [{"id": a.get("id"), "quiz_id": a.get("quiz_id"), "title": a.get("title"), "due_date": a.get("due_date"), "assigned_at": a.get("assigned_at"), "status": a.get("status", "pending")} for a in items]
+
+
+class AssignmentCompleteRequest(BaseModel):
+    assignment_id: str = Field(...)
+    score: float = Field(default=0)
+    completed_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+@app.post("/api/student/assignment-complete")
+def student_assignment_complete(req: AssignmentCompleteRequest, user_id: str = Depends(get_user_id)):
+    """Mark assignment as completed. If offline, enqueue for sync."""
+    try:
+        p = load_profile_for_user(user_id)
+        cc = (p.class_code if p else "") or ""
+        if not cc:
+            return {"ok": True}
+        items = _load_assignments(cc)
+        for a in items:
+            if a.get("id") == req.assignment_id:
+                a["status"] = "completed"
+                a["completed_at"] = req.completed_at
+                a["score"] = req.score
+                _save_assignments(cc, items)
+                return {"ok": True}
+    except Exception:
+        pass
+    _enqueue_sync(BASE_PATH, user_id, "assignment_complete", {
+        "userId": user_id,
+        "assignment_id": req.assignment_id,
+        "score": req.score,
+        "completed_at": req.completed_at,
+    })
+    return {"ok": True}
+
+
+class TeacherAssignQuizRequest(BaseModel):
+    class_code: str = Field(..., min_length=1)
+    quiz_id: str = Field(..., min_length=1)
+    title: str = Field(..., min_length=1)
+    due_date: str = Field(default="", description="YYYY-MM-DD or empty")
+
+
+@app.post("/api/teacher/assign-quiz")
+def teacher_assign_quiz(req: TeacherAssignQuizRequest, user_id: str = Depends(get_user_id)):
+    """Create assignment for class. Saves to data/assignments/{class_code}.json"""
+    items = _load_assignments(req.class_code)
+    aid = str(uuid.uuid4())[:8]
+    items.append({
+        "id": aid,
+        "quiz_id": req.quiz_id,
+        "title": req.title,
+        "due_date": req.due_date or "",
+        "assigned_at": datetime.now(timezone.utc).isoformat(),
+        "status": "pending",
+    })
+    _save_assignments(req.class_code, items)
+    return {"ok": True, "assignment_id": aid}
 
 
 def _enqueue_panic_quiz_for_sync(results: list[dict[str, Any]], total_questions: int, user_id: str) -> None:

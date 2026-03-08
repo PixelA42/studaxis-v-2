@@ -1,249 +1,485 @@
 /**
- * Quiz page — select question, answer, submit for AI grading; show score and feedback.
- * Phase 6: wired to GET /api/quiz/:id and POST /api/quiz/:id/submit.
+ * Quiz home page — Assigned by Teacher, then Quiz from Resources (Textbook, Web Link, File, Paste).
+ * Generate buttons call appropriate API; on success navigate to /quiz/{quiz_id}.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import {
-  getQuiz,
-  postQuizSubmit,
-  getStudyRecommendation,
-  getUserStats,
+  postQuizGenerate,
+  postQuizGenerateFromUrl,
+  postQuizGenerateFromText,
+  postQuizGenerateFromFile,
+  getTextbooks,
+  getStudentAssignments,
+  type TextbooksResponse,
 } from "../services/api";
-import type { QuizItem, QuizSubmitResult } from "../services/api";
-import { PageChrome, GlassCard, LoadingSpinner, HardwareStatus } from "../components";
+import {
+  loadAssignmentsFromStorage,
+  saveAssignmentsToStorage,
+  type AssignmentItem,
+} from "../services/storage";
+import { PageChrome } from "../components";
+import "./Quiz.css";
 
-const QUIZ_ID = "quick";
-const STUDY_TIME_MINUTES = 15;
+const SUBJECTS = [
+  "General",
+  "Physics",
+  "Chemistry",
+  "Biology",
+  "Maths",
+  "Computer Science",
+  "History",
+  "English",
+] as const;
+
+const SOURCE_TABS = [
+  { id: "topic" as const, icon: "💡", label: "Quick Topic" },
+  { id: "textbook" as const, icon: "📚", label: "Textbook" },
+  { id: "weblink" as const, icon: "🌐", label: "Web Link" },
+  { id: "file" as const, icon: "📄", label: "Upload File" },
+  { id: "paste" as const, icon: "✏️", label: "Paste Text" },
+];
+
+const COUNTS = [5, 10, 15, 20] as const;
+const DIFFICULTIES = ["Beginner", "Intermediate", "Expert"] as const;
+const PASTE_MIN = 150;
+const PASTE_MAX = 3000;
+const ALLOWED_EXT = [".pdf", ".ppt", ".pptx"];
 
 export function QuizPage() {
-  const [quiz, setQuiz] = useState<{ id: string; title: string; items: QuizItem[] } | null>(null);
-  const [loadingQuiz, setLoadingQuiz] = useState(true);
-  const [selectedItem, setSelectedItem] = useState<QuizItem | null>(null);
-  const [answer, setAnswer] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [lastResult, setLastResult] = useState<QuizSubmitResult | null>(null);
-  const [recommendation, setRecommendation] = useState<string | null>(null);
-  const [recommendLoading, setRecommendLoading] = useState(false);
-  const [difficulty, setDifficulty] = useState("Beginner");
-
-  useEffect(() => {
-    getQuiz(QUIZ_ID)
-      .then((data) => {
-        setQuiz(data);
-        if (data.items.length > 0 && !selectedItem) {
-          setSelectedItem(data.items[0] ?? null);
-        }
-      })
-      .catch(() => setQuiz(null))
-      .finally(() => setLoadingQuiz(false));
-  }, []);
-
-  useEffect(() => {
-    getUserStats()
-      .then((s) => setDifficulty(s?.preferences?.difficulty_level ?? "Beginner"))
-      .catch(() => {});
-  }, []);
-
-  const handleSubmit = async () => {
-    if (!selectedItem) return;
-    setSubmitError(null);
-    setLastResult(null);
-    setRecommendation(null);
-    setSubmitting(true);
+  const navigate = useNavigate();
+  const { profile } = useAuth();
+  const [assignments, setAssignments] = useState<AssignmentItem[]>([]);
+  const [textbooks, setTextbooks] = useState<TextbooksResponse["textbooks"]>(() => {
     try {
-      const res = await postQuizSubmit(QUIZ_ID, {
-        answers: [{ question_id: selectedItem.id, answer: answer.trim() }],
-      });
-      const first = res.results[0];
-      if (first) setLastResult(first);
-    } catch (e) {
-      setSubmitError(e instanceof Error ? e.message : "Grading failed.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleGetRecommendation = async () => {
-    if (!selectedItem) return;
-    setRecommendLoading(true);
-    try {
-      const res = await getStudyRecommendation({
-        topic: selectedItem.topic,
-        time_budget_minutes: STUDY_TIME_MINUTES,
-        review_mode: "quiz",
-        offline_mode: true,
-      });
-      setRecommendation(res.text);
+      return JSON.parse(localStorage.getItem("studaxis_textbooks_cache") ?? "[]");
     } catch {
-      setRecommendation("Could not load recommendation.");
+      return [];
+    }
+  });
+  const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
+
+  // Quiz from resources state
+  const [sourceTab, setSourceTab] = useState<"topic" | "textbook" | "weblink" | "file" | "paste">("topic");
+  const [topicInput, setTopicInput] = useState("");
+  const [subject, setSubject] = useState("General");
+  const [selectedTextbook, setSelectedTextbook] = useState("");
+  const [weblinkUrl, setWeblinkUrl] = useState("");
+  const [pasteText, setPasteText] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [qType, setQType] = useState<"mcq" | "open_ended">("mcq");
+  const [count, setCount] = useState(10);
+  const [difficulty, setDifficulty] = useState("Beginner");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isTeacherLinked = profile.profile_mode === "teacher_linked";
+  const showAssignments = isTeacherLinked && assignments.length > 0;
+
+  const loadAssignments = useCallback(async () => {
+    const local = loadAssignmentsFromStorage();
+    setAssignments(local);
+    if (isTeacherLinked && profile.class_code) {
+      try {
+        const remote = await getStudentAssignments(profile.class_code);
+        if (remote?.length) {
+          const merged = remote.map((r) => ({
+            id: r.id,
+            quiz_id: r.quiz_id,
+            title: r.title,
+            due_date: r.due_date ?? "",
+            assigned_at: r.assigned_at ?? "",
+            status: (local.find((a) => a.id === r.id)?.status ?? r.status ?? "pending") as AssignmentItem["status"],
+          }));
+          saveAssignmentsToStorage(merged);
+          setAssignments(merged);
+        }
+      } catch {
+        setAssignments(local);
+      }
+    }
+  }, [isTeacherLinked, profile.class_code]);
+
+  useEffect(() => {
+    loadAssignments();
+  }, [loadAssignments]);
+
+  useEffect(() => {
+    getTextbooks()
+      .then((r) => {
+        const books = r.textbooks || [];
+        setTextbooks(books);
+        localStorage.setItem("studaxis_textbooks_cache", JSON.stringify(books));
+      })
+      .catch(() => {}); // already showing cached data
+  }, []);
+
+  const handleGenerate = async () => {
+    setGenError(null);
+    if (!topicInput.trim()) {
+      setGenError("Field required");
+      return;
+    }
+    if (sourceTab === "textbook") {
+      if (!selectedTextbook || !selectedTextbook.trim()) {
+        setGenError("Select a textbook first.");
+        return;
+      }
+    } else if (sourceTab === "weblink") {
+      if (!weblinkUrl.trim()) {
+        setGenError("Enter a valid URL.");
+        return;
+      }
+    } else if (sourceTab === "file") {
+      if (!uploadFile) {
+        setGenError("Select or drop a PDF or PPT file.");
+        return;
+      }
+      const ext = uploadFile.name.toLowerCase().slice(uploadFile.name.lastIndexOf("."));
+      if (!ALLOWED_EXT.some((e) => ext === e)) {
+        setGenError("Only PDF and PPT files are supported.");
+        return;
+      }
+    } else if (sourceTab === "paste") {
+      if (pasteText.trim().length < PASTE_MIN) {
+        setGenError("Please paste at least a paragraph of text to generate a quiz from.");
+        return;
+      }
+    }
+    setGenerating(true);
+    try {
+      let res: { id: string };
+      if (sourceTab === "topic") {
+        res = await postQuizGenerate({
+          source: "topic",
+          subject,
+          topic_text: topicInput.trim(),
+          question_type: qType,
+          num_questions: count,
+          difficulty,
+        });
+      } else if (sourceTab === "textbook") {
+        res = await postQuizGenerate({
+          source: "materials",
+          subject,
+          source_ids: [selectedTextbook],
+          topic_text: topicInput.trim(),
+          question_type: qType,
+          num_questions: count,
+          difficulty,
+        });
+      } else if (sourceTab === "weblink") {
+        res = await postQuizGenerateFromUrl({
+          url: weblinkUrl.trim(),
+          subject,
+          num_questions: count,
+          question_type: qType,
+          difficulty,
+        });
+      } else if (sourceTab === "file" && uploadFile) {
+        res = await postQuizGenerateFromFile({
+          file: uploadFile,
+          subject,
+          num_questions: count,
+          question_type: qType,
+          difficulty,
+        });
+      } else {
+        res = await postQuizGenerateFromText({
+          text: pasteText.trim(),
+          subject,
+          num_questions: count,
+          question_type: qType,
+          difficulty,
+        });
+      }
+      navigate(`/quiz/${res.id}`);
+    } catch (e) {
+      setGenError(e instanceof Error ? e.message : "Generation failed");
     } finally {
-      setRecommendLoading(false);
+      setGenerating(false);
     }
   };
 
-  if (loadingQuiz || !quiz) {
-    return (
-      <PageChrome backTo="/dashboard" backLabel="← Back to Dashboard">
-        <div className="space-y-4">
-          <h2 className="text-2xl font-semibold text-primary">Quick Quiz</h2>
-          <LoadingSpinner
-            loading={loadingQuiz}
-            message={loadingQuiz ? "Loading quiz..." : "No quiz available."}
-          />
-        </div>
-      </PageChrome>
-    );
-  }
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const ext = f.name.toLowerCase().slice(f.name.lastIndexOf("."));
+    if (!ALLOWED_EXT.some((ex) => ext === ex)) {
+      setGenError("Only PDF and PPT files are supported");
+      setUploadFile(null);
+    } else {
+      setGenError(null);
+      setUploadFile(f);
+    }
+    e.target.value = "";
+  };
 
-  const items = quiz.items;
-  const hasItems = items.length > 0;
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const f = e.dataTransfer.files?.[0];
+    if (!f) return;
+    const ext = f.name.toLowerCase().slice(f.name.lastIndexOf("."));
+    if (!ALLOWED_EXT.some((ex) => ext === ex)) {
+      setGenError("Only PDF and PPT files are supported");
+      setUploadFile(null);
+    } else {
+      setGenError(null);
+      setUploadFile(f);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => setIsDragOver(false);
+
+  const isPastDue = (due: string) => {
+    if (!due) return false;
+    try {
+      const d = new Date(due);
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      return d.getTime() < today.getTime();
+    } catch {
+      return false;
+    }
+  };
+
+  const statusColor = (s: string) => {
+    if (s === "completed") return "#10b981";
+    if (s === "in_progress") return "#00a8e8";
+    return "#9ca3af";
+  };
 
   return (
     <PageChrome backTo="/dashboard" backLabel="← Back to Dashboard">
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h2 className="text-2xl font-semibold text-primary">{quiz.title}</h2>
-          <HardwareStatus modelName="llama3.2" className="text-xs" />
-        </div>
-        <p className="text-primary/80">
-          Grading and recommendations are routed via the AI integration layer.
-        </p>
-        <div className="flex items-center gap-2 text-sm text-primary/70">
-          <span
-            className={`inline-flex items-center rounded-full px-2.5 py-0.5 ${
-              difficulty === "Beginner"
-                ? "bg-accent-blue/20 text-accent-blue"
-                : "bg-surface-light border border-glass-border text-primary/80"
-            }`}
-          >
-            {difficulty}
-          </span>
-        </div>
+      <div className="quiz-home">
+        <h1 className="quiz-home__title">Quiz</h1>
 
-        {!hasItems ? (
-          <GlassCard title="No questions">
-            <p className="text-primary/80">No quiz items available. Add content to begin grading.</p>
-          </GlassCard>
-        ) : (
-          <GlassCard>
-            <div className="space-y-4">
-              <div>
-                <label
-                  htmlFor="quiz-question-select"
-                  className="block text-sm font-medium text-primary/90 mb-2"
-                >
-                  Select question
-                </label>
+        {showAssignments && (
+          <section className="quiz-home__section">
+            <h2 className="quiz-home__section-title">Assigned by Teacher</h2>
+            <div className="quiz-home__cards">
+              {assignments.map((a) => (
+                <div key={a.id} className="quiz-home__card quiz-home__card--assignment">
+                  <div className="quiz-home__card-header">
+                    <span className="quiz-home__card-title">{a.title}</span>
+                    <span
+                      className="quiz-home__card-due"
+                      style={{ color: isPastDue(a.due_date) ? "#FA5C5C" : undefined }}
+                    >
+                      Due {a.due_date || "—"}
+                    </span>
+                  </div>
+                  <span
+                    className="quiz-home__chip"
+                    style={{ background: `${statusColor(a.status)}20`, color: statusColor(a.status) }}
+                  >
+                    {a.status}
+                  </span>
+                  <button
+                    type="button"
+                    className="quiz-home__btn quiz-home__btn--primary"
+                    onClick={() => navigate(`/quiz/${a.quiz_id}`)}
+                  >
+                    Start Quiz →
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className="quiz-home__section">
+          <h2 className="quiz-home__section-title">Quiz from Resources</h2>
+          <div className="quiz-home__form">
+            <div className="quiz-home__field">
+              <label>Source</label>
+              <div className="quiz-home__pills">
+                {SOURCE_TABS.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className={`quiz-home__pill ${sourceTab === s.id ? "quiz-home__pill--on" : ""}`}
+                    onClick={() => { setSourceTab(s.id); setGenError(null); }}
+                  >
+                    {s.icon} {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {sourceTab === "textbook" && (
+              <div className="quiz-home__field">
+                <label>Textbook</label>
                 <select
-                  id="quiz-question-select"
-                  value={selectedItem?.id ?? ""}
-                  onChange={(e) => {
-                    const item = items.find((q) => q.id === e.target.value);
-                    setSelectedItem(item ?? null);
-                    setAnswer("");
-                    setLastResult(null);
-                    setRecommendation(null);
-                  }}
-                  className="w-full max-w-xl px-4 py-2 rounded-lg border border-glass-border bg-surface-light text-primary focus:outline-none focus:ring-2 focus:ring-accent-blue focus:border-transparent"
+                  value={selectedTextbook}
+                  onChange={(e) => setSelectedTextbook(e.target.value)}
+                  className="quiz-home__input"
                 >
-                  {items.map((q) => (
-                    <option key={q.id} value={q.id}>
-                      {q.topic} — {q.question.slice(0, 60)}
-                      {q.question.length > 60 ? "…" : ""}
-                    </option>
+                  <option value="">— Select textbook —</option>
+                  {textbooks.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
               </div>
+            )}
 
-              {selectedItem && (
-                <>
-                  <div>
-                    <p className="text-sm font-medium text-primary/90 mb-2">Question</p>
-                    <p className="text-primary">{selectedItem.question}</p>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="quiz-answer"
-                      className="block text-sm font-medium text-primary/90 mb-2"
-                    >
-                      Your answer
-                    </label>
-                    <textarea
-                      id="quiz-answer"
-                      value={answer}
-                      onChange={(e) => setAnswer(e.target.value)}
-                      placeholder="Write your answer here..."
-                      rows={6}
-                      className="w-full px-4 py-3 rounded-lg border border-glass-border bg-surface-light text-primary placeholder:text-primary/50 focus:outline-none focus:ring-2 focus:ring-accent-blue focus:border-transparent resize-y"
-                    />
-                  </div>
+            {sourceTab === "weblink" && (
+              <div className="quiz-home__field">
+                <label>Paste a URL…</label>
+                <input
+                  type="url"
+                  className="quiz-home__input"
+                  placeholder="https://example.com/article"
+                  value={weblinkUrl}
+                  onChange={(e) => { setWeblinkUrl(e.target.value); setGenError(null); }}
+                />
+                {sourceTab === "weblink" && genError && (
+                  <p className="quiz-home__error" style={{ marginTop: 8 }} role="alert">{genError}</p>
+                )}
+              </div>
+            )}
 
-                  {submitError && (
-                    <p className="text-sm text-red-400" role="alert">
-                      {submitError}
-                    </p>
+            {sourceTab === "file" && (
+              <div className="quiz-home__field">
+                <label>Upload file (PDF or PPT)</label>
+                <div
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    border: `2px dashed ${isDragOver ? "var(--accent-blue, #00a8e8)" : "var(--glass-border, #e2e8f0)"}`,
+                    background: isDragOver ? "rgba(0,168,232,0.05)" : "var(--surface-light, #f8fafc)",
+                    padding: 24,
+                    borderRadius: 12,
+                    cursor: "pointer",
+                    textAlign: "center",
+                  }}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.ppt,.pptx"
+                    onChange={handleFileSelect}
+                    style={{ display: "none" }}
+                  />
+                  {uploadFile ? (
+                    <span>{uploadFile.name}</span>
+                  ) : (
+                    <span>Drag & drop PDF or PPT here, or click to browse</span>
                   )}
+                </div>
+              </div>
+            )}
 
-                  <LoadingSpinner
-                    loading={submitting}
-                    message="Grading your response and preparing recommendations..."
-                  >
-                    <button
-                      type="button"
-                      onClick={handleSubmit}
-                      disabled={submitting}
-                      className="px-5 py-2.5 rounded-xl font-medium text-deep bg-accent-blue hover:bg-accent-blue/90 focus:outline-none focus:ring-2 focus:ring-accent-blue focus:ring-offset-2 focus:ring-offset-deep disabled:opacity-60"
-                    >
-                      Submit for AI Grading
-                    </button>
-                  </LoadingSpinner>
+            {sourceTab === "paste" && (
+              <div className="quiz-home__field">
+                <label>Paste your notes or article text…</label>
+                <textarea
+                  className="quiz-home__input"
+                  placeholder="Paste your notes, an article, or any text here…"
+                  value={pasteText}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v.length <= PASTE_MAX) setPasteText(v);
+                    setGenError(null);
+                  }}
+                  maxLength={PASTE_MAX}
+                  rows={6}
+                  style={{ resize: "vertical" }}
+                />
+                <p style={{ fontSize: 12, color: "var(--primary-60)", marginTop: 4 }}>{pasteText.length} / {PASTE_MAX}</p>
+                {sourceTab === "paste" && genError && (
+                  <p className="quiz-home__error" style={{ marginTop: 8 }} role="alert">{genError}</p>
+                )}
+              </div>
+            )}
 
-                  {lastResult && (
-                    <div className="space-y-4 pt-4 border-t border-glass-border">
-                      <p className="text-lg font-medium text-primary">
-                        Score: {lastResult.score != null ? `${lastResult.score}/10` : "—"}
-                      </p>
-                      {lastResult.feedback && (
-                        <div>
-                          <h3 className="text-sm font-semibold text-primary mb-2">AI Feedback</h3>
-                          <p className="text-sm text-primary/90 whitespace-pre-wrap">
-                            {lastResult.feedback}
-                          </p>
-                        </div>
-                      )}
-                      {lastResult.error && (
-                        <p className="text-sm text-amber-400">{lastResult.error}</p>
-                      )}
-                      <div>
-                        {recommendLoading ? (
-                          <LoadingSpinner message="Loading recommendation..." className="inline" />
-                        ) : recommendation ? (
-                          <>
-                            <h3 className="text-sm font-semibold text-primary mb-2">
-                              Study Recommendation
-                            </h3>
-                            <p className="text-sm text-primary/90 whitespace-pre-wrap">
-                              {recommendation}
-                            </p>
-                          </>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={handleGetRecommendation}
-                            className="px-4 py-2 rounded-xl border border-glass-border bg-surface-light text-primary hover:bg-surface-light/80 text-sm font-medium"
-                          >
-                            Get study recommendation
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
+            <div className="quiz-home__field">
+              <label>Topic or concept</label>
+              <input
+                type="text"
+                className="quiz-home__input"
+                placeholder="e.g. Photosynthesis, Newton's Laws, World War II..."
+                value={topicInput}
+                onChange={(e) => { setTopicInput(e.target.value); setGenError(null); }}
+                required
+              />
             </div>
-          </GlassCard>
+            <div className="quiz-home__field">
+              <label>Subject</label>
+              <select value={subject} onChange={(e) => setSubject(e.target.value)}>
+                {SUBJECTS.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div className="quiz-home__field">
+              <label>Question type</label>
+              <div className="quiz-home__toggle">
+                <button
+                  type="button"
+                  className={qType === "mcq" ? "quiz-home__toggle--on" : ""}
+                  onClick={() => setQType("mcq")}
+                >
+                  MCQ
+                </button>
+                <button
+                  type="button"
+                  className={qType === "open_ended" ? "quiz-home__toggle--on" : ""}
+                  onClick={() => setQType("open_ended")}
+                >
+                  Open Ended
+                </button>
+              </div>
+            </div>
+            <div className="quiz-home__field">
+              <label>Count</label>
+              <div className="quiz-home__count">
+                {COUNTS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    className={count === c ? "quiz-home__toggle--on" : ""}
+                    onClick={() => setCount(c)}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="quiz-home__field">
+              <label>Difficulty</label>
+              <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
+                {DIFFICULTIES.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="button"
+              className="quiz-home__btn quiz-home__btn--primary quiz-home__btn--block"
+              onClick={handleGenerate}
+              disabled={generating}
+            >
+              {generating ? "🧠 Generating questions..." : "Generate Quiz →"}
+            </button>
+          </div>
+        </section>
+
+        {genError && (sourceTab !== "weblink" && sourceTab !== "paste") && (
+          <p className="quiz-home__error" role="alert">
+            {genError}
+          </p>
         )}
       </div>
     </PageChrome>

@@ -21,6 +21,7 @@ import {
   HiSun,
   HiMoon,
   HiHome,
+  HiBell,
 } from "react-icons/hi2";
 
 const iconClass = "w-5 h-5";
@@ -45,4 +46,5 @@ export const Icons = {
   moon: <HiMoon className={iconClass} />,
   /** Larger AI icon for empty states (e.g. Chat) */
   aiLarge: <HiSparkles className="w-12 h-12" />,
+  bell: <HiBell className={iconClass} />,
 };

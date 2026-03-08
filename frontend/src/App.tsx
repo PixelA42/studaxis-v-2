@@ -6,6 +6,8 @@ import { PanicExamProvider } from "./contexts/PanicExamContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { FlashcardDeckProvider } from "./contexts/FlashcardDeckContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import { NotificationTriggers } from "./components/NotificationTriggers";
+import { AssignmentSync } from "./components/AssignmentSync";
 import { DashboardLayout } from "./components/DashboardLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { OllamaLoadingScreen } from "./components/OllamaLoadingScreen";
@@ -25,6 +27,7 @@ const DashboardPage = lazy(() => import("./pages/Dashboard").then((m) => ({ defa
 const ChatPage = lazy(() => import("./pages/Chat").then((m) => ({ default: m.ChatPage })));
 const FlashcardsPage = lazy(() => import("./pages/Flashcards").then((m) => ({ default: m.FlashcardsPage })));
 const QuizPage = lazy(() => import("./pages/Quiz").then((m) => ({ default: m.QuizPage })));
+const QuizTakePage = lazy(() => import("./pages/QuizTake").then((m) => ({ default: m.QuizTakePage })));
 const TextbooksPage = lazy(() => import("./pages/Textbooks").then((m) => ({ default: m.TextbooksPage })));
 const SettingsPage = lazy(() => import("./pages/Settings").then((m) => ({ default: m.SettingsPage })));
 const PanicModePage = lazy(() => import("./pages/PanicMode").then((m) => ({ default: m.PanicModePage })));
@@ -92,6 +95,7 @@ function AppRoutes() {
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/flashcards" element={<FlashcardsPage />} />
           <Route path="/quiz" element={<QuizPage />} />
+          <Route path="/quiz/:id" element={<QuizTakePage />} />
           <Route path="/textbooks" element={<TextbooksPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/panic-mode" element={<PanicModePage />} />
@@ -105,6 +109,19 @@ function AppRoutes() {
     </Routes>
     </Suspense>
   );
+}
+
+function AppPreload() {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      import("./pages/Dashboard");
+      import("./pages/Chat");
+      import("./pages/Flashcards");
+      import("./pages/Quiz");
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+  return null;
 }
 
 export default function App() {
@@ -122,7 +139,10 @@ export default function App() {
           <ThemeProvider>
             <FlashcardDeckProvider>
               <NotificationProvider>
+                <NotificationTriggers />
+                <AssignmentSync />
                 <PanicExamProvider>
+                  <AppPreload />
                   <BootGuard>
                     <AppRoutes />
                   </BootGuard>

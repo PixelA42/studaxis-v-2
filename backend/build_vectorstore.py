@@ -1,4 +1,5 @@
 """One-shot script to build the vector store with per-file timeout protection."""
+import json
 import signal
 import sys
 import os
@@ -66,10 +67,22 @@ def main():
 
             docs = loader.load()
             subject = f.stem.split("_")[0].lower()
+            # Topic extraction before chunking (for topic-aware RAG)
+            full_text = "\n\n".join(getattr(d, "page_content", "") or "" for d in docs)
+            dominant_topics = []
+            if full_text.strip():
+                try:
+                    from rag.topic_extractor import extract_dominant_topics
+                    dominant_topics = extract_dominant_topics(full_text, num_topics=10)
+                    if dominant_topics:
+                        print(f"    ({len(dominant_topics)} topics)")
+                except Exception as ex:
+                    print(f"    (topics skipped: {ex})")
             for d in docs:
                 d.metadata["subject"] = subject
                 d.metadata["source"] = f.name
                 d.metadata["file_type"] = suffix
+                d.metadata["dominant_topics"] = json.dumps(dominant_topics)
             all_docs.extend(docs)
             print(f"✓ {len(docs)} pages")
         except KeyboardInterrupt:

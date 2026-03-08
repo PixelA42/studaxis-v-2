@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import {
   getUserStats,
@@ -16,7 +16,9 @@ import {
   fetchChatHistory,
   saveChatHistoryToBackend,
   type ChatMessage,
+  type ChatTaskType,
 } from "../services/api";
+import { MarkdownWithMath } from "../components/MarkdownWithMath";
 
 const MAX_HISTORY = 50;
 const CHAT_HISTORY_STORAGE = "studaxis_chat_history";
@@ -30,11 +32,11 @@ type ChatSession = {
   subject: string;
 };
 
-const QUICK_ACTIONS = [
-  { label: "Explain Topic", prompt: "Explain this concept: " },
-  { label: "Quiz Me", prompt: "Quiz me on: " },
-  { label: "Flashcards", prompt: "Create flashcards for: " },
-  { label: "Step-by-Step", prompt: "Explain step-by-step: " },
+const QUICK_ACTIONS: Array<{ label: string; prompt: string; taskType: ChatTaskType }> = [
+  { label: "Explain Topic", prompt: "Explain this concept: ", taskType: "explain_topic" },
+  { label: "Quiz Me", prompt: "Quiz me on: ", taskType: "quiz_me" },
+  { label: "Flashcards", prompt: "Create flashcards for: ", taskType: "flashcards" },
+  { label: "Step-by-Step", prompt: "Explain step-by-step: ", taskType: "step_by_step" },
 ];
 
 const QUICK_CHIPS = [
@@ -79,8 +81,11 @@ const INITIAL_MESSAGES: ChatMessage[] = [
   },
 ];
 
+const FLASHCARDS_PROMPT_PREFIX = "Create flashcards for: ";
+
 export function ChatPage() {
   const { profile, connectivityStatus } = useAuth();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatHistory, setChatHistory] = useState<ChatSession[]>(() => {
     try {
@@ -100,6 +105,7 @@ export function ChatPage() {
   const [subject, setSubject] = useState<string>(
     () => localStorage.getItem("studaxis_chat_subject") ?? "General"
   );
+  const [activeTaskType, setActiveTaskType] = useState<ChatTaskType>("chat");
   const [activeTextbook, setActiveTextbook] = useState<string | null>(null);
   const [attachedTextbook, setAttachedTextbook] = useState<{ id: string; filename: string } | null>(null);
   const [textbooks, setTextbooks] = useState<
@@ -234,8 +240,10 @@ export function ChatPage() {
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [messages]);
 
   useEffect(() => {
     try {
@@ -255,9 +263,27 @@ export function ChatPage() {
   }, []);
 
   const sendMessage = useCallback(
-    async (text: string, isClarification = false) => {
+    async (text: string, isClarification = false, taskType?: ChatTaskType) => {
       if (!text.trim()) return;
       setError(null);
+      const effectiveTaskType = taskType ?? activeTaskType;
+
+      // Flashcards: redirect to flashcards page with topic, auto-generate there
+      if (effectiveTaskType === "flashcards") {
+        let topic = text.trim();
+        if (topic.toLowerCase().startsWith(FLASHCARDS_PROMPT_PREFIX.toLowerCase())) {
+          topic = topic.slice(FLASHCARDS_PROMPT_PREFIX.length).trim();
+        }
+        if (topic) {
+          navigate(`/flashcards?topic=${encodeURIComponent(topic)}`, { replace: false });
+          setInput("");
+          setActiveTaskType("chat");
+          return;
+        }
+        setError("Enter a topic for flashcards (e.g. quadratic equations)");
+        return;
+      }
+
       const userMsg: ChatMessage = {
         role: "user",
         content: text.trim(),
@@ -271,6 +297,7 @@ export function ChatPage() {
         const res = await postChat({
           message: text.trim(),
           is_clarification: isClarification,
+          task_type: effectiveTaskType,
           subject,
           textbook_id: attachedTextbook?.id ?? null,
           context: {
@@ -300,9 +327,10 @@ export function ChatPage() {
         await saveHistory([...next, fallback]);
       } finally {
         setLoading(false);
+        setActiveTaskType("chat"); // reset so next message defaults to chat unless button clicked
       }
     },
-    [messages, level, subject, attachedTextbook, activeTextbook, profile.profile_name, saveHistory]
+    [messages, level, subject, attachedTextbook, activeTextbook, profile.profile_name, saveHistory, activeTaskType, navigate]
   );
 
   useEffect(() => {
@@ -422,7 +450,7 @@ export function ChatPage() {
       if (!val) return;
       setClarifyInputs((p) => ({ ...p, [idx]: "" }));
       setClarifyExpanded((p) => ({ ...p, [idx]: false }));
-      sendMessage(`[Clarification] ${val}`, true);
+      sendMessage(`[Clarification] ${val}`, true, "clarify");
     },
     [clarifyInputs, sendMessage]
   );
@@ -843,8 +871,13 @@ export function ChatPage() {
                   <button
                     key={i}
                     type="button"
-                    className="chat-action-btn flex items-center gap-2 py-3 px-4 rounded-xl bg-surface-light border-2 border-glass-border text-primary text-sm font-bold text-left hover:border-accent-blue hover:text-accent-blue hover:bg-accent-blue/5"
+                    className={`chat-action-btn flex items-center gap-2 py-3 px-4 rounded-xl border-2 text-primary text-sm font-bold text-left transition-all ${
+                      activeTaskType === a.taskType
+                        ? "border-accent-blue text-accent-blue bg-accent-blue/10"
+                        : "bg-surface-light border-glass-border hover:border-accent-blue hover:text-accent-blue hover:bg-accent-blue/5"
+                    }`}
                     onClick={() => {
+                      setActiveTaskType(a.taskType);
                       setInput(a.prompt);
                       textareaRef.current?.focus();
                     }}
@@ -1431,7 +1464,9 @@ function ChatBubble({
             border: "1.5px solid #e8edf5",
           }}
         >
-          <p className="whitespace-pre-wrap break-words">{message.content}</p>
+          <MarkdownWithMath className="whitespace-pre-wrap break-words">
+            {message.content}
+          </MarkdownWithMath>
         </div>
         <div className="mt-2">
           <button

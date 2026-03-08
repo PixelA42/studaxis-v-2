@@ -85,8 +85,8 @@ export interface FlashcardGenerateResponse {
 export interface FlashcardExplainRequest {
   front: string;
   back: string;
-  topic?: string;
-  user_query?: string | null;
+  subject?: string;
+  difficulty?: string;
 }
 
 export interface FlashcardExplainResponse {
@@ -150,10 +150,20 @@ export async function getHardware(): Promise<HardwareResponse> {
   return request<HardwareResponse>("/api/hardware");
 }
 
+/** Task types for AI chat (maps to backend AITaskType) */
+export type ChatTaskType =
+  | "chat"
+  | "clarify"
+  | "explain_topic"
+  | "quiz_me"
+  | "flashcards"
+  | "step_by_step";
+
 /** Chat request/response (POST /api/chat) */
 export interface ChatRequest {
   message: string;
   is_clarification?: boolean;
+  task_type?: ChatTaskType;
   subject?: string;
   textbook_id?: string | null;
   context?: {
@@ -284,6 +294,7 @@ export async function postChat(params: ChatRequest): Promise<ChatResponse> {
     body: JSON.stringify({
       message: params.message,
       is_clarification: params.is_clarification ?? false,
+      task_type: params.task_type ?? "chat",
       subject: params.subject ?? undefined,
       textbook_id: params.textbook_id ?? undefined,
       context: params.context ?? undefined,
@@ -613,6 +624,70 @@ export async function generateFlashcardsFromWeblink(params: {
   });
 }
 
+/** Generate from URL (topic-aware): POST /api/flashcards/generate-from-url */
+export async function generateFlashcardsFromUrl(params: {
+  url: string;
+  subject: string;
+  num_cards: number;
+  difficulty?: string;
+}): Promise<FlashcardGenerateResponse> {
+  return request<FlashcardGenerateResponse>("/api/flashcards/generate-from-url", {
+    method: "POST",
+    body: JSON.stringify({
+      url: params.url.trim(),
+      subject: params.subject || "General",
+      num_cards: params.num_cards,
+      difficulty: params.difficulty ?? "Beginner",
+    }),
+  });
+}
+
+/** Generate from file (PDF/PPT only, topic-aware): POST /api/flashcards/generate-from-file */
+export async function generateFlashcardsFromFile(params: {
+  file: File;
+  subject: string;
+  num_cards: number;
+}): Promise<FlashcardGenerateResponse> {
+  const form = new FormData();
+  form.append("file", params.file);
+  form.append("subject", params.subject || "General");
+  form.append("num_cards", String(params.num_cards));
+  const res = await apiFetch("/api/flashcards/generate-from-file", {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) {
+    const raw = await res.text();
+    let message = raw || `API error ${res.status}`;
+    try {
+      const json = JSON.parse(raw) as { detail?: string };
+      if (typeof json.detail === "string") message = json.detail;
+    } catch {
+      // keep raw
+    }
+    throw new Error(message);
+  }
+  return res.json() as Promise<FlashcardGenerateResponse>;
+}
+
+/** Generate from pasted text (topic-aware): POST /api/flashcards/generate-from-text */
+export async function generateFlashcardsFromText(params: {
+  text: string;
+  subject: string;
+  num_cards: number;
+  difficulty?: string;
+}): Promise<FlashcardGenerateResponse> {
+  return request<FlashcardGenerateResponse>("/api/flashcards/generate-from-text", {
+    method: "POST",
+    body: JSON.stringify({
+      text: params.text.trim(),
+      subject: params.subject || "General",
+      num_cards: params.num_cards,
+      difficulty: params.difficulty ?? "Beginner",
+    }),
+  });
+}
+
 /**
  * Generate flashcards from uploaded files (txt, pdf, ppt, pptx).
  */
@@ -691,8 +766,8 @@ export async function explainFlashcard(
     body: JSON.stringify({
       front: params.front,
       back: params.back,
-      topic: params.topic ?? "General",
-      user_query: params.user_query ?? null,
+      subject: params.subject ?? "General",
+      difficulty: params.difficulty ?? "Beginner",
     }),
   });
 }
@@ -712,6 +787,41 @@ export async function getStudyRecommendation(
       review_mode: params.review_mode ?? "flashcards",
       user_id: params.user_id ?? null,
       offline_mode: params.offline_mode ?? true,
+    }),
+  });
+}
+
+/** Structured adaptive recommendation response */
+export interface AdaptiveRecommendationResponse {
+  weak_topic: string;
+  suggested_action: string;
+  difficulty_adjustment: string;
+  text: string;
+  confidence_score: number;
+  has_data: boolean;
+}
+
+/** Adaptive flashcard recommendation: POST /api/flashcards/recommend.
+ * Supports quiz-only mode when deck_id/subject are empty (uses quiz stats). */
+export async function getFlashcardRecommendation(params: {
+  deck_id?: string;
+  subject?: string;
+  hard_cards?: string[];
+  easy_count?: number;
+  hard_count?: number;
+  difficulty?: string;
+  insights?: { weak_subjects?: string[]; avg_quiz_score?: number; streak?: number };
+}): Promise<AdaptiveRecommendationResponse> {
+  return request<AdaptiveRecommendationResponse>("/api/flashcards/recommend", {
+    method: "POST",
+    body: JSON.stringify({
+      deck_id: params.deck_id ?? "",
+      subject: params.subject ?? "",
+      hard_cards: params.hard_cards ?? [],
+      easy_count: params.easy_count ?? 0,
+      hard_count: params.hard_count ?? 0,
+      difficulty: params.difficulty ?? "Beginner",
+      insights: params.insights,
     }),
   });
 }
@@ -742,10 +852,17 @@ export async function getDashboardFlashcards(): Promise<DashboardFlashcardsRespo
 }
 
 /**
- * Fetch all stored flashcards.
+ * Fetch all stored flashcards (cards endpoint for backward compat).
  */
 export async function getFlashcards(): Promise<FlashcardsListResponse> {
-  return request<FlashcardsListResponse>("/api/flashcards");
+  return request<FlashcardsListResponse>("/api/flashcards/cards");
+}
+
+/**
+ * Fetch all flashcard decks (new deck structure).
+ */
+export async function getFlashcardDecks(): Promise<{ decks: Array<Record<string, unknown>> }> {
+  return request<{ decks: Array<Record<string, unknown>> }>("/api/flashcards");
 }
 
 /**
@@ -757,13 +874,20 @@ export async function getFlashcardsDue(): Promise<FlashcardsListResponse> {
 
 /**
  * Append cards to storage (enriched with next_review, etc.).
+ * Optionally create/update a deck with deck_id.
  */
 export async function postFlashcards(
-  cards: FlashcardItem[]
+  cards: FlashcardItem[],
+  opts?: { deck_id?: string; deck_title?: string; deck_subject?: string }
 ): Promise<{ ok: boolean; appended: number }> {
   return request<{ ok: boolean; appended: number }>("/api/flashcards", {
     method: "POST",
-    body: JSON.stringify({ cards }),
+    body: JSON.stringify({
+      cards,
+      deck_id: opts?.deck_id ?? undefined,
+      deck_title: opts?.deck_title ?? undefined,
+      deck_subject: opts?.deck_subject ?? undefined,
+    }),
   });
 }
 
@@ -779,13 +903,56 @@ export async function putFlashcards(
   });
 }
 
+/** POST /api/flashcards/deck - save full deck to backend (for recents sync) */
+export async function postFlashcardDeck(deck: {
+  id: string;
+  title: string;
+  subject: string;
+  source?: string;
+  card_count: number;
+  easy_count: number;
+  hard_count: number;
+  cards: FlashcardItem[];
+  created_at: string;
+  last_studied: string;
+}): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>("/api/flashcards/deck", {
+    method: "POST",
+    body: JSON.stringify(deck),
+  });
+}
+
+/** PATCH /api/flashcards/review - update card ease and deck progress */
+export async function patchFlashcardReview(params: {
+  deck_id: string;
+  card_id: string;
+  ease: "easy" | "hard";
+  next_review?: string;
+}): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>("/api/flashcards/review", {
+    method: "PATCH",
+    body: JSON.stringify({
+      deck_id: params.deck_id,
+      card_id: params.card_id,
+      ease: params.ease,
+      next_review: params.next_review,
+    }),
+  });
+}
+
 // ——— Quiz & Grading ———
 
 export interface QuizItem {
   id: string;
-  topic: string;
-  question: string;
+  topic?: string;
+  question?: string;
+  text?: string;
   expected_answer?: string;
+  sample_answer?: string;
+  rubric?: string;
+  options?: string[];
+  correct?: number;
+  explanation?: string;
 }
 
 export interface QuizResponse {
@@ -814,7 +981,7 @@ export interface GradeResponse {
 }
 
 export interface QuizSubmitRequest {
-  answers: Array<{ question_id: string; answer: string }>;
+  answers: Array<{ question_id: string; answer?: string; user_answer?: string }>;
   /** Custom quiz items for panic mode when generated from material */
   items?: QuizItem[];
 }
@@ -827,8 +994,16 @@ export interface QuizSubmitResult {
 }
 
 export interface QuizSubmitResponse {
-  results: QuizSubmitResult[];
-  quiz_stats_updated: boolean;
+  score: number;
+  max_score: number;
+  percent: number;
+  results: Array<{
+    question_id: string;
+    correct: boolean;
+    score: number;
+    correct_answer: string;
+    explanation: string;
+  }>;
   weak_topics_text?: string | null;
   recommendation_text?: string | null;
 }
@@ -838,6 +1013,31 @@ export interface QuizSubmitResponse {
  */
 export async function getQuiz(quizId: string): Promise<QuizResponse> {
   return request<QuizResponse>(`/api/quiz/${encodeURIComponent(quizId)}`);
+}
+
+/**
+ * Get quiz history (all past results).
+ */
+export async function getQuizHistory(): Promise<{ results: QuizResultItem[] }> {
+  return request<{ results: QuizResultItem[] }>("/api/quiz/history");
+}
+
+/** Quiz result item from API */
+export interface QuizResultItem {
+  quiz_id: string;
+  completed_at: string;
+  score: number;
+  max_score: number;
+  percent: number;
+  subject: string;
+  question_type?: string;
+  answers?: Array<{
+    question_id: string;
+    user_answer: string;
+    correct: boolean;
+    score: number;
+    feedback?: string;
+  }>;
 }
 
 /**
@@ -862,22 +1062,149 @@ export async function postGrade(params: GradeRequest): Promise<GradeResponse> {
 
 /**
  * Submit quiz answers; backend grades each via AI and updates user stats.
- * For panic mode with custom items (from material), pass items so backend can grade correctly.
+ * answers: [{ question_id, user_answer }] or [{ question_id, answer }]
  */
 export async function postQuizSubmit(
   quizId: string,
   params: QuizSubmitRequest
 ): Promise<QuizSubmitResponse> {
+  const answers = params.answers.map((a) => ({
+    question_id: a.question_id,
+    user_answer: a.user_answer ?? a.answer ?? "",
+  }));
   return request<QuizSubmitResponse>(
     `/api/quiz/${encodeURIComponent(quizId)}/submit`,
     {
       method: "POST",
       body: JSON.stringify({
-        answers: params.answers,
+        answers,
         ...(params.items && params.items.length > 0 ? { items: params.items } : {}),
       }),
     }
   );
+}
+
+/** Generate quiz from materials or topic. Returns { id, title, items } */
+export async function postQuizGenerate(params: {
+  source: "materials" | "topic";
+  subject: string;
+  source_ids?: string[] | null;
+  topic_text?: string | null;
+  question_type: "mcq" | "open_ended";
+  num_questions: number;
+  difficulty: string;
+}): Promise<{ id: string; title: string; items: QuizItem[]; subject: string; difficulty: string; question_type: string }> {
+  return request("/api/quiz/generate", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+}
+
+/** Generate quiz from URL. Returns { id, title, items } */
+export async function postQuizGenerateFromUrl(params: {
+  url: string;
+  subject: string;
+  topic_text?: string | null;
+  num_questions: number;
+  question_type: "mcq" | "open_ended";
+  difficulty: string;
+}): Promise<{ id: string; title: string; items: QuizItem[]; subject: string; difficulty: string; question_type: string }> {
+  return request("/api/quiz/generate-from-url", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+}
+
+/** Generate quiz from pasted text. Returns { id, title, items } */
+export async function postQuizGenerateFromText(params: {
+  text: string;
+  subject: string;
+  topic_text?: string | null;
+  num_questions: number;
+  question_type: "mcq" | "open_ended";
+  difficulty: string;
+}): Promise<{ id: string; title: string; items: QuizItem[]; subject: string; difficulty: string; question_type: string }> {
+  return request("/api/quiz/generate-from-text", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+}
+
+/** Generate quiz from uploaded file (PDF/PPT). Returns { id, title, items } */
+export async function postQuizGenerateFromFile(params: {
+  file: File;
+  subject: string;
+  num_questions: number;
+  question_type: "mcq" | "open_ended";
+  difficulty: string;
+}): Promise<{ id: string; title: string; items: QuizItem[]; subject: string; difficulty: string; question_type: string }> {
+  const form = new FormData();
+  form.append("file", params.file);
+  form.append("subject", params.subject);
+  form.append("num_questions", String(params.num_questions));
+  form.append("question_type", params.question_type);
+  form.append("difficulty", params.difficulty);
+  const res = await apiFetch("/api/quiz/generate-from-file", {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) {
+    const raw = await res.text();
+    let message = raw || `API error ${res.status}`;
+    try {
+      const json = JSON.parse(raw) as { detail?: string };
+      if (typeof json.detail === "string") message = json.detail;
+    } catch {
+      // keep raw
+    }
+    throw new Error(message);
+  }
+  return res.json();
+}
+
+/** Grade a single open-ended answer inline. Returns { score, feedback } */
+export async function postQuizGradeAnswer(params: {
+  question: string;
+  user_answer: string;
+  sample_answer: string;
+  rubric: string;
+  difficulty: string;
+}): Promise<{ score: number; feedback: string }> {
+  return request("/api/quiz/grade-answer", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+}
+
+/** Create flashcard deck from wrong quiz questions */
+export async function postFlashcardsFromQuiz(params: {
+  wrong_questions: Array<{ question_id?: string; text?: string; question?: string; correct_answer: string; explanation?: string }>;
+}): Promise<{ ok: boolean; deck_id: string | null; card_count: number }> {
+  return request("/api/flashcards/from-quiz", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+}
+
+/** Get assignments for class (teacher_linked students) */
+export async function getStudentAssignments(classCode: string): Promise<
+  Array<{ id: string; quiz_id: string; title: string; due_date: string; assigned_at: string; status: string }>
+> {
+  if (!classCode) return [];
+  const params = new URLSearchParams({ class_code: classCode });
+  return request(`/api/student/assignments?${params}`);
+}
+
+/** Mark assignment as completed */
+export async function postAssignmentComplete(params: {
+  assignment_id: string;
+  score: number;
+  completed_at?: string;
+}): Promise<{ ok: boolean }> {
+  return request("/api/student/assignment-complete", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
 }
 
 /** Generate panic-mode questions from textbook. One subject only. */
@@ -1069,5 +1396,68 @@ export async function getDataExport(): Promise<DataExportPayload> {
 export async function postDataClear(): Promise<{ ok: boolean; message?: string }> {
   return request<{ ok: boolean; message?: string }>("/api/data/clear", {
     method: "POST",
+  });
+}
+
+// ——— Notifications ———
+
+/** Notification item from backend */
+export interface ApiNotification {
+  id: string;
+  type: string;
+  title: string;
+  message?: string;
+  tag?: string;
+  pinned?: boolean;
+  read: boolean;
+  timestamp: string;
+  action?: { label: string; href: string };
+}
+
+/** GET /api/notifications — returns [] on 401/offline */
+export async function getNotifications(): Promise<ApiNotification[]> {
+  try {
+    const res = await apiFetch("/api/notifications");
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : (data?.notifications ?? []);
+  } catch {
+    return [];
+  }
+}
+
+/** POST /api/notifications/push */
+export async function postNotificationPush(params: {
+  type?: string;
+  title: string;
+  message?: string;
+  tag?: string;
+  pinned?: boolean;
+  action?: { label: string; href: string };
+}): Promise<ApiNotification> {
+  return request<ApiNotification>("/api/notifications/push", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+}
+
+/** PATCH /api/notifications/{id}/read */
+export async function patchNotificationRead(id: string): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>(`/api/notifications/${encodeURIComponent(id)}/read`, {
+    method: "PATCH",
+  });
+}
+
+/** DELETE /api/notifications/{id} */
+export async function deleteNotification(id: string): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>(`/api/notifications/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+/** DELETE /api/notifications/all */
+export async function deleteAllNotifications(): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>("/api/notifications/all", {
+    method: "DELETE",
   });
 }

@@ -1,5 +1,75 @@
 [
   {
+    "id": "1772965805888",
+    "title": "New chat",
+    "messages": [
+      {
+        "role": "assistant",
+        "content": "Hi! I'm your AI tutor powered by Llama 3.2 with RAG grounding from your textbooks. Ask me anything — I work fully offline. 🎓",
+        "timestamp": "2026-03-08T10:22:34.930Z"
+      }
+    ],
+    "timestamp": "2026-03-08T10:30:05.889Z",
+    "subject": "Maths"
+  },
+  {
+    "id": "1772965362585",
+    "title": "Create flashcards for: matrix",
+    "messages": [
+      {
+        "role": "assistant",
+        "content": "Hi! I'm your AI tutor powered by Llama 3.2 with RAG grounding from your textbooks. Ask me anything — I work fully offline. 🎓",
+        "timestamp": "2026-03-08T10:17:24.403Z"
+      },
+      {
+        "role": "user",
+        "content": "Create flashcards for: matrix",
+        "timestamp": "2026-03-08T10:17:40.826Z",
+        "is_clarification": false
+      },
+      {
+        "role": "assistant",
+        "content": "Here are 6 flashcard pairs for the topic \"Matrix\" in Maths:\n\n**1. Front: Matrix **Back: A rectangular array of numbers, symbols, or expressions, arranged in rows and columns.\n\n**2. Front: Diagonal **Back: A line connecting two opposite corners of a square or rectangular matrix.\n\n**3. Front: Transpose **Back: To swap the rows and columns of a matrix.\n\n**4. Front: Determinant **Back: A scalar value calculated from the elements of a square matrix, which can be used to determine the invertibility of the matrix.\n\n**5. Front: Row Echelon Form **Back: A matrix where all elements below the main diagonal are zero, and all rows containing non-zero elements are arranged in ascending order of the non-zero elements.\n\n**6. Front: Inverse Matrix **Back: A matrix that, when multiplied by the original matrix, results in the identity matrix, and can be used to solve systems of linear equations.\n\nI hope these flashcards help! Let me know if you need more.",
+        "timestamp": "2026-03-08T10:17:50.983Z",
+        "is_clarification": false
+      }
+    ],
+    "timestamp": "2026-03-08T10:22:42.585Z",
+    "subject": "Maths"
+  },
+  {
+    "id": "1772964113402",
+    "title": "n n",
+    "messages": [
+      {
+        "role": "user",
+        "content": "n n",
+        "timestamp": "2026-03-08T09:41:42.051Z",
+        "is_clarification": false
+      },
+      {
+        "role": "assistant",
+        "content": "I'm ready to help. Unfortunately, I didn't receive the question from the learner as you mentioned. Could you please rephrase the user's question or provide more context about what they asked about?",
+        "timestamp": "2026-03-08T09:41:50.489Z",
+        "is_clarification": false
+      },
+      {
+        "role": "user",
+        "content": "what is linear",
+        "timestamp": "2026-03-08T10:01:36.801Z",
+        "is_clarification": false
+      },
+      {
+        "role": "assistant",
+        "content": "In Maths, a linear function is a function whose graph is a straight line. In other words, the relationship between the input (x) and output (y) of the function is directly proportional, with a constant rate of change.\n\nHere are the key characteristics of linear functions:\n\n• The graph of a linear function is a straight line.\n• The line can be described by the equation y = mx + b, where m is the slope and b is the y-intercept.\n• The slope (m) represents the rate of change of the function, and it can be positive, negative, or zero.\n• The y-intercept (b) is the point where the line crosses the y-axis.\n\nExamples of linear functions include:\n\n• y = 2x + 3\n• y = -x - 2\n• y = 4x - 1\n\nRecap: A linear function is a straight-line relationship between the input and output, described by an equation in the form of y = mx + b, where m is the slope and b is the y-intercept.",
+        "timestamp": "2026-03-08T10:01:47.955Z",
+        "is_clarification": false
+      }
+    ],
+    "timestamp": "2026-03-08T10:01:53.402Z",
+    "subject": "Maths"
+  },
+  {
     "id": "1772962892495",
     "title": "New chat",
     "messages": [

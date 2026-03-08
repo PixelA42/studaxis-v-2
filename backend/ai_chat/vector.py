@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 from typing import Any
@@ -203,10 +204,23 @@ def build_vector_store(rebuild: bool = False) -> Chroma:
                 print(f"⚠️  No content loaded from {file.name}")
                 continue
 
+            # Topic extraction BEFORE chunking (for topic-aware RAG)
+            full_text = "\n\n".join(getattr(d, "page_content", "") or "" for d in docs)
+            dominant_topics: list[str] = []
+            if full_text.strip():
+                try:
+                    from rag.topic_extractor import extract_dominant_topics
+                    dominant_topics = extract_dominant_topics(full_text, num_topics=10)
+                    if dominant_topics:
+                        print(f"  ✓ Extracted {len(dominant_topics)} topics for {file.name}")
+                except Exception as ex:
+                    print(f"  ⚠️ Topic extraction skipped for {file.name}: {ex}")
+
             for doc in docs:
                 doc.metadata["subject"] = subject
                 doc.metadata["source"] = file.name
                 doc.metadata["file_type"] = suffix
+                doc.metadata["dominant_topics"] = json.dumps(dominant_topics)
 
             documents.extend(docs)
             print(f"✓ Loaded {len(docs)} documents from {file.name}")

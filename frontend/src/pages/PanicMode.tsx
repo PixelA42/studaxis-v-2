@@ -419,7 +419,8 @@ function Lobby({
 }) {
   const items = quiz.items;
   const topicCounts = items.reduce<Record<string, number>>((acc, q) => {
-    acc[q.topic] = (acc[q.topic] || 0) + 1;
+    const t = q.topic ?? "General";
+    acc[t] = (acc[t] || 0) + 1;
     return acc;
   }, {});
   const topics = Object.entries(topicCounts);

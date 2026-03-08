@@ -165,6 +165,110 @@ def get_textbook_context(subject: str | None = None, max_chars: int = 2000) -> s
         return ""
 
 
+def _get_doc_topics_from_store(textbook_id: str) -> list[str]:
+    """Get dominant_topics for a textbook from vector store metadata."""
+    try:
+        _ensure_initialized()
+        import json
+        # Fetch one chunk for this textbook to read its dominant_topics
+        docs = vector_store.similarity_search("concepts", k=1, filter={"source": textbook_id})
+        if not docs:
+            return []
+        meta = getattr(docs[0], "metadata", {}) or {}
+        raw = meta.get("dominant_topics", "")
+        if not raw:
+            return []
+        parsed = json.loads(raw) if isinstance(raw, str) else raw
+        return list(parsed) if isinstance(parsed, list) else []
+    except Exception as e:
+        print(f"[debug] Could not get doc topics for {textbook_id}: {e}")
+        return []
+
+
+def topic_aware_retrieve(
+    query: str,
+    subject: str | None = None,
+    textbook_id: str | None = None,
+    top_k: int = 5,
+) -> list[Any]:
+    """
+    Topic-aware RAG retrieval: map question to topics, dual-query, merge, dedupe.
+
+    Step 1: Map user question to 2-3 dominant topics (when textbook_id and topics available)
+    Step 2: Retrieve chunks similar to those topics
+    Step 3: Retrieve chunks similar to original question
+    Step 4: Merge, deduplicate, return top_k chunks
+    """
+    _ensure_initialized()
+    from rag.topic_extractor import map_question_to_topics
+
+    base_filter: dict[str, Any] = {}
+    if textbook_id:
+        base_filter["source"] = textbook_id
+    elif subject:
+        base_filter["subject"] = subject.lower()
+
+    seen_ids: set[str] = set()
+    seen_content: set[str] = set()
+    merged: list[Any] = []
+
+    def add_unique(doc: Any) -> None:
+        c = getattr(doc, "page_content", "") or ""
+        if len(c) < 20:
+            return
+        key = c[:200]
+        if key in seen_content:
+            return
+        seen_content.add(key)
+        merged.append(doc)
+
+    # Step 1: Get doc topics and map question to relevant topics
+    mapped_topics: list[str] = []
+    if textbook_id:
+        doc_topics = _get_doc_topics_from_store(textbook_id)
+        if doc_topics:
+            mapped_topics = map_question_to_topics(query, doc_topics)
+            if mapped_topics:
+                print(f"[debug] Question mapped to topics: {mapped_topics}")
+
+    # Step 2: Retrieve by topic query (if we have mapped topics)
+    if mapped_topics:
+        topic_query = ", ".join(mapped_topics)
+        try:
+            retriever = vector_store.as_retriever(
+                search_type="mmr",
+                search_kwargs={
+                    "k": 4,
+                    "fetch_k": 10,
+                    "filter": base_filter if base_filter else None,
+                },
+            )
+            topic_docs = retriever.invoke(topic_query)
+            for d in topic_docs or []:
+                add_unique(d)
+        except Exception as e:
+            print(f"[debug] Topic retrieval failed: {e}")
+
+    # Step 3: Retrieve by original question
+    try:
+        retriever = vector_store.as_retriever(
+            search_type="mmr",
+            search_kwargs={
+                "k": 4,
+                "fetch_k": 10,
+                "filter": base_filter if base_filter else None,
+            },
+        )
+        question_docs = retriever.invoke(query.strip())
+        for d in question_docs or []:
+            add_unique(d)
+    except Exception as e:
+        print(f"[debug] Question retrieval failed: {e}")
+
+    # Step 4: Return top_k (already deduplicated, order preserved: topic hits first, then question hits)
+    return merged[:top_k]
+
+
 def get_retriever(subject: str | None = None, textbook_id: str | None = None) -> Any:
     """
     Get a retriever from the vector store with optional subject or textbook filtering.
