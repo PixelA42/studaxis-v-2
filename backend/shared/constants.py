@@ -136,7 +136,7 @@ QUIZ_TYPES = ["mcq", "subjective", "true_false", "fill_blank"]
 # Language Support
 SUPPORTED_LANGUAGES = ["English", "Hinglish"]
 
-# File Paths (relative to backend/)
+# File Paths (relative to project root)
 DATA_DIR = "data"
 CHROMADB_DIR = "data/chromadb"
 USER_STATS_FILE = "data/user_stats.json"

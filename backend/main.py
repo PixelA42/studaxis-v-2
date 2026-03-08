@@ -49,7 +49,7 @@ BASE_PATH = Path(os.environ.get("STUDAXIS_BASE_PATH", str(_APP_DIR)))
 DATA_DIR = BASE_PATH / "data"
 STATS_FILE = DATA_DIR / "user_stats.json"
 FLASHCARDS_FILE = DATA_DIR / "flashcards.json"
-SAMPLE_TEXTBOOKS_DIR = DATA_DIR / "sample_textbooks""
+SAMPLE_TEXTBOOKS_DIR = DATA_DIR / "sample_textbooks"
 
 
 def _user_dir(user_id: str) -> Path:
