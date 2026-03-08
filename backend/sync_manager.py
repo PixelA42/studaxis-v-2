@@ -184,11 +184,7 @@ class SyncManager:
         except (OSError, json.JSONDecodeError):
             pass
 
-        if not self._queue:
-            result["online"] = self.check_connectivity()
-            return result
-
-        # Check connectivity first
+        # Check connectivity first (needed for both queue flush and AWS payload sync)
         if not self.check_connectivity():
             result["pending"] = len(self._queue)
             logger.info("Offline — %d items queued for later", len(self._queue))
@@ -196,7 +192,7 @@ class SyncManager:
 
         result["online"] = True
 
-        # Flush queue (process in order, oldest first)
+        # Flush queue if any (process in order, oldest first)
         remaining = []
         for item in self._queue:
             mutation_type = item["mutation_type"]
@@ -225,6 +221,16 @@ class SyncManager:
         self._queue = remaining
         self._save_queue()
         result["pending"] = len(remaining)
+
+        # Heavy payloads (chat logs, user_stats >4KB) → S3 only. Lambda triggered by S3 event. No direct DynamoDB.
+        try:
+            from aws_sync import upload_heavy_payload_to_s3
+            s3_key = upload_heavy_payload_to_s3(self.base_path, self.user_id)
+            result["aws_sync"] = bool(s3_key)
+        except Exception as e:
+            logger.warning("S3 payload sync failed (local unchanged): %s", e)
+            result["aws_sync"] = False
+            result.setdefault("errors", []).append(f"S3 upload: {e}")
 
         logger.info(
             "Sync complete: %d synced, %d failed, %d pending",

@@ -8,6 +8,7 @@ import { useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotification } from "../contexts/NotificationContext";
 import { getUserStats } from "../services/api";
+import { flushSyncQueue } from "../services/syncQueue";
 
 const STORAGE_WELCOME = "studaxis_last_welcome_date";
 const STORAGE_SYNC_OFFLINE = "studaxis_sync_offline_shown";
@@ -87,9 +88,10 @@ export function NotificationTriggers() {
         push({
           type: "success",
           title: "Back online",
-          message: "Your progress will sync automatically.",
+          message: "Syncing…",
           tag: "sync",
         });
+        flushSyncQueue();
       }
     }
     prevStatus.current = connectivityStatus;

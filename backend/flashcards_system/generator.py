@@ -1,6 +1,7 @@
 import json
-import uuid
+import random
 import re
+import uuid
 from datetime import datetime
 
 
@@ -82,8 +83,12 @@ Return ONLY the strategy word.
 
         difficulty = self.student_model.get_difficulty(topic)
 
+        variation_seed = random.randint(1, 2_147_483_647)
         prompt = f"""
 You are an expert academic tutor creating high-quality flashcards.
+
+VARIATION (seed {variation_seed}): Generate UNIQUE flashcards each time. Do NOT repeat previous questions.
+Vary examples, phrasing, difficulty, and angles. Never produce identical cards.
 
 FLASHCARD STRATEGY: {strategy}
 

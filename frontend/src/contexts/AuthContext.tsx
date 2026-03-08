@@ -155,10 +155,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  /** Offline/online detection: navigator.onLine + periodic health checks */
   useEffect(() => {
-    getHealth()
-      .then(() => setConnectivityStatus("online"))
-      .catch(() => setConnectivityStatus("offline"));
+    const check = () => {
+      if (!navigator.onLine) {
+        setConnectivityStatus("offline");
+        return;
+      }
+      getHealth()
+        .then(() => setConnectivityStatus("online"))
+        .catch(() => setConnectivityStatus("offline"));
+    };
+
+    check();
+    const interval = setInterval(check, 45000);
+    window.addEventListener("online", check);
+    window.addEventListener("offline", () => setConnectivityStatus("offline"));
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("online", check);
+      window.removeEventListener("offline", () => setConnectivityStatus("offline"));
+    };
   }, []);
 
   useEffect(() => {

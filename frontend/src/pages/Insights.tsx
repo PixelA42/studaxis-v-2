@@ -6,9 +6,9 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
-import { PageChrome } from "../components";
-import { getUserStats } from "../services/api";
-import type { UserStats } from "../services/api";
+import { PageChrome, LoadingSpinner } from "../components";
+import { getUserStats, getInsights } from "../services/api";
+import type { UserStats, InsightItem, InsightsResponse } from "../services/api";
 
 // ---------------------------------------------------------------------------
 // Insight types (mirror backend insight_engine_ui.py)
@@ -80,6 +80,23 @@ const priorityConfig: Record<
 function safePct(numerator: number, denominator: number): number {
   if (denominator <= 0) return 0;
   return Math.round((numerator / denominator) * 100);
+}
+
+/** Convert API InsightItem to StructuredInsight for UI compatibility */
+function insightItemToStructured(item: InsightItem): StructuredInsight {
+  return {
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    insight_type: item.insight_type as InsightType,
+    priority: item.priority,
+    related_subject: item.related_subject,
+    suggested_action: item.suggested_action,
+    trend_points: item.trend_points,
+    mastery_pct: item.mastery_pct,
+    weak_topic_score: item.weak_topic_score,
+    weak_topic_name: item.weak_topic_name,
+  };
 }
 
 function buildStudentInsightsFromStats(stats: UserStats | null): StructuredInsight[] {
@@ -300,6 +317,9 @@ export function InsightsPage() {
       return null;
     }
   });
+  const [insightsResponse, setInsightsResponse] = useState<InsightsResponse | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(true);
+  const [insightsError, setInsightsError] = useState(false);
 
   useEffect(() => {
     getUserStats()
@@ -310,7 +330,29 @@ export function InsightsPage() {
       .catch(() => {});
   }, []);
 
-  const insights = useMemo(() => buildStudentInsightsFromStats(stats), [stats]);
+  useEffect(() => {
+    setInsightsLoading(true);
+    setInsightsError(false);
+    getInsights()
+      .then((res) => {
+        setInsightsResponse(res);
+      })
+      .catch(() => {
+        setInsightsError(true);
+      })
+      .finally(() => {
+        setInsightsLoading(false);
+      });
+  }, []);
+
+  const insights = useMemo(() => {
+    if (insightsResponse?.insights?.length) {
+      return insightsResponse.insights.map(insightItemToStructured);
+    }
+    return buildStudentInsightsFromStats(stats);
+  }, [insightsResponse, stats]);
+
+  const studyRecommendationText = insightsResponse?.study_recommendation_text;
   const insightByType = useMemo(() => {
     const m = new Map<InsightType, StructuredInsight>();
     insights.forEach((i) => m.set(i.insight_type, i));
@@ -338,6 +380,27 @@ export function InsightsPage() {
       value: pts[i] ?? 0,
     }));
   }, [quizTrend]);
+
+  if (insightsLoading && !insightsResponse) {
+    return (
+      <PageChrome backTo="/dashboard" backLabel="← Back to Dashboard">
+        <div
+          style={{
+            minHeight: "400px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "48px",
+            background: "linear-gradient(160deg, #f8f9fc 0%, #f0f4ff 100%)",
+            borderRadius: "18px",
+          }}
+        >
+          <LoadingSpinner message="Loading AI insights..." />
+        </div>
+      </PageChrome>
+    );
+  }
 
   return (
     <PageChrome backTo="/dashboard" backLabel="← Back to Dashboard">
@@ -414,28 +477,48 @@ export function InsightsPage() {
               Personalized learning analytics · Real-time
             </p>
           </div>
-          <div
-            style={{
-              marginLeft: "auto",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              background: "#fff",
-              border: "1.5px solid #e5e7eb",
-              borderRadius: "10px",
-              padding: "7px 14px",
-            }}
-          >
-            <span
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            {insightsError && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  background: "#fef3c7",
+                  border: "1.5px solid #f59e0b",
+                  borderRadius: "10px",
+                  padding: "7px 14px",
+                }}
+              >
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "#92400e" }}>
+                  Insights partially unavailable — showing cached stats
+                </span>
+              </div>
+            )}
+            <div
               style={{
-                width: "7px",
-                height: "7px",
-                borderRadius: "50%",
-                background: "#10b981",
-                display: "inline-block",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                background: "#fff",
+                border: "1.5px solid #e5e7eb",
+                borderRadius: "10px",
+                padding: "7px 14px",
               }}
-            />
-            <span style={{ fontSize: "12px", fontWeight: 600, color: "#374151" }}>Live Analysis</span>
+            >
+              <span
+                style={{
+                  width: "7px",
+                  height: "7px",
+                  borderRadius: "50%",
+                  background: insightsError ? "#f59e0b" : "#10b981",
+                  display: "inline-block",
+                }}
+              />
+              <span style={{ fontSize: "12px", fontWeight: 600, color: "#374151" }}>
+                {insightsError ? "Cached" : "Live Analysis"}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -657,35 +740,51 @@ export function InsightsPage() {
             <InsightCard
               priority="low"
               title={recommendation.title}
-              desc={recommendation.description}
-              meta={`Subject: ${recommendation.related_subject} · ${recommendation.suggested_action}`}
+              desc={studyRecommendationText ?? recommendation.description}
+              meta={`Subject: ${recommendation.related_subject}${studyRecommendationText ? "" : ` · ${recommendation.suggested_action}`}`}
             >
-              <div style={{ marginTop: "14px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                {[
-                  { icon: "📖", label: "Study 20 min", color: "#00a8e8" },
-                  { icon: "🧠", label: "Focused Quiz", color: "#FD8A6B" },
-                  { icon: "🃏", label: "Flashcard Recap", color: "#FBEF76", textColor: "#a07c00" },
-                ].map((item, i) => (
-                  <div
-                    key={i}
+              <div style={{ marginTop: "14px" }}>
+                {studyRecommendationText ? (
+                  <p
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "7px",
-                      background: "#fff",
-                      border: `1.5px solid ${item.color}30`,
-                      borderRadius: "10px",
-                      padding: "8px 14px",
-                      fontSize: "12.5px",
-                      fontWeight: 600,
-                      color: "#374151",
-                      boxShadow: `0 2px 8px ${item.color}15`,
+                      fontSize: "13.5px",
+                      color: "#4a5568",
+                      lineHeight: 1.65,
+                      whiteSpace: "pre-wrap",
+                      margin: 0,
                     }}
                   >
-                    <span>{item.icon}</span>
-                    <span style={{ color: item.textColor ?? item.color }}>{item.label}</span>
+                    {studyRecommendationText}
+                  </p>
+                ) : (
+                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                    {[
+                      { icon: "📖", label: "Study 20 min", color: "#00a8e8" },
+                      { icon: "🧠", label: "Focused Quiz", color: "#FD8A6B" },
+                      { icon: "🃏", label: "Flashcard Recap", color: "#FBEF76", textColor: "#a07c00" },
+                    ].map((item, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "7px",
+                          background: "#fff",
+                          border: `1.5px solid ${item.color}30`,
+                          borderRadius: "10px",
+                          padding: "8px 14px",
+                          fontSize: "12.5px",
+                          fontWeight: 600,
+                          color: "#374151",
+                          boxShadow: `0 2px 8px ${item.color}15`,
+                        }}
+                      >
+                        <span>{item.icon}</span>
+                        <span style={{ color: item.textColor ?? item.color }}>{item.label}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             </InsightCard>
           </div>

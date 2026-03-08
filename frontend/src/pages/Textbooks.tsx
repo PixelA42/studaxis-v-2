@@ -10,6 +10,7 @@ import {
   uploadTextbookWithProgress,
   type TextbooksResponse,
 } from "../services/api";
+import { useNotification } from "../contexts/NotificationContext";
 import "./Textbooks.css";
 
 type QueueItem = {
@@ -29,6 +30,7 @@ function formatSize(bytes: number): string {
 }
 
 export function TextbooksPage() {
+  const { push } = useNotification();
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [existingTextbooks, setExistingTextbooks] = useState<
@@ -97,14 +99,22 @@ export function TextbooksPage() {
         );
         await refreshTextbooks();
         fileInputRef.current && (fileInputRef.current.value = "");
+        push({ type: "success", title: "Uploaded", message: `${item.name} added to library` });
       } catch (err) {
+        const msg = err instanceof Error ? err.message : "Upload failed";
+        console.error("[Textbooks] Upload failed:", item.name, err);
+        push({
+          type: "error",
+          title: "Upload failed",
+          message: `${item.name}: ${msg}`,
+        });
         setQueue((prev) =>
           prev.map((q) =>
             q.id === item.id
               ? {
                   ...q,
                   status: "error" as const,
-                  error: err instanceof Error ? err.message : "Upload failed",
+                  error: msg,
                 }
               : q
           )

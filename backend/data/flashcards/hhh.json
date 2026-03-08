@@ -1,11 +1,4076 @@
 {
   "decks": [
     {
-      "id": "deck_d8df98d65227",
+      "id": "deck_1772975356415_0pl0cnr",
+      "title": "SI Base Units",
+      "subject": "SI Base Units",
+      "created_at": "2026-03-08",
+      "cards": [
+        {
+          "id": "72977b73",
+          "front": "Why are units used to express the result of a measurement?",
+          "back": "Units are used to express the result of a measurement because they provide a reference standard for comparison and help to ensure accuracy and consistency.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:16.415Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "SI Base Units",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "Why are units used to express the result of a measurement?",
+          "answer": "Units are used to express the result of a measurement because they provide a reference standard for comparison and help to ensure accuracy and consistency.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7b1c97c1",
+          "front": "What are the units of the fundamental or base quantities called?",
+          "back": "fundamental or base units",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:16.415Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "SI Base Units",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What are the units of the fundamental or base quantities called?",
+          "answer": "fundamental or base units",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "601a8c5d",
+          "front": "What are the fundamental or base units?",
+          "back": "They are the units that cannot be expressed as a combination of other units.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:16.415Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Measurement of Physical Quantities",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What are the fundamental or base units?",
+          "answer": "They are the units that cannot be expressed as a combination of other units.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2867a5c7",
+          "front": "What is the primary purpose of using units in measurement?",
+          "back": "The primary purpose of using units in measurement is to compare a physical quantity with a certain basic, arbitrarily chosen, internationally accepted reference standard called a unit.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:16.415Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Measurement of Physical Quantities",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What is the primary purpose of using units in measurement?",
+          "answer": "The primary purpose of using units in measurement is to compare a physical quantity with a certain basic, arbitrarily chosen, internationally accepted reference standard called a unit.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "769a9ef3",
+          "front": "Why are there only a limited number of units needed to express all physical quantities?",
+          "back": "Physical quantities are inter-related with one another, so only a limited number of units are necessary.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:16.415Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Derived Units",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "Why are there only a limited number of units needed to express all physical quantities?",
+          "answer": "Physical quantities are inter-related with one another, so only a limited number of units are necessary.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "63810422",
+          "front": "Why are only a limited number of units needed to express all physical quantities?",
+          "back": "All physical quantities are inter-related with one another, so only a limited number of base units are needed.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:16.415Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Derived Units",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "Why are only a limited number of units needed to express all physical quantities?",
+          "answer": "All physical quantities are inter-related with one another, so only a limited number of base units are needed.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "50e1bce8",
+          "front": "In what year was the International System of Units (SI) developed by the Bureau International des Poids et mesures (BIPM)?",
+          "back": "1971",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:16.415Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "International System of Units",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "In what year was the International System of Units (SI) developed by the Bureau International des Poids et mesures (BIPM)?",
+          "answer": "1971",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "159b6f79",
+          "front": "What are the three fundamental units of the International System of Units (SI)?",
+          "back": "metre, kilogram and second",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:16.415Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "International System of Units",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What are the three fundamental units of the International System of Units (SI)?",
+          "answer": "metre, kilogram and second",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6b47ece7",
+          "front": "Which of the three fundamental units in the SI system is defined as the unit of time?",
+          "back": "Second",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:16.415Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Significant Figures",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "Which of the three fundamental units in the SI system is defined as the unit of time?",
+          "answer": "Second",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "ac7c6362",
+          "front": "What are the three basic units in the International System of Units (SI)?",
+          "back": "metre, kilogram and second respectively",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:16.415Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Significant Figures",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What are the three basic units in the International System of Units (SI)?",
+          "answer": "metre, kilogram and second respectively",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        }
+      ],
+      "easy_count": 0,
+      "hard_count": 0,
+      "mastered": false
+    },
+    {
+      "id": "deck_1772975355585_815xasb",
+      "title": "SI Units",
+      "subject": "SI Units",
+      "created_at": "2026-03-08",
+      "cards": [
+        {
+          "id": "b5591c4b",
+          "front": "What are the fundamental units for measurement?",
+          "back": "The fundamental or base units are used for expressing all physical quantities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:15.585Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "SI Units",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What are the fundamental units for measurement?",
+          "answer": "The fundamental or base units are used for expressing all physical quantities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8ae0381d",
+          "front": "What are the units of all other physical quantities called?",
+          "back": "derived units",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:15.585Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "SI Units",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What are the units of all other physical quantities called?",
+          "answer": "derived units",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "356e2d82",
+          "front": "Why are base units needed?",
+          "back": "Because the number of physical quantities is very large, but we only need a limited number of units for expressing all physical quantities",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:15.585Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Base Units",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "Why are base units needed?",
+          "answer": "Because the number of physical quantities is very large, but we only need a limited number of units for expressing all physical quantities",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "f3a3a2de",
+          "front": "Why do we need only a limited number of base units to express all physical quantities?",
+          "back": "All physical quantities are inter-related with one another.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:15.585Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Base Units",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "Why do we need only a limited number of base units to express all physical quantities?",
+          "answer": "All physical quantities are inter-related with one another.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9996275d",
+          "front": "What are the seven base units in the SI system?",
+          "back": "Meter (m), Kilogram (kg), Second (s), Kelvin (K), Ampere (A), Mole (mol), and Candela (cd)",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:15.585Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Dimensional Analysis",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What are the seven base units in the SI system?",
+          "answer": "Meter (m), Kilogram (kg), Second (s), Kelvin (K), Ampere (A), Mole (mol), and Candela (cd)",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9863bd2b",
+          "front": "What are the seven base units in the International System of Units (SI) and how are they used?",
+          "back": "The seven base units in SI are metre (m), kilogram (kg), second (s), ampere (A), Kelvin (K), mole (mol), and candela (cd). These units are used to describe various physical quantities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:15.585Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Dimensional Analysis",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What are the seven base units in the International System of Units (SI) and how are they used?",
+          "answer": "The seven base units in SI are metre (m), kilogram (kg), second (s), ampere (A), Kelvin (K), mole (mol), and candela (cd). These units are used to describe various physical quantities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2e8e8cdb",
+          "front": "Why are base units necessary for expressing all physical quantities?",
+          "back": "Because they are the fundamental or base quantities, and the units of all other physical quantities can be expressed as combinations of them.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:15.585Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Measurement of Physical Quantities",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "Why are base units necessary for expressing all physical quantities?",
+          "answer": "Because they are the fundamental or base quantities, and the units of all other physical quantities can be expressed as combinations of them.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "b03d1fa6",
+          "front": "What causes the result of a measurement to be expressed by a number accompanied by a unit?",
+          "back": "Measurement of a physical quantity involves comparison with a certain basic, arbitrarily chosen, internationally accepted reference standard called a unit.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:15.585Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Measurement of Physical Quantities",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What causes the result of a measurement to be expressed by a number accompanied by a unit?",
+          "answer": "Measurement of a physical quantity involves comparison with a certain basic, arbitrarily chosen, internationally accepted reference standard called a unit.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "165a90ae",
+          "front": "What are the three main systems of units that were used extensively till recently?",
+          "back": "The CGS, FPS (or British) system, and the MKS system",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:15.585Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "System of Units",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What are the three main systems of units that were used extensively till recently?",
+          "answer": "The CGS, FPS (or British) system, and the MKS system",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "0358584b",
+          "front": "What were the base units for length, mass, and time in the CGS system?",
+          "back": "centimetre, gram, and second respectively.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:09:15.585Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "System of Units",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What were the base units for length, mass, and time in the CGS system?",
+          "answer": "centimetre, gram, and second respectively.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        }
+      ],
+      "easy_count": 0,
+      "hard_count": 0,
+      "mastered": false
+    },
+    {
+      "id": "deck_1772975312004_xli5957",
+      "title": "General",
+      "subject": "General",
+      "created_at": "2026-03-08",
+      "cards": [
+        {
+          "id": "b6c2d279-2f6e-45dc-8e12-53b7e0112664",
+          "front": "What causes the need for a limited number of units for measuring physical quantities?",
+          "back": "Physical quantities are inter-related with one another, making only a limited number of units necessary for expressing all physical quantities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:08:32.004Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What causes the need for a limited number of units for measuring physical quantities?",
+          "answer": "Physical quantities are inter-related with one another, making only a limited number of units necessary for expressing all physical quantities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3b47af33-b38b-477c-88c5-ab19d9108460",
+          "front": "What is the name of the system of units that is internationally accepted for measurement?",
+          "back": "The Système Internationale d'Unites (SI), abbreviated as SI.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:08:32.004Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What is the name of the system of units that is internationally accepted for measurement?",
+          "answer": "The Système Internationale d'Unites (SI), abbreviated as SI.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2c35d58e-7d96-426a-890d-c7e7256b3f5a",
+          "front": "How do the base units for length, mass, and time differ in the CGS, FPS, and MKS systems?",
+          "back": "The base units are: centimetre, gram, and second for CGS; foot, pound, and second for FPS; and metre, kilogram, and second for MKS.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:08:32.004Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "How do the base units for length, mass, and time differ in the CGS, FPS, and MKS systems?",
+          "answer": "The base units are: centimetre, gram, and second for CGS; foot, pound, and second for FPS; and metre, kilogram, and second for MKS.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7cd2a299-e668-4426-b338-8a1768501ec3",
+          "front": "What is the result of a measurement of a physical quantity expressed as?",
+          "back": "A number (or numerical measure) accompanied by a unit.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:08:32.004Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What is the result of a measurement of a physical quantity expressed as?",
+          "answer": "A number (or numerical measure) accompanied by a unit.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "e62ff53d-0002-4d0b-b2bd-d19e141dfa21",
+          "front": "What is the term for the units obtained for the derived quantities that can be expressed as combinations of the base units?",
+          "back": "Derived units.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:08:32.004Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What is the term for the units obtained for the derived quantities that can be expressed as combinations of the base units?",
+          "answer": "Derived units.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "46901690-1dce-412a-9809-89d91181f678",
+          "front": "Who developed the standard scheme of symbols, units, and abbreviations for the SI system?",
+          "back": "The Bureau International des Poids et mesures (BIPM).",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:08:32.004Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "Who developed the standard scheme of symbols, units, and abbreviations for the SI system?",
+          "answer": "The Bureau International des Poids et mesures (BIPM).",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "193cf564-a856-44f2-9557-9c7beb23908b",
+          "front": "When was the SI system developed?",
+          "back": "1971.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:08:32.004Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "When was the SI system developed?",
+          "answer": "1971.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "192f495d-411c-4fb3-aaf2-c6ec6dbb3f02",
+          "front": "What is the abbreviation for the French name of the International System of Units?",
+          "back": "Système Internationale d'Unites (SI).",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:08:32.004Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What is the abbreviation for the French name of the International System of Units?",
+          "answer": "Système Internationale d'Unites (SI).",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "72a49caf-f61c-4fc9-b0e6-a2100ac9d5d7",
+          "front": "How was the SI system revised recently?",
+          "back": "Recently revised by the General Conference on Weights and Measures in November 2018.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:08:32.004Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "How was the SI system revised recently?",
+          "answer": "Recently revised by the General Conference on Weights and Measures in November 2018.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7e17780c-b624-40dd-8cdc-25107989d3b0",
+          "front": "What is the main purpose of a system of units?",
+          "back": "To provide a complete set of units, both base units and derived units, for expressing all physical quantities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T13:08:32.004Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What is the main purpose of a system of units?",
+          "answer": "To provide a complete set of units, both base units and derived units, for expressing all physical quantities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        }
+      ],
+      "easy_count": 0,
+      "hard_count": 0,
+      "mastered": false
+    },
+    {
+      "id": "deck_c8c320ac663f",
       "title": "All Cards",
       "subject": "General",
       "created_at": "2026-03-08",
       "cards": [
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6",
+          "front": "Design",
+          "back": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Design",
+          "answer": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "11",
+          "front": "Sustainability",
+          "back": "Huts can be designed and built with sustainability in mind, using locally sourced materials and minimal waste.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Sustainability",
+          "answer": "Huts can be designed and built with sustainability in mind, using locally sourced materials and minimal waste.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "12",
+          "front": "Health and Safety",
+          "back": "Huts can pose health and safety risks if not built or maintained properly, particularly in terms of ventilation and sanitation.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Health and Safety",
+          "answer": "Huts can pose health and safety risks if not built or maintained properly, particularly in terms of ventilation and sanitation.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "13",
+          "front": "Economic Value",
+          "back": "Huts can have economic value as a source of income through tourism or as a means of providing shelter for marginalized communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Economic Value",
+          "answer": "Huts can have economic value as a source of income through tourism or as a means of providing shelter for marginalized communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "14",
+          "front": "Environmental Impact",
+          "back": "Huts can have a significant environmental impact, particularly if not built or maintained sustainably.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Environmental Impact",
+          "answer": "Huts can have a significant environmental impact, particularly if not built or maintained sustainably.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "15",
+          "front": "Modern Applications",
+          "back": "Huts can be used as models for sustainable housing, eco-villages, or temporary emergency shelters.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Modern Applications",
+          "answer": "Huts can be used as models for sustainable housing, eco-villages, or temporary emergency shelters.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6",
+          "front": "Design",
+          "back": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Design",
+          "answer": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6",
+          "front": "Design",
+          "back": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Design",
+          "answer": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6",
+          "front": "Design",
+          "back": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Design",
+          "answer": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6",
+          "front": "Design",
+          "back": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Design",
+          "answer": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6",
+          "front": "Design",
+          "back": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Design",
+          "answer": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6",
+          "front": "Design",
+          "back": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Design",
+          "answer": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6",
+          "front": "Design",
+          "back": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Design",
+          "answer": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6",
+          "front": "Design",
+          "back": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Design",
+          "answer": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "11",
+          "front": "Sustainability",
+          "back": "Huts can be designed and built with sustainability in mind, using locally sourced materials and minimal waste.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Sustainability",
+          "answer": "Huts can be designed and built with sustainability in mind, using locally sourced materials and minimal waste.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "12",
+          "front": "Health and Safety",
+          "back": "Huts can pose health and safety risks if not built or maintained properly, particularly in terms of ventilation and sanitation.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Health and Safety",
+          "answer": "Huts can pose health and safety risks if not built or maintained properly, particularly in terms of ventilation and sanitation.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "13",
+          "front": "Economic Value",
+          "back": "Huts can have economic value as a source of income through tourism or as a means of providing shelter for marginalized communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Economic Value",
+          "answer": "Huts can have economic value as a source of income through tourism or as a means of providing shelter for marginalized communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "14",
+          "front": "Environmental Impact",
+          "back": "Huts can have a significant environmental impact, particularly if not built or maintained sustainably.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Environmental Impact",
+          "answer": "Huts can have a significant environmental impact, particularly if not built or maintained sustainably.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "15",
+          "front": "Modern Applications",
+          "back": "Huts can be used as models for sustainable housing, eco-villages, or temporary emergency shelters.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Modern Applications",
+          "answer": "Huts can be used as models for sustainable housing, eco-villages, or temporary emergency shelters.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6",
+          "front": "Design",
+          "back": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Design",
+          "answer": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6",
+          "front": "Design",
+          "back": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Design",
+          "answer": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6",
+          "front": "Design",
+          "back": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Design",
+          "answer": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6",
+          "front": "Design",
+          "back": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Design",
+          "answer": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6",
+          "front": "Design",
+          "back": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Design",
+          "answer": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6",
+          "front": "Design",
+          "back": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Design",
+          "answer": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6",
+          "front": "Design",
+          "back": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Design",
+          "answer": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
         {
           "id": "1",
           "front": "Definition",
@@ -28,8 +4093,8 @@
           "id": "2",
           "front": "Construction",
           "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
-          "ease": "medium",
-          "next_review": "2026-03-08T12:31:02.933Z",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
           "review_count": 0,
           "mastered": false,
           "topic": "Hut",
@@ -298,8 +4363,8 @@
           "id": "2",
           "front": "Construction",
           "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
-          "ease": "medium",
-          "next_review": "2026-03-08T12:31:02.933Z",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
           "review_count": 0,
           "mastered": false,
           "topic": "Hut",
@@ -460,8 +4525,8 @@
           "id": "2",
           "front": "Construction",
           "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
-          "ease": "medium",
-          "next_review": "2026-03-08T12:31:02.933Z",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
           "review_count": 0,
           "mastered": false,
           "topic": "Hut",
@@ -622,8 +4687,8 @@
           "id": "2",
           "front": "Construction",
           "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
-          "ease": "medium",
-          "next_review": "2026-03-08T12:31:02.933Z",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
           "review_count": 0,
           "mastered": false,
           "topic": "Hut",
@@ -892,8 +4957,8 @@
           "id": "2",
           "front": "Construction",
           "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
-          "ease": "medium",
-          "next_review": "2026-03-08T12:31:02.933Z",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
           "review_count": 0,
           "mastered": false,
           "topic": "Hut",
@@ -1054,188 +5119,8 @@
           "id": "2",
           "front": "Construction",
           "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
-          "ease": "medium",
-          "next_review": "2026-03-08T12:31:02.933Z",
-          "review_count": 0,
-          "mastered": false,
-          "topic": "Hut",
-          "sourceType": [
-            "topic"
-          ],
-          "question": "Construction",
-          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
-          "interval": 1,
-          "repetitions": 0,
-          "ease_factor": 2.5
-        },
-        {
-          "id": "3",
-          "front": "Types",
-          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
-          "ease": "medium",
-          "next_review": "2026-03-08T12:31:02.933Z",
-          "review_count": 0,
-          "mastered": false,
-          "topic": "Hut",
-          "sourceType": [
-            "topic"
-          ],
-          "question": "Types",
-          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
-          "interval": 1,
-          "repetitions": 0,
-          "ease_factor": 2.5
-        },
-        {
-          "id": "4",
-          "front": "Uses",
-          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
-          "ease": "medium",
-          "next_review": "2026-03-08T12:31:02.933Z",
-          "review_count": 0,
-          "mastered": false,
-          "topic": "Hut",
-          "sourceType": [
-            "topic"
-          ],
-          "question": "Uses",
-          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
-          "interval": 1,
-          "repetitions": 0,
-          "ease_factor": 2.5
-        },
-        {
-          "id": "5",
-          "front": "Cultural Significance",
-          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
-          "ease": "medium",
-          "next_review": "2026-03-08T12:31:02.933Z",
-          "review_count": 0,
-          "mastered": false,
-          "topic": "Hut",
-          "sourceType": [
-            "topic"
-          ],
-          "question": "Cultural Significance",
-          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
-          "interval": 1,
-          "repetitions": 0,
-          "ease_factor": 2.5
-        },
-        {
-          "id": "6",
-          "front": "Design",
-          "back": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
-          "ease": "medium",
-          "next_review": "2026-03-08T12:31:02.933Z",
-          "review_count": 0,
-          "mastered": false,
-          "topic": "Hut",
-          "sourceType": [
-            "topic"
-          ],
-          "question": "Design",
-          "answer": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
-          "interval": 1,
-          "repetitions": 0,
-          "ease_factor": 2.5
-        },
-        {
-          "id": "7",
-          "front": "Materials",
-          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
-          "ease": "medium",
-          "next_review": "2026-03-08T12:31:02.933Z",
-          "review_count": 0,
-          "mastered": false,
-          "topic": "Hut",
-          "sourceType": [
-            "topic"
-          ],
-          "question": "Materials",
-          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
-          "interval": 1,
-          "repetitions": 0,
-          "ease_factor": 2.5
-        },
-        {
-          "id": "8",
-          "front": "Architecture",
-          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
-          "ease": "medium",
-          "next_review": "2026-03-08T12:31:02.933Z",
-          "review_count": 0,
-          "mastered": false,
-          "topic": "Hut",
-          "sourceType": [
-            "topic"
-          ],
-          "question": "Architecture",
-          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
-          "interval": 1,
-          "repetitions": 0,
-          "ease_factor": 2.5
-        },
-        {
-          "id": "9",
-          "front": "Regional Variations",
-          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
-          "ease": "medium",
-          "next_review": "2026-03-08T12:31:02.933Z",
-          "review_count": 0,
-          "mastered": false,
-          "topic": "Hut",
-          "sourceType": [
-            "topic"
-          ],
-          "question": "Regional Variations",
-          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
-          "interval": 1,
-          "repetitions": 0,
-          "ease_factor": 2.5
-        },
-        {
-          "id": "10",
-          "front": "History",
-          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
-          "ease": "medium",
-          "next_review": "2026-03-08T12:31:02.933Z",
-          "review_count": 0,
-          "mastered": false,
-          "topic": "Hut",
-          "sourceType": [
-            "topic"
-          ],
-          "question": "History",
-          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
-          "interval": 1,
-          "repetitions": 0,
-          "ease_factor": 2.5
-        },
-        {
-          "id": "1",
-          "front": "Definition",
-          "back": "A small structure made of wooden logs or branches, often used as a dwelling.",
           "ease": "hard",
-          "next_review": "2026-03-09T12:31:58.541Z",
-          "review_count": 0,
-          "mastered": false,
-          "topic": "Hut",
-          "sourceType": [
-            "topic"
-          ],
-          "question": "Definition",
-          "answer": "A small structure made of wooden logs or branches, often used as a dwelling.",
-          "interval": 1,
-          "repetitions": 0,
-          "ease_factor": 2.5
-        },
-        {
-          "id": "2",
-          "front": "Construction",
-          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
-          "ease": "medium",
-          "next_review": "2026-03-08T12:31:02.933Z",
+          "next_review": "2026-03-09T13:06:40.499Z",
           "review_count": 0,
           "mastered": false,
           "topic": "Hut",
@@ -1414,8 +5299,188 @@
           "id": "2",
           "front": "Construction",
           "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Construction",
+          "answer": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "3",
+          "front": "Types",
+          "back": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
           "ease": "medium",
           "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Types",
+          "answer": "Some common types of huts include log cabins, earth lodges, and bamboo huts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "4",
+          "front": "Uses",
+          "back": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Uses",
+          "answer": "Huts can be used as temporary shelters, summer homes, or permanent dwellings.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5",
+          "front": "Cultural Significance",
+          "back": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Cultural Significance",
+          "answer": "Huts have cultural and historical significance in many societies, particularly in rural or indigenous communities.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6",
+          "front": "Design",
+          "back": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Design",
+          "answer": "Hut design can vary greatly depending on the materials available, climate, and cultural traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7",
+          "front": "Materials",
+          "back": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Materials",
+          "answer": "Common materials used to build huts include wood, branches, bamboo, and thatch.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8",
+          "front": "Architecture",
+          "back": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Architecture",
+          "answer": "Hut architecture can be simple or elaborate, depending on the design and purpose of the structure.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "9",
+          "front": "Regional Variations",
+          "back": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Regional Variations",
+          "answer": "Huts can be found in various regions and cultures, each with their unique characteristics and traditions.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "10",
+          "front": "History",
+          "back": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "ease": "medium",
+          "next_review": "2026-03-08T12:31:02.933Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "History",
+          "answer": "Huts have been used as shelters for thousands of years, with evidence of ancient hut construction found in many parts of the world.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "1",
+          "front": "Definition",
+          "back": "A small structure made of wooden logs or branches, often used as a dwelling.",
+          "ease": "hard",
+          "next_review": "2026-03-09T12:31:58.541Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Hut",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "Definition",
+          "answer": "A small structure made of wooden logs or branches, often used as a dwelling.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "2",
+          "front": "Construction",
+          "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
           "review_count": 0,
           "mastered": false,
           "topic": "Hut",
@@ -1756,8 +5821,8 @@
           "id": "2",
           "front": "Construction",
           "back": "Typically made with a frame of wooden logs, covered with branches, leaves, or other natural materials.",
-          "ease": "medium",
-          "next_review": "2026-03-08T12:31:02.933Z",
+          "ease": "hard",
+          "next_review": "2026-03-09T13:06:40.499Z",
           "review_count": 0,
           "mastered": false,
           "topic": "Hut",

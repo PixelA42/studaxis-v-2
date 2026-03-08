@@ -9,7 +9,7 @@ import {
   incrementSyncRetries,
   type SyncQueueItem,
 } from "./storage";
-import { postFlashcards, putFlashcards, postQuizSubmit } from "./api";
+import { postFlashcards, putFlashcards, postQuizSubmit, type QuizItem } from "./api";
 
 const MAX_RETRIES = 3;
 
@@ -53,12 +53,16 @@ async function processSyncItem(item: SyncQueueItem): Promise<boolean> {
       return true;
     }
     case "quiz_result": {
-      const { quizId, answers } = item.payload as {
+      const { quizId, answers, items } = item.payload as {
         quizId: string;
-        answers: Array<{ question_id: string; answer: string }>;
+        answers: Array<{ question_id: string; answer?: string; user_answer?: string }>;
+        items?: QuizItem[];
       };
       if (!quizId || !Array.isArray(answers)) return true;
-      await postQuizSubmit(quizId, { answers });
+      await postQuizSubmit(quizId, {
+        answers: answers.map((a) => ({ question_id: a.question_id, answer: a.answer ?? a.user_answer ?? "" })),
+        ...(items?.length ? { items } : {}),
+      });
       return true;
     }
     case "flashcard_review":

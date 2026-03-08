@@ -115,7 +115,7 @@ class LocalStorage:
         stats: dict[str, Any] = {
             "user_id": user_id,
             "topic_performance": {},
-            "flashcard_stats": or self._user_id {"total_reviewed": 0, "mastered": 0, "due_for_review": 0},
+            "flashcard_stats": {"total_reviewed": 0, "mastered": 0, "due_for_review": 0},
             "chat_history": [],
         }
         self.save_user_stats(stats)

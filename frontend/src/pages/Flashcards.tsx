@@ -125,13 +125,13 @@ function RecentDecksList({
 function DeckCompleteSummary({
   easyCards,
   hardCards,
-  onSaveAndGenerateNew,
+  onSaveAndGoBack,
   onStudyHardAgain,
   onReviewEasy,
 }: {
   easyCards: FlashcardItem[];
   hardCards: FlashcardItem[];
-  onSaveAndGenerateNew: () => void;
+  onSaveAndGoBack: () => void;
   onStudyHardAgain: () => void;
   onReviewEasy: (card: FlashcardItem) => void;
 }) {
@@ -201,10 +201,10 @@ function DeckCompleteSummary({
       <div className="flex flex-wrap gap-3 justify-center">
         <button
           type="button"
-          onClick={onSaveAndGenerateNew}
+          onClick={onSaveAndGoBack}
           className="px-5 py-2.5 rounded-xl font-medium text-deep bg-accent-blue hover:bg-accent-blue/90"
         >
-          Save Deck & Generate New
+          Save and Go Back
         </button>
         {hardCards.length > 0 && (
           <button
@@ -415,6 +415,8 @@ export function FlashcardsPage() {
   const [reviewedCardIds, setReviewedCardIds] = useState<Set<string>>(new Set());
 
   const handleClearDeck = async () => {
+    // Clear topic from URL first to prevent auto-regeneration when deck is cleared
+    setSearchParams({});
     const cards = deck;
     if (cards.length === 0) {
       clearDeck();
@@ -1010,7 +1012,7 @@ export function FlashcardsPage() {
             <DeckCompleteSummary
               easyCards={easyCards}
               hardCards={hardCards}
-              onSaveAndGenerateNew={handleClearDeck}
+              onSaveAndGoBack={handleClearDeck}
               onStudyHardAgain={handleStudyHardAgain}
               onReviewEasy={handleReviewEasy}
             />
@@ -1034,7 +1036,7 @@ export function FlashcardsPage() {
           onClick={handleClearDeck}
           className="self-start px-4 py-2 rounded-xl border border-glass-border bg-surface-light text-primary/90 hover:bg-surface-light/80 text-sm font-medium"
         >
-          Save & Generate New
+          Save and Go Back
         </button>
 
         <AerogelDashboardCard

@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { PageChrome, GlassCard } from "../components";
+import { PageChrome, GlassCard, StatusIndicator } from "../components";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import {
@@ -20,7 +20,7 @@ import type { UserStats, DiagnosticsResponse, StorageFileItem } from "../service
 
 export function SettingsPage() {
   const navigate = useNavigate();
-  const { profile, logout } = useAuth();
+  const { profile, logout, connectivityStatus } = useAuth();
   const { theme, setTheme } = useTheme();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [saving, setSaving] = useState(false);
@@ -44,7 +44,10 @@ export function SettingsPage() {
     getDiagnostics().then(setDiagnostics).catch(() => setDiagnostics(null));
   };
 
+  const isOffline = connectivityStatus === "offline";
+
   const handleSyncToggle = async (next: boolean) => {
+    if (isOffline) return;
     setSaving(true);
     try {
       await updateUserStats({ preferences: { ...preferences, sync_enabled: next } });
@@ -71,6 +74,10 @@ export function SettingsPage() {
   };
 
   const handleExportData = async () => {
+    if (isOffline) {
+      alert("Connect to export data.");
+      return;
+    }
     setStorageLoading(true);
     setStorageAction("export");
     try {
@@ -92,6 +99,10 @@ export function SettingsPage() {
   };
 
   const handleClearData = async () => {
+    if (isOffline) {
+      alert("Connect to clear data.");
+      return;
+    }
     if (!window.confirm("Clear all local study data? This will reset stats, flashcards, and profile. Your account will remain. This cannot be undone.")) {
       return;
     }
@@ -115,8 +126,13 @@ export function SettingsPage() {
     return null;
   }
 
-  const profileName = profile.profile_name;
-  const modeLabel = profile.profile_mode === "solo" || !profile.profile_mode ? "Solo" : "Class Linked";
+  const profileName = profile.profile_name || "Student";
+  const modeLabel =
+    profile.profile_mode === "solo" || !profile.profile_mode
+      ? "Solo Learner"
+      : profile.profile_mode === "teacher_linked_provisional"
+        ? "Class Linked (Pending)"
+        : "Class Linked";
 
   return (
     <PageChrome backTo="/dashboard" backLabel="← Back to Dashboard">
@@ -127,21 +143,31 @@ export function SettingsPage() {
         </p>
 
         <GlassCard title="Cloud Sync">
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <span className="text-sm text-primary/70">Connectivity</span>
+            <StatusIndicator status={connectivityStatus} />
+          </div>
           <p className="text-sm text-primary/70 mb-4">
             Control how your progress syncs with the cloud. Disabling keeps all data local.
           </p>
-          <label className="flex items-center gap-3 cursor-pointer">
+          <label className={`flex items-center gap-3 cursor-pointer ${isOffline ? "opacity-70" : ""}`}>
             <input
               type="checkbox"
               checked={syncEnabled}
               onChange={(e) => handleSyncToggle(e.target.checked)}
-              disabled={saving}
+              disabled={saving || isOffline}
               className="rounded border-glass-border bg-deep text-accent-blue focus:ring-accent-blue"
             />
             <span className="text-primary">Enable Cloud Sync</span>
           </label>
-          {!syncEnabled && (
+          {isOffline && (
+            <p className="text-sm text-amber-400/90 mt-2">Connect to change sync settings.</p>
+          )}
+          {!syncEnabled && !isOffline && (
             <p className="text-sm text-primary/60 mt-2">Cloud sync is disabled. Progress stays on this device.</p>
+          )}
+          {syncEnabled && isOffline && (
+            <p className="text-sm text-primary/60 mt-2">Data will sync when online.</p>
           )}
         </GlassCard>
 
@@ -150,6 +176,10 @@ export function SettingsPage() {
             Version, diagnostics, and sync readiness from the backend.
           </p>
           <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-primary/60 block">Connectivity</span>
+              <StatusIndicator status={connectivityStatus} />
+            </div>
             <div>
               <span className="text-primary/60 block">App Version</span>
               <span className="text-primary font-mono">{diagnostics?.app_version ?? "—"}</span>
@@ -254,7 +284,7 @@ export function SettingsPage() {
             <button
               type="button"
               onClick={handleExportData}
-              disabled={storageLoading}
+              disabled={storageLoading || isOffline}
               className="px-4 py-2 rounded-xl border border-glass-border bg-surface-light text-primary hover:bg-surface-light/80 font-medium disabled:opacity-50"
             >
               {storageLoading && storageAction === "export" ? "Exporting…" : "Export Data"}
@@ -262,32 +292,53 @@ export function SettingsPage() {
             <button
               type="button"
               onClick={handleClearData}
-              disabled={storageLoading}
+              disabled={storageLoading || isOffline}
               className="px-4 py-2 rounded-xl border border-red-500/50 bg-red-500/10 text-red-400 hover:bg-red-500/20 font-medium disabled:opacity-50"
             >
               {storageLoading && storageAction === "clear" ? "Clearing…" : "Clear Local Data"}
             </button>
           </div>
+          {isOffline && (
+            <p className="text-sm text-primary/60 mt-3">Connect to export or clear data.</p>
+          )}
         </GlassCard>
 
         <GlassCard title="Account">
+          <p className="text-sm text-primary/70 mb-4">
+            View and edit your profile, display name, and class code.
+          </p>
           <div className="space-y-2 mb-4">
             <div>
-              <span className="text-primary/60 text-sm block">Name</span>
+              <span className="text-primary/60 text-sm block">Display Name</span>
               <span className="text-primary">{profileName}</span>
             </div>
             <div>
               <span className="text-primary/60 text-sm block">Mode</span>
               <span className="text-primary">{modeLabel}</span>
             </div>
+            {profile.class_code && (
+              <div>
+                <span className="text-primary/60 text-sm block">Class Code</span>
+                <span className="text-primary font-mono">{profile.class_code}</span>
+              </div>
+            )}
           </div>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="px-4 py-2 rounded-xl border border-glass-border bg-surface-light text-primary hover:bg-surface-light/80 font-medium"
-          >
-            Sign Out
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => navigate("/profile")}
+              className="px-4 py-2 rounded-xl border border-accent-blue/50 bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20 font-medium"
+            >
+              Edit Profile
+            </button>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="px-4 py-2 rounded-xl border border-glass-border bg-surface-light text-primary hover:bg-surface-light/80 font-medium"
+            >
+              Sign Out
+            </button>
+          </div>
         </GlassCard>
       </div>
     </PageChrome>

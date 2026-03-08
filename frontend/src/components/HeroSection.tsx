@@ -98,14 +98,13 @@ export default function HeroSection() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        fontFamily: "'Plus Jakarta Sans', 'DM Sans', sans-serif",
+        fontFamily: "'Inter', system-ui, sans-serif",
         overflow: "hidden",
         position: "relative",
       }}
     >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,700;0,800;0,900;1,800&display=swap');
-
+        /* Local fonts only — Inter loaded via index.css for offline support */
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         @keyframes fadeUp {

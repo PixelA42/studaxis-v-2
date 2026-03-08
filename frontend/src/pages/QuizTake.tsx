@@ -19,6 +19,7 @@ import {
   loadAssignmentsFromStorage,
   saveAssignmentsToStorage,
   loadQuizHistoryFromStorage,
+  enqueueSyncItem,
 } from "../services/storage";
 import { PageChrome } from "../components";
 import type { QuizItem } from "../services/api";
@@ -112,7 +113,37 @@ export function QuizTakePage() {
       });
       saveQuizHistoryToStorage(history.slice(0, 50));
     } catch {
-      setResult({ score: 0, max_score: items.length * 10, percent: 0, results: [] });
+      const submission = items.map((it) => ({
+        question_id: it.id,
+        answer: answers[it.id] ?? "",
+      }));
+      enqueueSyncItem({
+        type: "quiz_result",
+        payload: { quizId: quiz.id, answers: submission },
+      });
+      const history = loadQuizHistoryFromStorage();
+      history.unshift({
+        quiz_id: quiz.id,
+        completed_at: new Date().toISOString(),
+        score: 0,
+        max_score: items.length * 10,
+        percent: 0,
+        subject: quiz.subject ?? "General",
+        question_type: quiz.question_type,
+      });
+      saveQuizHistoryToStorage(history.slice(0, 50));
+      setResult({
+        score: 0,
+        max_score: items.length * 10,
+        percent: 0,
+        results: items.map((it) => ({
+          question_id: it.id,
+          correct: false,
+          score: 0,
+          correct_answer: "",
+          explanation: "Saved locally. Will sync when online.",
+        })),
+      });
     } finally {
       setSubmitting(false);
     }

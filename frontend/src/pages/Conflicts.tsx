@@ -2,9 +2,10 @@
  * Conflicts page — list and resolve sync conflicts from ConflictAwareOrchestrator.
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { PageChrome, GlassCard } from "../components";
+import { PageChrome, GlassCard, StatusIndicator } from "../components";
+import { useAuth } from "../contexts/AuthContext";
 import {
   getSyncConflicts,
   resolveConflict,
@@ -45,12 +46,15 @@ function formatTimestamp(iso: string | undefined): string {
 }
 
 export function ConflictsPage() {
+  const { connectivityStatus } = useAuth();
   const [conflicts, setConflicts] = useState<SyncConflict[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [resolving, setResolving] = useState<string | null>(null);
 
-  const loadConflicts = async () => {
+  const isOffline = connectivityStatus === "offline";
+
+  const loadConflicts = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -62,16 +66,23 @@ export function ConflictsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
+    if (isOffline) {
+      setError("Connect to view and resolve conflicts.");
+      setLoading(false);
+      setConflicts([]);
+      return;
+    }
     loadConflicts();
-  }, []);
+  }, [isOffline, loadConflicts]);
 
   const handleResolve = async (
     entityId: string,
     choice: "keep_local" | "keep_cloud" | "merge"
   ) => {
+    if (isOffline) return;
     setResolving(entityId);
     try {
       await resolveConflict(entityId, choice);
@@ -91,6 +102,11 @@ export function ConflictsPage() {
           When local and cloud data differ, conflicts appear here. Resolve them
           to keep progress in sync.
         </p>
+
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          <span className="text-sm text-primary/70">Connectivity</span>
+          <StatusIndicator status={connectivityStatus} />
+        </div>
 
         {loading && (
           <GlassCard title="Loading">
@@ -175,7 +191,7 @@ export function ConflictsPage() {
                     <button
                       type="button"
                       onClick={() => handleResolve(c.entity_id, "keep_local")}
-                      disabled={resolving === c.entity_id}
+                      disabled={resolving === c.entity_id || isOffline}
                       className="px-4 py-2 rounded-xl border border-glass-border bg-surface-light text-primary hover:bg-accent-primary/20 hover:border-accent-primary/50 font-medium text-sm disabled:opacity-50"
                     >
                       {resolving === c.entity_id ? "Resolving…" : "📱 Keep Local"}
@@ -183,7 +199,7 @@ export function ConflictsPage() {
                     <button
                       type="button"
                       onClick={() => handleResolve(c.entity_id, "keep_cloud")}
-                      disabled={resolving === c.entity_id}
+                      disabled={resolving === c.entity_id || isOffline}
                       className="px-4 py-2 rounded-xl border border-glass-border bg-surface-light text-primary hover:bg-accent-primary/20 hover:border-accent-primary/50 font-medium text-sm disabled:opacity-50"
                     >
                       ☁️ Keep Cloud
@@ -191,7 +207,7 @@ export function ConflictsPage() {
                     <button
                       type="button"
                       onClick={() => handleResolve(c.entity_id, "merge")}
-                      disabled={resolving === c.entity_id}
+                      disabled={resolving === c.entity_id || isOffline}
                       className="px-4 py-2 rounded-xl border border-glass-border bg-surface-light text-primary hover:bg-accent-primary/20 hover:border-accent-primary/50 font-medium text-sm disabled:opacity-50"
                     >
                       🔀 Merge Both

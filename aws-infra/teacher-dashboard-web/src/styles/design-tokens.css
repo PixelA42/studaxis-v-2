@@ -1,55 +1,111 @@
 /**
  * Studaxis Design System Tokens
- * 70/20/8/2 color balance | Glass cards | WCAG AA
- * docs/design_system.md
+ * Aligned with Student app (frontend/src/index.css)
+ * Uses [data-theme="light"] and [data-theme="dark"] for consistency
  */
 
+/* Accent palette — shared across light/dark (from student app) */
+:root {
+  --accent-pink: #FA5C5C;
+  --accent-coral: #FD8A6B;
+  --accent-peach: #FEC288;
+  --accent-yellow: #FBEF76;
+  --accent-blue: #00A8E8;
+  --heading-dark: #000000;
+  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+  --card-radius: 16px;
+}
+
+/* Default / Dark theme (student app default) */
 :root,
-.theme-light {
-  /* Backgrounds — 70% white / off-white */
-  --sd-bg-page: #F8FAFC;
-  --sd-bg-surface: #FFFFFF;
-  --sd-bg-glass: rgba(255, 255, 255, 0.7);
+[data-theme="dark"] {
+  --deep: #05070a;
+  --surface-light: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --text-primary: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --text-subtle: rgba(255, 255, 255, 0.4);
+  --success: #22c55e;
+  --error: #ef4444;
+  --warn: #f59e0b;
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --deep: #F1F5F9;
+  --surface-light: #ffffff;
+  --glass-border: rgba(15, 23, 42, 0.1);
+  --text-primary: #000000;
+  --text-muted: rgba(0, 0, 0, 0.75);
+  --text-subtle: rgba(0, 0, 0, 0.55);
+}
+
+/* Legacy --sd-* aliases (map to student tokens for backward compat) */
+:root,
+[data-theme="dark"] {
+  --sd-bg-page: var(--deep);
+  --sd-bg-surface: var(--surface-light);
+  --sd-bg-glass: rgba(255, 255, 255, 0.05);
+  --sd-bg-glass-dark: rgba(15, 23, 42, 0.95);
+
+  --sd-text-main: var(--text-primary);
+  --sd-text-muted: var(--text-muted);
+  --sd-border-subtle: var(--glass-border);
+  --sd-border-strong: rgba(255, 255, 255, 0.14);
+
+  --sd-accent-blue: var(--accent-blue);
+  --sd-accent-blue-hover: #0099cc;
+  --sd-accent-blue-strong: #0088bb;
+  --sd-accent-blue-focus: rgba(0, 168, 232, 0.45);
+
+  --sd-accent-warm-1: var(--accent-pink);
+  --sd-accent-warm-2: var(--accent-coral);
+  --sd-accent-warm-3: var(--accent-peach);
+  --sd-accent-warm-4: var(--accent-yellow);
+
+  --sd-semantic-success: var(--success);
+  --sd-semantic-danger: var(--error);
+  --sd-semantic-warn: var(--warn);
+
+  --sd-shadow-card: 0 18px 45px rgba(0, 0, 0, 0.35);
+  --sd-shadow-hover: 0 24px 55px rgba(0, 0, 0, 0.5);
+  --sd-focus-ring: var(--accent-blue);
+  --sd-focus-glow: rgba(0, 168, 232, 0.35);
+
+  --sd-skeleton-base: #1F2937;
+  --sd-skeleton-highlight: #374151;
+}
+
+[data-theme="light"] {
+  --sd-bg-page: var(--deep);
+  --sd-bg-surface: var(--surface-light);
+  --sd-bg-glass: rgba(255, 255, 255, 0.85);
   --sd-bg-glass-dark: rgba(15, 23, 42, 0.9);
 
-  /* Text */
-  --sd-text-main: #0F172A;
-  --sd-text-muted: #64748B;
-
-  /* Borders */
+  --sd-text-main: var(--text-primary);
+  --sd-text-muted: var(--text-muted);
   --sd-border-subtle: #E2E8F0;
   --sd-border-strong: #CBD5E1;
 
-  /* Accent — 2% electric blue */
-  --sd-accent-blue: #0284C7;
-  --sd-accent-blue-hover: #0369A1;
-  --sd-accent-blue-strong: #075985;
-  --sd-accent-blue-focus: rgba(2, 132, 199, 0.45);
+  --sd-accent-blue-hover: #0099cc;
+  --sd-accent-blue-strong: #0077aa;
 
-  /* Warm accents — 8% */
-  --sd-accent-warm-1: #FA5C5C;
-  --sd-accent-warm-2: #FD8A6B;
-  --sd-accent-warm-3: #FEC288;
-  --sd-accent-warm-4: #FBEF76;
-
-  /* Semantic */
-  --sd-semantic-success: #16A34A;
-  --sd-semantic-danger: #FA5C5C;
-  --sd-semantic-warn: #fb923c;
-
-  /* Shadows & elevation */
   --sd-shadow-card: 0 18px 45px rgba(15, 23, 42, 0.08);
   --sd-shadow-hover: 0 24px 55px rgba(15, 23, 42, 0.12);
-  --sd-focus-ring: #0369A1;
-  --sd-focus-glow: rgba(2, 132, 199, 0.35);
+  --sd-focus-ring: var(--accent-blue);
+  --sd-focus-glow: rgba(0, 168, 232, 0.25);
 
-  /* Radius */
+  --sd-skeleton-base: #E5E7EB;
+  --sd-skeleton-highlight: #F3F4F6;
+}
+
+/* Shared tokens (non-theme) */
+:root {
   --sd-radius-primary: 18px;
   --sd-radius-stat: 12px;
   --sd-radius-card: 14px;
   --sd-glass-blur: 16px;
 
-  /* Spacing (8px base) */
   --sd-space-1: 4px;
   --sd-space-2: 8px;
   --sd-space-3: 12px;
@@ -59,7 +115,6 @@
   --sd-space-8: 32px;
   --sd-space-10: 40px;
 
-  /* Typography */
   --sd-font-stack: "Inter", "Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --sd-text-h1: 28px;
   --sd-text-h2: 20px;
@@ -67,22 +122,4 @@
   --sd-text-body: 14px;
   --sd-text-caption: 12px;
   --sd-text-helper: 13px;
-
-  /* Skeleton */
-  --sd-skeleton-base: #E5E7EB;
-  --sd-skeleton-highlight: #F3F4F6;
-}
-
-.theme-dark {
-  --sd-bg-page: #020617;
-  --sd-bg-surface: rgba(15, 23, 42, 0.95);
-  --sd-bg-glass: rgba(15, 23, 42, 0.9);
-  --sd-text-main: #E5E7EB;
-  --sd-text-muted: #9CA3AF;
-  --sd-border-subtle: rgba(148, 163, 184, 0.35);
-  --sd-border-strong: rgba(148, 163, 184, 0.5);
-  --sd-shadow-card: 0 18px 45px rgba(0, 0, 0, 0.35);
-  --sd-shadow-hover: 0 24px 55px rgba(0, 0, 0, 0.5);
-  --sd-skeleton-base: #1F2937;
-  --sd-skeleton-highlight: #374151;
 }

@@ -1,11 +1,12 @@
 /**
- * Sync Status page — last sync, connectivity, manual sync trigger.
+ * Sync Status page — last sync, connectivity, queue, manual sync trigger.
  */
 
 import { useState, useEffect } from "react";
 import { PageChrome, GlassCard, StatusIndicator } from "../components";
 import { useAuth } from "../contexts/AuthContext";
-import { getUserStats, postSync } from "../services/api";
+import { getSyncStatus, postSync } from "../services/api";
+import { loadSyncQueue } from "../services/storage";
 
 function formatLastSync(iso: string | null | undefined): string {
   if (!iso) return "Never";
@@ -27,26 +28,35 @@ function formatLastSync(iso: string | null | undefined): string {
 export function SyncPage() {
   const { connectivityStatus } = useAuth();
   const [lastSync, setLastSync] = useState<string | null>(null);
+  const [queueTotal, setQueueTotal] = useState<number | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
-  const loadStats = () => {
-    getUserStats()
-      .then((s) => setLastSync(s?.last_sync_timestamp ?? null))
-      .catch(() => setLastSync(null));
+  const loadStatus = () => {
+    if (connectivityStatus !== "online") return;
+    getSyncStatus()
+      .then((s) => {
+        setLastSync(s?.last_sync_timestamp ?? null);
+        setQueueTotal(s?.queue?.total ?? null);
+      })
+      .catch(() => {
+        setLastSync(null);
+        setQueueTotal(null);
+      });
   };
 
   useEffect(() => {
-    loadStats();
-  }, []);
+    loadStatus();
+  }, [connectivityStatus]);
 
   const handleSyncNow = async () => {
+    if (connectivityStatus === "offline") return;
     setSyncing(true);
     setSyncMessage(null);
     try {
       const res = await postSync();
       setSyncMessage(res.message ?? (res.ok ? "Sync triggered." : "Sync failed."));
-      if (res.ok) loadStats();
+      if (res.ok) loadStatus();
     } catch (e) {
       setSyncMessage(e instanceof Error ? e.message : "Sync request failed.");
     } finally {
@@ -56,13 +66,14 @@ export function SyncPage() {
 
   const isOffline = connectivityStatus === "offline";
   const canSync = !isOffline && !syncing;
+  const frontendQueueCount = loadSyncQueue().length;
 
   return (
     <PageChrome backTo="/dashboard" backLabel="← Back to Dashboard">
       <div className="space-y-6">
         <h2 className="text-2xl font-semibold text-primary">Sync Status</h2>
         <p className="text-primary/80">
-          Cloud sync state and manual sync trigger. Progress syncs when connectivity is available.
+          Cloud sync state and manual sync trigger. Data syncs when connectivity is available.
         </p>
 
         <GlassCard title="Status">
@@ -78,8 +89,20 @@ export function SyncPage() {
               <span className="text-primary/60 text-sm block">Last sync</span>
               <span className="text-primary font-medium">{formatLastSync(lastSync)}</span>
             </div>
+            {queueTotal !== null && queueTotal > 0 && (
+              <div>
+                <span className="text-primary/60 text-sm block">Backend queue</span>
+                <span className="text-primary font-medium">{queueTotal} item{queueTotal !== 1 ? "s" : ""} pending</span>
+              </div>
+            )}
+            {frontendQueueCount > 0 && (
+              <div>
+                <span className="text-primary/60 text-sm block">Pending upload</span>
+                <span className="text-primary font-medium">{frontendQueueCount} item{frontendQueueCount !== 1 ? "s" : ""} (flashcards, quiz) will sync when online</span>
+              </div>
+            )}
             {syncMessage && (
-              <p className={`text-sm ${syncMessage.includes("fail") ? "text-amber-400" : "text-primary/80"}`}>
+              <p className={`text-sm ${syncMessage.toLowerCase().includes("fail") ? "text-amber-400" : "text-primary/80"}`}>
                 {syncMessage}
               </p>
             )}
@@ -92,14 +115,14 @@ export function SyncPage() {
               {syncing ? "Syncing…" : "Sync Now"}
             </button>
             {isOffline && (
-              <p className="text-sm text-primary/60">Sync is unavailable while offline.</p>
+              <p className="text-sm text-primary/60">Data will sync when online.</p>
             )}
           </div>
         </GlassCard>
 
         <GlassCard title="About">
           <p className="text-sm text-primary/80">
-            Sync uploads progress summaries (scores, streaks) to the cloud when online. Full orchestrator integration is coming.
+            Progress is queued when offline and syncs automatically when you're back online. Sync uploads progress summaries (scores, streaks) to the cloud.
           </p>
         </GlassCard>
       </div>

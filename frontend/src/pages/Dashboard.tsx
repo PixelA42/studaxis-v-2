@@ -1,5 +1,7 @@
 /**
  * Dashboard page — welcome header, stats row, feature grid (Chat, Quiz, Flashcards, Panic Mode).
+ * Loads real data from getUserStats, getSyncStatus, getFlashcardsDue, getInsights.
+ * Redirects to /onboarding when profile.profile_name is missing.
  */
 
 import { Link, useNavigate } from "react-router-dom";
@@ -8,8 +10,13 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useEffect, useState } from "react";
 import { StatCard, FeatureCard, StatusIndicator } from "../components";
 import { Icons } from "../components/icons";
-import type { UserStats } from "../services/api";
-import { getUserStats } from "../services/api";
+import type { UserStats, InsightItem } from "../services/api";
+import {
+  getUserStats,
+  getSyncStatus,
+  getFlashcardsDue,
+  getInsights,
+} from "../services/api";
 
 /** Flame icon for streak badge — Studaxis accent-coral */
 const FlameIcon = () => (
@@ -46,6 +53,9 @@ export function DashboardPage() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [stats, setStats] = useState<UserStats | null>(null);
+  const [syncPending, setSyncPending] = useState(false);
+  const [flashcardsDueCount, setFlashcardsDueCount] = useState<number>(0);
+  const [insights, setInsights] = useState<InsightItem[]>([]);
 
   useEffect(() => {
     getUserStats()
@@ -53,8 +63,26 @@ export function DashboardPage() {
       .catch(() => setStats(null));
   }, []);
 
+  useEffect(() => {
+    getSyncStatus()
+      .then((s) => setSyncPending((s.queue?.total ?? 0) > 0))
+      .catch(() => setSyncPending(false));
+  }, []);
+
+  useEffect(() => {
+    getFlashcardsDue()
+      .then((r) => setFlashcardsDueCount(r?.cards?.length ?? 0))
+      .catch(() => setFlashcardsDueCount(0));
+  }, []);
+
+  useEffect(() => {
+    getInsights()
+      .then((r) => setInsights(r?.insights ?? []))
+      .catch(() => setInsights([]));
+  }, []);
+
   if (!profile.profile_name) {
-    navigate("/auth/login", { replace: true });
+    navigate("/onboarding", { replace: true });
     return null;
   }
 
@@ -65,7 +93,10 @@ export function DashboardPage() {
   const quizCorrect = stats?.quiz_stats?.total_correct ?? 0;
   const quizAvg = quizAttempted > 0 ? Math.round((quizCorrect / quizAttempted) * 100) : 0;
   const flashcardsMastered = stats?.flashcard_stats?.mastered ?? 0;
-  const flashcardsDue = stats?.flashcard_stats?.due_for_review ?? 0;
+  const flashcardsDue = Math.max(
+    stats?.flashcard_stats?.due_for_review ?? 0,
+    flashcardsDueCount
+  );
   const difficulty = stats?.preferences?.difficulty_level ?? "Beginner";
   const modeLabel = profile.profile_mode === "solo" || !profile.profile_mode ? "Solo Mode" : "Class Linked";
   const lastSyncLabel = formatLastSync(stats?.last_sync_timestamp);
@@ -170,18 +201,20 @@ export function DashboardPage() {
           <span
             className={`inline-flex items-center gap-1.5 rounded-[9px] px-3 py-[7px] text-[13px] font-medium transition-all duration-200 hover:-translate-y-px ${
               isOnline
-                ? dark
-                  ? "bg-success/10 border border-success/25 text-success"
-                  : "bg-success/10 border border-success/20 text-success"
+                ? syncPending
+                  ? "bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400"
+                  : dark
+                    ? "bg-success/10 border border-success/25 text-success"
+                    : "bg-success/10 border border-success/20 text-success"
                 : "bg-surface-light border border-glass-border text-muted"
             }`}
           >
             <span
               className={`w-[7px] h-[7px] rounded-full flex-shrink-0 ${
-                isOnline ? "bg-success animate-pulse" : "bg-muted"
+                isOnline ? (syncPending ? "bg-amber-500 animate-pulse" : "bg-success animate-pulse") : "bg-muted"
               }`}
             />
-            {isOnline ? "Online" : "Offline"}
+            {isOnline ? (syncPending ? "Pending sync" : "Online") : "Offline"}
           </span>
           <button
             type="button"
@@ -294,6 +327,97 @@ export function DashboardPage() {
             Enter Panic Mode
           </Link>
         </FeatureCard>
+      </div>
+
+      {/* Widgets: Recent activity, flashcards due, weak topics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Recent activity */}
+        <div
+          className="content-card border border-glass-border rounded-2xl p-4 transition-shadow hover:shadow-soft"
+          style={{ minHeight: 120 }}
+        >
+          <h3 className="text-sm font-semibold text-heading-dark mb-2 flex items-center gap-2">
+            <span aria-hidden>{Icons.chart}</span>
+            Recent Activity
+          </h3>
+          {stats?.chat_history && stats.chat_history.length > 0 ? (
+            <ul className="space-y-1.5 text-xs text-muted">
+              {stats.chat_history.slice(-3).reverse().map((m, i) => (
+                <li key={i} className="truncate">
+                  {m.role === "user" ? "You asked" : "AI replied"} — {String(m.content).slice(0, 40)}…
+                </li>
+              ))}
+            </ul>
+          ) : quizAttempted > 0 || flashcardsMastered > 0 ? (
+            <p className="text-xs text-muted">
+              {quizAttempted > 0 ? `Last quiz: ${quizAttempted} attempt${quizAttempted !== 1 ? "s" : ""}` : ""}
+              {quizAttempted > 0 && flashcardsMastered > 0 ? " · " : ""}
+              {flashcardsMastered > 0 ? `${flashcardsMastered} cards mastered` : ""}
+            </p>
+          ) : (
+            <p className="text-xs text-muted">No recent activity. Start a chat or quiz!</p>
+          )}
+        </div>
+
+        {/* Flashcards due */}
+        <div
+          className="content-card border border-glass-border rounded-2xl p-4 transition-shadow hover:shadow-soft"
+          style={{ minHeight: 120 }}
+        >
+          <h3 className="text-sm font-semibold text-heading-dark mb-2 flex items-center gap-2">
+            <span aria-hidden>{Icons.cards}</span>
+            Flashcards Due
+          </h3>
+          {flashcardsDue > 0 ? (
+            <>
+              <p className="text-2xl font-bold text-accent-blue">{flashcardsDue}</p>
+              <p className="text-xs text-muted mt-1">cards ready for review</p>
+              <Link
+                to="/flashcards"
+                className="inline-block mt-2 text-xs font-semibold text-accent-blue hover:underline"
+              >
+                Review now →
+              </Link>
+            </>
+          ) : (
+            <p className="text-xs text-muted">All caught up! Add or generate more cards.</p>
+          )}
+        </div>
+
+        {/* Weak topics */}
+        <div
+          className="content-card border border-glass-border rounded-2xl p-4 transition-shadow hover:shadow-soft"
+          style={{ minHeight: 120 }}
+        >
+          <h3 className="text-sm font-semibold text-heading-dark mb-2 flex items-center gap-2">
+            <span aria-hidden>{Icons.insights}</span>
+            Weak Topics
+          </h3>
+          {insights.filter((i) => i.insight_type === "weak_topic_detection").length > 0 ? (
+            <>
+              <ul className="space-y-1.5 text-xs text-muted">
+                {insights
+                  .filter((i) => i.insight_type === "weak_topic_detection")
+                  .slice(0, 2)
+                  .map((i) => (
+                    <li key={i.id}>
+                      {i.weak_topic_name ?? i.title}
+                      {i.weak_topic_score != null ? ` (${i.weak_topic_score}%)` : ""}
+                    </li>
+                  ))}
+              </ul>
+              <Link to="/insights" className="inline-block mt-2 text-xs font-semibold text-accent-blue hover:underline">
+                View insights →
+              </Link>
+            </>
+          ) : quizAttempted > 0 ? (
+            <Link to="/insights" className="text-xs font-semibold text-accent-blue hover:underline">
+              View full insights →
+            </Link>
+          ) : (
+            <p className="text-xs text-muted">Complete quizzes to see weak topic analysis.</p>
+          )}
+        </div>
       </div>
 
       <footer className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-glass-border">

@@ -6,11 +6,13 @@ Used before chunking to identify dominant concepts for topic-aware RAG and flash
 from __future__ import annotations
 
 import json
+import os
 import re
 import requests
 from typing import Any
 
-OLLAMA_API_URL = "http://localhost:11434/api/generate"
+_ollama_base = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
+OLLAMA_API_URL = f"{_ollama_base}/api/generate"
 DEFAULT_MODEL = "llama3.2"
 DEFAULT_TIMEOUT = 90
 

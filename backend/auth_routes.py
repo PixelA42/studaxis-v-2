@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 from auth_utils import hash_password, verify_password
 from database import User, get_db, init_db
 from email_service import send_verification_email
-from profile_store import UserProfile, load_profile, save_profile, load_profile_for_user
+from profile_store import UserProfile, load_profile, save_profile, load_profile_for_user, save_profile_for_user
 
 # JWT config (must be before dependencies import to avoid circular import)
 JWT_SECRET = os.environ.get("STUDAXIS_JWT_SECRET", "studaxis-dev-secret-change-in-prod")
@@ -88,6 +88,7 @@ class OnboardingData(BaseModel):
     profile_name: str = Field(..., min_length=1)
     role: str = Field(..., pattern="^(student|teacher)$")
     mode: str = Field(default="solo", pattern="^(solo|teacher_linked|teacher_linked_provisional)$")
+    class_code: str | None = None
     subjects: str | None = None
     grade: str | None = None
 
@@ -352,14 +353,15 @@ def complete_onboarding(
     body: OnboardingData,
     current_user: Annotated[User, Depends(get_current_user)],
 ):
-    """Save profile from onboarding, set onboarding_complete=True."""
-    existing = load_profile() or UserProfile()
+    """Save profile from onboarding, set onboarding_complete=True. Scoped by user_id."""
+    user_id = current_user.username
+    existing = load_profile_for_user(user_id) or UserProfile()
     merged = UserProfile(
         profile_name=body.profile_name,
         profile_mode=body.mode,
-        class_code=existing.class_code,
+        class_code=body.class_code or existing.class_code,
         user_role=body.role,
         onboarding_complete=True,
     )
-    save_profile(merged)
+    save_profile_for_user(user_id, merged)
     return {"ok": True, "onboarding_complete": True}

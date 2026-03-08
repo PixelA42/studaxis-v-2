@@ -333,6 +333,35 @@ export async function getUserStats(): Promise<UserStats> {
   return request<UserStats>("/api/user/stats");
 }
 
+/** Insight item from GET /api/insights */
+export interface InsightItem {
+  id: string;
+  title: string;
+  description: string;
+  insight_type: string;
+  priority: "high" | "medium" | "low";
+  related_subject: string;
+  suggested_action: string;
+  weak_topic_name?: string;
+  weak_topic_score?: number;
+  mastery_pct?: number;
+  trend_points?: number[];
+}
+
+/** Response from GET /api/insights */
+export interface InsightsResponse {
+  insights: InsightItem[];
+  study_recommendation_text?: string;
+}
+
+/**
+ * Fetch AI insights for the current user (weak topics, study recommendation, trends).
+ * Auth-protected. Falls back to client-side build when offline or endpoint fails.
+ */
+export async function getInsights(): Promise<InsightsResponse> {
+  return request<InsightsResponse>("/api/insights");
+}
+
 /**
  * Update user progress/preferences. Merges with existing on backend.
  */
@@ -454,6 +483,7 @@ export interface CompleteOnboardingRequest {
   profile_name: string;
   role: "student" | "teacher";
   mode?: "solo" | "teacher_linked" | "teacher_linked_provisional";
+  class_code?: string | null;
   subjects?: string | null;
   grade?: string | null;
 }
@@ -528,6 +558,7 @@ export async function uploadTextbook(file: File): Promise<TextbookUploadResponse
     } catch {
       // keep raw
     }
+    console.error("[api] uploadTextbook failed:", res.status, message);
     throw new Error(message);
   }
   return res.json() as Promise<TextbookUploadResponse>;
@@ -577,11 +608,15 @@ export function uploadTextbookWithProgress(
         } catch {
           // keep raw
         }
+        console.error("[api] uploadTextbookWithProgress failed:", xhr.status, message);
         reject(new Error(message));
       }
     });
 
-    xhr.addEventListener("error", () => reject(new Error("Network error")));
+    xhr.addEventListener("error", () => {
+      console.error("[api] uploadTextbookWithProgress network error");
+      reject(new Error("Network error"));
+    });
     xhr.addEventListener("abort", () => reject(new Error("Upload aborted")));
 
     xhr.open("POST", url);
@@ -665,6 +700,7 @@ export async function generateFlashcardsFromFile(params: {
     } catch {
       // keep raw
     }
+    console.error("[api] generateFlashcardsFromFile failed:", res.status, message);
     throw new Error(message);
   }
   return res.json() as Promise<FlashcardGenerateResponse>;
@@ -1134,6 +1170,7 @@ export async function postQuizGenerateFromText(params: {
 export async function postQuizGenerateFromFile(params: {
   file: File;
   subject: string;
+  topic_text?: string | null;
   num_questions: number;
   question_type: "mcq" | "open_ended";
   difficulty: string;
@@ -1141,6 +1178,7 @@ export async function postQuizGenerateFromFile(params: {
   const form = new FormData();
   form.append("file", params.file);
   form.append("subject", params.subject);
+  if (params.topic_text) form.append("topic_text", params.topic_text);
   form.append("num_questions", String(params.num_questions));
   form.append("question_type", params.question_type);
   form.append("difficulty", params.difficulty);
@@ -1213,16 +1251,21 @@ export async function generatePanicQuizFromTextbook(params: {
   textbook_id: string;
   chapter?: string;
   count?: number;
-}): Promise<QuizResponse> {
-  return request<QuizResponse>("/api/quiz/panic/generate/textbook", {
-    method: "POST",
-    body: JSON.stringify({
-      subject: params.subject,
-      textbook_id: params.textbook_id,
-      chapter: params.chapter ?? null,
-      count: params.count ?? 5,
-    }),
-  });
+  question_type?: "mcq" | "open_ended";
+}): Promise<QuizResponse & { question_type?: string }> {
+  return request<QuizResponse & { question_type?: string }>(
+    "/api/quiz/panic/generate/textbook",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        subject: params.subject,
+        textbook_id: params.textbook_id,
+        chapter: params.chapter ?? null,
+        count: params.count ?? 5,
+        question_type: params.question_type ?? "open_ended",
+      }),
+    }
+  );
 }
 
 /** Generate panic-mode questions from web URL. One subject only. */
@@ -1230,15 +1273,20 @@ export async function generatePanicQuizFromWeblink(params: {
   subject: string;
   url: string;
   count?: number;
-}): Promise<QuizResponse> {
-  return request<QuizResponse>("/api/quiz/panic/generate/weblink", {
-    method: "POST",
-    body: JSON.stringify({
-      subject: params.subject,
-      url: params.url,
-      count: params.count ?? 5,
-    }),
-  });
+  question_type?: "mcq" | "open_ended";
+}): Promise<QuizResponse & { question_type?: string }> {
+  return request<QuizResponse & { question_type?: string }>(
+    "/api/quiz/panic/generate/weblink",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        subject: params.subject,
+        url: params.url,
+        count: params.count ?? 5,
+        question_type: params.question_type ?? "open_ended",
+      }),
+    }
+  );
 }
 
 /** Generate panic-mode questions from uploaded files. One subject only. */
@@ -1246,10 +1294,12 @@ export async function generatePanicQuizFromFiles(params: {
   subject: string;
   files: File[];
   count?: number;
-}): Promise<QuizResponse> {
+  question_type?: "mcq" | "open_ended";
+}): Promise<QuizResponse & { question_type?: string }> {
   const form = new FormData();
   form.append("subject", params.subject);
   form.append("count", String(params.count ?? 5));
+  form.append("question_type", params.question_type ?? "open_ended");
   params.files.forEach((f) => form.append("files", f));
   const res = await apiFetch("/api/quiz/panic/generate/files", {
     method: "POST",
@@ -1266,7 +1316,33 @@ export async function generatePanicQuizFromFiles(params: {
     }
     throw new Error(message);
   }
-  return res.json() as Promise<QuizResponse>;
+  return res.json() as Promise<QuizResponse & { question_type?: string }>;
+}
+
+/** Grade a single panic-mode question (open-ended inline feedback). POST /api/quiz/panic/grade-one */
+export async function postPanicGradeOne(params: {
+  question_id: string;
+  question: string;
+  answer: string;
+  topic?: string;
+  expected_answer?: string;
+  question_type?: "mcq" | "open_ended";
+  options?: string[];
+  correct?: number;
+}): Promise<{ question_id: string; score: number; feedback: string; topic?: string }> {
+  return request("/api/quiz/panic/grade-one", {
+    method: "POST",
+    body: JSON.stringify({
+      question_id: params.question_id,
+      question: params.question,
+      answer: params.answer,
+      topic: params.topic ?? "General",
+      expected_answer: params.expected_answer ?? "",
+      question_type: params.question_type ?? "open_ended",
+      options: params.options,
+      correct: params.correct,
+    }),
+  });
 }
 
 // ——— Sync & Conflicts ———

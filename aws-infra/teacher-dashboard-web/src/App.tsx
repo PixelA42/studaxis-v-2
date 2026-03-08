@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { MainLayout } from './components/layout/MainLayout';
@@ -11,10 +10,6 @@ import './styles/design-tokens.css';
 import './styles/App.css';
 
 function AppContent() {
-  useEffect(() => {
-    document.documentElement.classList.add('theme-light');
-  }, []);
-
   return (
     <BrowserRouter>
       <Routes>

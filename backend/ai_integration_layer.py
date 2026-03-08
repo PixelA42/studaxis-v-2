@@ -21,9 +21,11 @@ from typing import Any, Optional
 
 import requests
 
-OLLAMA_API_URL = "http://localhost:11434/api/generate"
+# Strictly local; env override for non-default Ollama port
+_OLLAMA_BASE = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
+OLLAMA_API_URL = f"{_OLLAMA_BASE}/api/generate"
 OLLAMA_CONNECTION_FALLBACK = (
-    "⚠️ Cannot connect to local AI. Please ensure Ollama is running in the background."
+    "AI is warming up. Please wait a moment and try again, or ensure Ollama is running (ollama serve)."
 )
 
 
@@ -452,10 +454,16 @@ class AIEngine:
             retrieved_context=retrieved_context,
             textbook_context=textbook_ctx,
         )
+        ollama_options = None
+        if task_type == AITaskType.FLASHCARD_GENERATION:
+            import random
+            variation_seed = random.randint(1, 2_147_483_647)
+            ollama_options = {"temperature": 0.95, "seed": variation_seed}
         return self._call_ollama(
             self._resolve_model_name(AIExecutionTarget.LOCAL),
             prompt,
             self.config.AI_TIMEOUT_SECONDS,
+            options=ollama_options,
         )
 
     def request(
@@ -662,12 +670,21 @@ class AIEngine:
                 )
             else:
                 no_context_note = ""
+            import random
+            variation_seed = random.randint(1, 999_999)
+            variation_note = (
+                f"IMPORTANT (seed {variation_seed}): Generate UNIQUE flashcards each time. "
+                "Do NOT repeat questions you have generated before. "
+                "Vary question style, phrasing, examples, difficulty, and angles. "
+                "Be creative and cover different subtopics. Never produce identical cards.\n\n"
+            )
             return (
                 f"You are creating exam-style flashcards for a {difficulty} level {subject} student.\n\n"
                 f"Topic: {topic}\n"
                 f"Context from source material: {context_chunk}\n\n"
                 f"Generate {num_cards} flashcards about this topic.\n"
                 f"{no_context_note}\n"
+                f"{variation_note}"
                 "RULES:\n"
                 "- Front must be a QUESTION, never just the topic name\n"
                 "- Questions must be specific and testable\n"
@@ -689,9 +706,29 @@ class AIEngine:
         if task_type == AITaskType.QUIZ_GENERATION:
             subject = context_data.get("subject", "General")
             count = context_data.get("count", 5)
+            question_format = context_data.get("question_format", "open_ended")
+            source_content = context_data.get("source_content", "")
+            content_preview = ""
+            if source_content:
+                sc = str(source_content).strip()
+                content_preview = f"\n\nExtracted content to base questions on:\n{sc[:6000]}\n\n"
+            if question_format == "mcq":
+                return (
+                    f"Using the extracted content below, generate exactly {count} multiple choice questions "
+                    f"for a {subject} student. Each question must have exactly 4 options (A, B, C, D) and test "
+                    "understanding of the material."
+                    f"{content_preview}"
+                    "Return ONLY a valid JSON array. No markdown. No backticks. Start with [ end with ]. "
+                    "Each item: "
+                    '{"id": "q1", "text": "question text", "options": ["A) ...", "B) ...", "C) ...", "D) ..."], '
+                    '"correct": 0, "explanation": "why this answer is correct"}. '
+                    "Use correct index 0-3 for the right option. "
+                    "Generate the JSON array now."
+                )
             return (
                 f"Generate {count} open-ended exam questions for the subject: {subject}. "
-                "Base questions on the provided content. "
+                "Base questions on the provided content."
+                f"{content_preview}"
                 "Return ONLY a valid JSON array. No markdown. No code blocks. No backticks. No explanation text before or after. "
                 "No trailing commas. The response must start with [ and end with ]. "
                 "Each question must follow this exact schema: "
@@ -701,11 +738,30 @@ class AIEngine:
         if task_type == AITaskType.STUDY_RECOMMENDATION:
             topic = context_data.get("topic", "[topic unknown]")
             time_budget_minutes = context_data.get("time_budget_minutes", 15)
-            return (
+            topic_scores = context_data.get("topic_scores", {})
+            weak_summary = context_data.get("weak_topics_summary", "")
+            streak = context_data.get("streak", 0)
+            quiz_avg = context_data.get("quiz_average", 0)
+            fc_mastery = context_data.get("flashcard_mastery_pct", 0)
+            parts = [
                 f"You are an AI study planner. The student is studying {topic}. "
                 f"They have {time_budget_minutes} minutes. "
-                f"Provide a highly focused, bulleted study plan."
-            )
+            ]
+            if topic_scores or weak_summary or streak is not None or quiz_avg or fc_mastery is not None:
+                parts.append(
+                    "\n\nStudent context:\n"
+                    f"- Study streak: {streak} days\n"
+                    f"- Quiz average score: {quiz_avg:.1f}/10\n"
+                    f"- Flashcard mastery: {fc_mastery}%\n"
+                )
+                if topic_scores:
+                    parts.append(f"- Topic scores (out of 10): {topic_scores}\n")
+                if weak_summary:
+                    parts.append(f"- Weak topics analysis: {weak_summary[:500]}\n")
+                parts.append("\nProvide a highly focused, bulleted study plan tailored to their weak areas.")
+            else:
+                parts.append("Provide a highly focused, bulleted study plan.")
+            return "".join(parts)
         if task_type == AITaskType.EXPLAIN_TOPIC:
             subject = context_data.get("subject") or context_data.get("topic", "General")
             return (
@@ -858,16 +914,25 @@ class AIEngine:
             return self.config.CLOUD_AI_MODEL
         return self.config.LOCAL_AI_MODEL
 
-    def _call_ollama(self, model_name: str, prompt: str, timeout_seconds: int) -> str:
+    def _call_ollama(
+        self,
+        model_name: str,
+        prompt: str,
+        timeout_seconds: int,
+        *,
+        options: dict | None = None,
+    ) -> str:
         """
         Send non-streaming request to local Ollama API.
         Returns the generated text or raises on failure.
         """
-        payload = {
+        payload: dict[str, Any] = {
             "model": model_name,
             "prompt": prompt,
             "stream": False,
         }
+        if options:
+            payload["options"] = options
         try:
             resp = requests.post(
                 OLLAMA_API_URL,
@@ -880,7 +945,9 @@ class AIEngine:
         except requests.exceptions.ConnectionError:
             raise ConnectionError(OLLAMA_CONNECTION_FALLBACK)
         except requests.exceptions.Timeout:
-            raise TimeoutError("Ollama inference exceeded timeout.")
+            raise TimeoutError(
+                "AI is warming up. Inference took too long — try again shortly."
+            )
         except requests.exceptions.RequestException as e:
             raise ConnectionError(
                 f"{OLLAMA_CONNECTION_FALLBACK} Error: {e}"
@@ -919,7 +986,14 @@ class AIEngine:
                 except Exception as exc:
                     print(f"[ai_engine] RAG inference failed, falling back to Ollama: {exc}")
             # Fallback: direct Ollama HTTP call
-            return self._call_ollama(model_name, prompt, timeout_seconds)
+            ollama_options = None
+            if task_type == AITaskType.FLASHCARD_GENERATION:
+                import random
+                variation_seed = random.randint(1, 2_147_483_647)
+                ollama_options = {"temperature": 0.95, "seed": variation_seed}
+            return self._call_ollama(
+                model_name, prompt, timeout_seconds, options=ollama_options
+            )
 
         # CLOUD target: keep simulated until cloud API is configured
         started = time.time()

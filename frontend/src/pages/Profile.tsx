@@ -1,5 +1,6 @@
 /**
- * Profile page — display and edit profile (name, mode, class code). Persisted via AuthContext.
+ * Profile page — display and edit profile (name, mode, class code).
+ * Persisted via POST /api/user/profile; AuthContext syncs with backend.
  */
 
 import { useState, useEffect } from "react";
@@ -9,22 +10,22 @@ import { useAuth } from "../contexts/AuthContext";
 
 export function ProfilePage() {
   const navigate = useNavigate();
-  const { profile, setProfile, logout } = useAuth();
-  const [editName, setEditName] = useState(profile.profile_name || "");
+  const { user, profile, setProfile, logout } = useAuth();
+  const [editName, setEditName] = useState(profile.profile_name || user?.username || "");
   const [editClassCode, setEditClassCode] = useState(profile.class_code || "");
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setEditName(profile.profile_name || "");
+    setEditName(profile.profile_name || user?.username || "");
     setEditClassCode(profile.class_code || "");
-  }, [profile.profile_name, profile.class_code]);
+  }, [profile.profile_name, profile.class_code, user?.username]);
 
-  if (!profile.profile_name) {
+  if (!user) {
     navigate("/auth/login", { replace: true });
     return null;
   }
 
-  const name = profile.profile_name;
+  const name = profile.profile_name || user.username || "Student";
   const modeLabel =
     profile.profile_mode === "solo" || !profile.profile_mode
       ? "Solo Learner"
@@ -135,13 +136,25 @@ export function ProfilePage() {
         </GlassCard>
 
         <GlassCard title="Account">
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="px-4 py-2 rounded-xl border border-glass-border bg-surface-light text-primary hover:bg-surface-light/80 font-medium"
-          >
-            Sign Out
-          </button>
+          <p className="text-sm text-primary/70 mb-4">
+            Sync, theme, difficulty, and other preferences are in Settings.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => navigate("/settings")}
+              className="px-4 py-2 rounded-xl border border-glass-border bg-surface-light text-primary hover:bg-surface-light/80 font-medium"
+            >
+              Settings
+            </button>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="px-4 py-2 rounded-xl border border-glass-border bg-surface-light text-primary hover:bg-surface-light/80 font-medium"
+            >
+              Sign Out
+            </button>
+          </div>
         </GlassCard>
       </div>
     </PageChrome>

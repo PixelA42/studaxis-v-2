@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -34,6 +35,15 @@ from pydantic import BaseModel, Field
 _APP_DIR = Path(__file__).resolve().parent
 if str(_APP_DIR) not in __import__("sys").path:
     __import__("sys").path.insert(0, str(_APP_DIR))
+
+# Load .env early so AWS and AppSync config are available
+try:
+    from dotenv import load_dotenv
+    _env = _APP_DIR / ".env"
+    if _env.exists():
+        load_dotenv(_env)
+except ImportError:
+    pass
 
 from ai_integration_layer import AIEngine, AIState, AITaskType
 from grading.grader import Grader
@@ -612,15 +622,19 @@ def health():
 
 @app.get("/api/ollama/ping")
 def ollama_ping():
-    """Ping Ollama at localhost:11434. Used by loading screen to wait until local AI is ready."""
+    """Ping Ollama at localhost:11434. Used by loading screen to wait until local AI is ready.
+    Returns friendly message when not ready — no external network, no 500 errors."""
     import requests
     url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
     base = url.rstrip("/")
     try:
         r = requests.get(f"{base}/", timeout=3)
-        return {"ok": r.status_code == 200}
+        ok = r.status_code == 200
+        return {"ok": ok, "message": None if ok else "AI is warming up"}
+    except requests.exceptions.Timeout:
+        return {"ok": False, "message": "AI is warming up. Try again in a moment."}
     except Exception:
-        return {"ok": False}
+        return {"ok": False, "message": "AI is warming up. Ensure Ollama is running."}
 
 
 # ---------------------------------------------------------------------------
@@ -859,19 +873,28 @@ def textbooks_list():
 @app.post("/api/textbooks/upload")
 def textbooks_upload(file: UploadFile = File(...)):
     """Multipart file upload; save PDF or PPTX to sample_textbooks (shared with Flashcards and AI Chat)."""
+    import logging
+    log = logging.getLogger("studaxis.textbooks")
     if not file.filename:
+        log.warning("[upload] Rejected: no filename")
         raise HTTPException(status_code=400, detail="No filename provided")
     suf = Path(file.filename).suffix.lower()
     if suf not in (".pdf", ".pptx"):
+        log.warning("[upload] Rejected: unsupported type %s for %s", suf, file.filename)
         raise HTTPException(status_code=400, detail="Only PDF and PPTX files are accepted")
     SAMPLE_TEXTBOOKS_DIR.mkdir(parents=True, exist_ok=True)
     dest = SAMPLE_TEXTBOOKS_DIR / file.filename
     try:
         content = file.file.read()
         dest.write_bytes(content)
+        log.info("[upload] OK: %s -> %s (%d bytes)", file.filename, dest, len(content))
+        return {"id": file.filename, "name": Path(file.filename).stem}
+    except OSError as e:
+        log.error("[upload] FAIL (filesystem): %s: %s", file.filename, e)
+        raise HTTPException(status_code=500, detail=f"Could not save file: {e}")
     except Exception as e:
+        log.exception("[upload] FAIL: %s: %s", file.filename, e)
         raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
-    return {"id": file.filename, "name": Path(file.filename).stem}
 
 
 def _extract_text_from_pdf(path: Path) -> str:
@@ -955,6 +978,12 @@ def _generate_single_flashcard_via_ollama(
         context_chunk = str(relevant_chunk).strip()
         no_context_note = ""
 
+    import random
+    variation_seed = random.randint(1, 2_147_483_647)
+    variation_instructions = (
+        f"VARIATION (seed {variation_seed}): Generate UNIQUE questions. Do NOT repeat previous questions. "
+        "Vary question style, phrasing, examples, angles, and difficulty. Be creative and unexpected."
+    )
     prompt = f"""You are creating exam-style flashcards for a {difficulty} level {subject} student.
 
 Topic: {topic}
@@ -962,6 +991,8 @@ Context from source material: {context_chunk}
 
 Generate 1 flashcard about this topic.
 {no_context_note}
+{variation_instructions}
+
 RULES:
 - Front must be a QUESTION, never just the topic name
 - Questions must be specific and testable
@@ -988,10 +1019,17 @@ Each item:
   "front": "specific question about the topic",
   "back": "concise direct answer"
 }}"""
+    _ollama_base = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
+    _ollama_url = f"{_ollama_base}/api/generate"
     try:
         resp = requests.post(
-            "http://localhost:11434/api/generate",
-            json={"model": "llama3.2", "prompt": prompt, "stream": False},
+            _ollama_url,
+            json={
+                "model": "llama3.2",
+                "prompt": prompt,
+                "stream": False,
+                "options": {"temperature": 0.9, "seed": variation_seed},
+            },
             timeout=60,
         )
         resp.raise_for_status()
@@ -1250,12 +1288,23 @@ Each item:
     return out[:count]
 
 
-def _generate_quiz_from_content(content: str, subject: str, count: int = 5) -> list[dict[str, Any]]:
-    """Generate panic-mode quiz items from extracted text via AI."""
+def _generate_quiz_from_content(
+    content: str,
+    subject: str,
+    count: int = 5,
+    question_type: str = "open_ended",
+) -> list[dict[str, Any]]:
+    """Generate panic-mode quiz items from extracted text via AI.
+    question_type: mcq | open_ended. MCQ returns {id, text, options, correct, explanation}."""
     if not content or not content.strip():
         raise HTTPException(status_code=422, detail="No extractable text from source")
     engine = get_ai_engine()
     truncated = content[:12000] if len(content) > 12000 else content
+    qt = question_type if question_type in ("mcq", "open_ended") else "open_ended"
+
+    if qt == "mcq":
+        return _generate_mcq_from_content(truncated, subject, count)
+    # open_ended
     try:
         response = engine.request(
             task_type=AITaskType.QUIZ_GENERATION,
@@ -1272,7 +1321,10 @@ def _generate_quiz_from_content(content: str, subject: str, count: int = 5) -> l
     except (ConnectionError, TimeoutError) as e:
         raise HTTPException(status_code=503, detail=str(e))
     if response.state in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
-        raise HTTPException(status_code=503, detail=response.error_message or response.text or "AI unavailable.")
+        raise HTTPException(
+            status_code=503,
+            detail=response.error_message or response.text or "AI unavailable.",
+        )
     try:
         parsed = _parse_ai_json(response.text)
     except (ValueError, json.JSONDecodeError):
@@ -1286,6 +1338,65 @@ def _generate_quiz_from_content(content: str, subject: str, count: int = 5) -> l
             detail="AI could not generate valid questions from this material. Try a shorter PDF or use default questions.",
         )
     return _normalize_quiz_items(parsed, subject)
+
+
+def _generate_mcq_from_content(content: str, subject: str, count: int) -> list[dict[str, Any]]:
+    """Generate MCQ questions from extracted content via AI. Returns {id, text, options, correct, explanation}."""
+    engine = get_ai_engine()
+    try:
+        response = engine.request(
+            task_type=AITaskType.QUIZ_GENERATION,
+            user_input=f"Generate {count} MCQ questions for {subject} from the content below.",
+            context_data={
+                "subject": subject,
+                "count": count,
+                "question_format": "mcq",
+                "source_content": content[:6000],
+            },
+            offline_mode=True,
+            privacy_sensitive=True,
+            user_id=None,
+        )
+    except (ConnectionError, TimeoutError) as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    try:
+        parsed = _parse_ai_json(response.text)
+    except (ValueError, json.JSONDecodeError):
+        raise HTTPException(
+            status_code=422,
+            detail="AI could not generate valid MCQ questions from this material.",
+        )
+    if not isinstance(parsed, list):
+        raise HTTPException(
+            status_code=422,
+            detail="AI could not generate valid MCQ questions from this material.",
+        )
+    out: list[dict[str, Any]] = []
+    for i, item in enumerate(parsed[:count]):
+        if not isinstance(item, dict):
+            continue
+        qid = str(item.get("id", f"pq{i+1}_{uuid.uuid4().hex[:8]}"))
+        text_val = str(item.get("text", item.get("question", ""))).strip() or "?"
+        opts = item.get("options", [])
+        if not isinstance(opts, list):
+            opts = []
+        options = [str(o) for o in opts[:4]]
+        while len(options) < 4:
+            options.append("(No option)")
+        correct = int(item.get("correct", 0))
+        if correct < 0 or correct >= 4:
+            correct = 0
+        explanation = str(item.get("explanation", "")).strip() or ""
+        out.append({
+            "id": qid,
+            "question": text_val,
+            "text": text_val,
+            "topic": subject,
+            "options": options,
+            "correct": correct,
+            "explanation": explanation,
+        })
+    return out[:count]
 
 
 class TextbookGenerateRequest(BaseModel):
@@ -1446,6 +1557,7 @@ def flashcards_generate_from_file(
 ):
     """Multipart: PDF or PPT only. Topic extraction + smart flashcard generation."""
     if not file or not file.filename:
+        print("[flashcards] generate-from-file: no file provided")
         raise HTTPException(status_code=400, detail="No file provided")
     suf = Path(file.filename).suffix.lower()
     if suf not in (".pdf", ".ppt", ".pptx"):
@@ -2519,12 +2631,14 @@ class PanicGenerateTextbookRequest(BaseModel):
     textbook_id: str = Field(...)
     chapter: Optional[str] = Field(default=None)
     count: int = Field(default=5, ge=3, le=15)
+    question_type: str = Field(default="open_ended", description="mcq | open_ended")
 
 
 class PanicGenerateWeblinkRequest(BaseModel):
     subject: str = Field(..., min_length=1)
     url: str = Field(..., min_length=1)
     count: int = Field(default=5, ge=3, le=15)
+    question_type: str = Field(default="open_ended", description="mcq | open_ended")
 
 
 class QuizGenerateRequest(BaseModel):
@@ -2547,8 +2661,15 @@ def panic_generate_textbook(req: PanicGenerateTextbookRequest):
         content = _extract_text_from_file(path)
         if not content.strip():
             raise HTTPException(status_code=422, detail="Could not extract text from textbook")
-        items = _generate_quiz_from_content(content, req.subject, req.count)
-        return {"id": "panic", "title": f"Panic Mode — {req.subject}", "items": items}
+        items = _generate_quiz_from_content(
+            content, req.subject, req.count, req.question_type
+        )
+        return {
+            "id": "panic",
+            "title": f"Panic Mode — {req.subject}",
+            "items": items,
+            "question_type": req.question_type,
+        }
     except HTTPException:
         raise
     except Exception:
@@ -2558,7 +2679,12 @@ def panic_generate_textbook(req: PanicGenerateTextbookRequest):
                 items.append(q)
         if not items:
             items = [q for q in PANIC_ITEMS][:req.count]
-        return {"id": "panic", "title": f"Panic Mode — {req.subject}", "items": items}
+        return {
+            "id": "panic",
+            "title": f"Panic Mode — {req.subject}",
+            "items": items,
+            "question_type": req.question_type,
+        }
 
 
 @app.post("/api/quiz/panic/generate/weblink")
@@ -2573,13 +2699,21 @@ def panic_generate_weblink(req: PanicGenerateWeblinkRequest):
         raise HTTPException(status_code=422, detail=f"Could not fetch URL: {e}")
     text = re.sub(r"<[^>]+>", " ", html)
     text = re.sub(r"\s+", " ", text).strip()
-    items = _generate_quiz_from_content(text, req.subject, req.count)
-    return {"id": "panic", "title": f"Panic Mode — {req.subject}", "items": items}
+    items = _generate_quiz_from_content(
+        text, req.subject, req.count, req.question_type
+    )
+    return {
+        "id": "panic",
+        "title": f"Panic Mode — {req.subject}",
+        "items": items,
+        "question_type": req.question_type,
+    }
 
 
 class QuizGenerateFromUrlRequest(BaseModel):
     url: str = Field(..., min_length=1)
     subject: str = Field(default="General")
+    topic_text: Optional[str] = Field(default=None, description="Topic or concept for context")
     num_questions: int = Field(default=10, ge=1, le=20)
     question_type: str = Field(default="mcq", description="mcq | open_ended")
     difficulty: str = Field(default="Beginner")
@@ -2655,6 +2789,7 @@ def quiz_generate_from_url(req: QuizGenerateFromUrlRequest, user_id: str = Depen
 class QuizGenerateFromTextRequest(BaseModel):
     text: str = Field(..., min_length=1)
     subject: str = Field(default="General")
+    topic_text: Optional[str] = Field(default=None, description="Topic or concept for context")
     num_questions: int = Field(default=10, ge=1, le=20)
     question_type: str = Field(default="mcq", description="mcq | open_ended")
     difficulty: str = Field(default="Beginner")
@@ -2676,6 +2811,7 @@ def quiz_generate_from_text(req: QuizGenerateFromTextRequest, user_id: str = Dep
 def quiz_generate_from_file(
     file: UploadFile = File(...),
     subject: str = Form("General"),
+    topic_text: Optional[str] = Form(None),
     num_questions: int = Form(10, ge=1, le=20),
     question_type: str = Form("mcq"),
     difficulty: str = Form("Beginner"),
@@ -2760,6 +2896,7 @@ def panic_generate_files(
     files: list[UploadFile] = File(...),
     subject: str = Form(...),
     count: int = Form(5),
+    question_type: str = Form("open_ended"),
 ):
     """Generate panic-mode questions from uploaded files. One subject only."""
     if not files:
@@ -2790,8 +2927,14 @@ def panic_generate_files(
     if not combined.strip():
         raise HTTPException(status_code=422, detail="No extractable text from files")
     cnt = max(3, min(15, count))
-    items = _generate_quiz_from_content(combined, subject, cnt)
-    return {"id": "panic", "title": f"Panic Mode — {subject}", "items": items}
+    qt = question_type if question_type in ("mcq", "open_ended") else "open_ended"
+    items = _generate_quiz_from_content(combined, subject, cnt, qt)
+    return {
+        "id": "panic",
+        "title": f"Panic Mode — {subject}",
+        "items": items,
+        "question_type": qt,
+    }
 
 
 def _quizzes_dir(user_id: str) -> Path:
@@ -3140,6 +3283,9 @@ class PanicGradeOneRequest(BaseModel):
     question: str = Field(...)
     topic: str = Field(default="General")
     expected_answer: str = Field(default="")
+    question_type: str = Field(default="open_ended", description="mcq | open_ended")
+    options: Optional[list[str]] = Field(default=None, description="For MCQ: option strings")
+    correct: Optional[int] = Field(default=None, description="For MCQ: correct option index 0-3")
 
 
 class PanicFinalizeRequest(BaseModel):
@@ -3149,8 +3295,24 @@ class PanicFinalizeRequest(BaseModel):
 
 @app.post("/api/quiz/panic/grade-one")
 def panic_grade_one(req: PanicGradeOneRequest):
-    """Grade a single panic-mode question. 30s timeout; falls back to local scoring on timeout/error."""
+    """Grade a single panic-mode question. For MCQ uses _score_mcq_answer; for open-ended uses AI + _local_score fallback."""
     engine = get_ai_engine()
+    if req.question_type == "mcq" and req.options and req.correct is not None:
+        item = {
+            "options": req.options,
+            "correct": req.correct,
+            "expected_answer": req.expected_answer or (req.options[req.correct] if req.correct < len(req.options) else ""),
+        }
+        score = _score_mcq_answer(req.answer, item)
+        feedback_text = "Correct!" if score >= 10.0 else (
+            f"The correct answer is: {item.get('expected_answer', '')}"
+        )
+        return {
+            "question_id": req.question_id,
+            "score": score,
+            "feedback": feedback_text,
+            "topic": req.topic,
+        }
     score = _local_score(req.answer, req.expected_answer)
     feedback_text = "Grading unavailable."
     try:
@@ -3291,6 +3453,171 @@ def user_stats_get(user_id: str = Depends(get_user_id)):
     return stats
 
 
+def _build_insights_from_stats(stats: dict[str, Any], user_id: str) -> dict[str, Any]:
+    """
+    Build structured insights from user stats. Calls AI for weak-topic detection
+    and study recommendation when data is available. Reuses logic from panic_finalize.
+    """
+    engine = get_ai_engine()
+    streak_current = int(stats.get("streak", {}).get("current", 0) or 0)
+    quiz_stats = stats.get("quiz_stats") or {}
+    flashcard_stats = stats.get("flashcard_stats") or {}
+    by_topic = quiz_stats.get("by_topic") or {}
+
+    quiz_attempted = int(quiz_stats.get("total_attempted", 0) or 0)
+    quiz_correct = int(quiz_stats.get("total_correct", 0) or 0)
+    quiz_avg = float(quiz_stats.get("average_score", 0) or 0)
+    quiz_accuracy = round((quiz_correct / quiz_attempted * 100)) if quiz_attempted > 0 else 0
+
+    fc_reviewed = int(flashcard_stats.get("total_reviewed", 0) or 0)
+    fc_mastered = int(flashcard_stats.get("mastered", 0) or 0)
+    fc_mastery_pct = round((fc_mastered / fc_reviewed * 100)) if fc_reviewed > 0 else 0
+    mastery_pct = round((quiz_accuracy * 0.6 + fc_mastery_pct * 0.4))
+
+    topic_keys = list(by_topic.keys()) if isinstance(by_topic, dict) else []
+    topic_scores_payload = (
+        {t: round(float((by_topic.get(t) or {}).get("avg_score", 0) or 0), 2)
+         for t in topic_keys}
+        if topic_keys else {}
+    )
+
+    weak_topic_name = topic_keys[0] if topic_keys else "Not enough data"
+    weak_topic_entry = by_topic.get(weak_topic_name) if isinstance(by_topic, dict) else None
+    weak_score_raw = float((weak_topic_entry or {}).get("avg_score", 0) or 0)
+    weak_topic_score = round(weak_score_raw * 10, 1) if weak_score_raw <= 1 else round(weak_score_raw * 10)
+
+    weak_topics_text: Optional[str] = None
+    study_recommendation_text: Optional[str] = None
+    weak_topic_ai_name: Optional[str] = None
+
+    if topic_scores_payload:
+        try:
+            weak_resp = engine.request(
+                task_type=AITaskType.WEAK_TOPIC_DETECTION,
+                user_input="Identify the single weakest topic from this student's quiz performance.",
+                context_data={
+                    "topic_scores": topic_scores_payload,
+                    "total_questions": quiz_attempted,
+                    "subject": "General",
+                },
+                offline_mode=True,
+                privacy_sensitive=True,
+                user_id=user_id,
+            )
+            weak_topics_text = weak_resp.text
+            if weak_topics_text and weak_topics_text.strip():
+                first_line = weak_topics_text.strip().split("\n")[0][:80]
+                weak_topic_ai_name = first_line if first_line else weak_topic_name
+        except (ConnectionError, TimeoutError):
+            pass
+
+        try:
+            rec_resp = engine.request(
+                task_type=AITaskType.STUDY_RECOMMENDATION,
+                user_input="Create a personalized study plan for this student based on their stats.",
+                context_data={
+                    "topic_scores": topic_scores_payload,
+                    "weak_topics_summary": weak_topics_text or "No weak topics identified.",
+                    "study_time_minutes": 20,
+                    "streak": streak_current,
+                    "quiz_average": quiz_avg,
+                    "flashcard_mastery_pct": fc_mastery_pct,
+                    "total_quiz_attempted": quiz_attempted,
+                },
+                offline_mode=True,
+                privacy_sensitive=True,
+                user_id=user_id,
+            )
+            study_recommendation_text = rec_resp.text
+        except (ConnectionError, TimeoutError):
+            pass
+
+    trend_points: list[float] = []
+    quiz_history = _load_quiz_history(user_id)
+    if quiz_history:
+        percents = []
+        for r in quiz_history[:10]:
+            pct = r.get("percent")
+            if pct is not None:
+                percents.append(float(pct))
+        trend_points = list(reversed(percents[-5:]))
+    if len(trend_points) < 5:
+        pad = [float(quiz_accuracy)] * (5 - len(trend_points))
+        trend_points = trend_points + pad
+
+    insights: list[dict[str, Any]] = [
+        {
+            "id": "insight_weak_topic",
+            "title": "Weak Topic Alert",
+            "description": f"Potential weak area: {weak_topic_ai_name or weak_topic_name}. Flag when below 60%.",
+            "insight_type": "weak_topic_detection",
+            "priority": "high",
+            "related_subject": weak_topic_ai_name or weak_topic_name,
+            "suggested_action": "Start a remedial quiz on this topic.",
+            "weak_topic_name": weak_topic_ai_name or weak_topic_name,
+            "weak_topic_score": weak_topic_score,
+        },
+        {
+            "id": "insight_mastery",
+            "title": "Subject Mastery Snapshot",
+            "description": "Current mastery band: Beginner–Intermediate.",
+            "insight_type": "subject_mastery",
+            "priority": "medium",
+            "related_subject": "All Subjects",
+            "suggested_action": "Review weak concepts before the next quiz.",
+            "mastery_pct": mastery_pct,
+        },
+        {
+            "id": "insight_streak",
+            "title": "Daily Learning Streak",
+            "description": f"Current streak is {streak_current} day(s). Keep momentum going.",
+            "insight_type": "daily_streak",
+            "priority": "medium",
+            "related_subject": "All Subjects",
+            "suggested_action": "Complete one activity today to continue your streak.",
+        },
+        {
+            "id": "insight_quiz_trend",
+            "title": "Quiz Performance Trend",
+            "description": f"Recent quiz accuracy is {quiz_accuracy}%.",
+            "insight_type": "quiz_performance_trend",
+            "priority": "medium",
+            "related_subject": "Quiz",
+            "suggested_action": "Retake a quiz in your weakest subject.",
+            "trend_points": trend_points,
+        },
+        {
+            "id": "insight_recommendation",
+            "title": "AI Study Recommendation",
+            "description": "Next best action based on weak topics and trend signals.",
+            "insight_type": "study_recommendation",
+            "priority": "low",
+            "related_subject": "Recommended",
+            "suggested_action": "Study 20 minutes + one focused quiz + flashcard recap.",
+        },
+    ]
+    return {
+        "insights": insights,
+        "study_recommendation_text": study_recommendation_text,
+    }
+
+
+@app.get("/api/insights")
+def insights_get(current_user: Annotated[User, Depends(get_current_user)], user_id: str = Depends(get_user_id)):
+    """
+    Return structured AI insights for the current user.
+    Auth-protected. Uses real AI for weak-topic detection and study recommendation.
+    """
+    stats = _load_user_stats(user_id)
+    ensure_streak_structure(stats)
+    _update_streak(stats)
+    result = _build_insights_from_stats(stats, user_id)
+    return {
+        "insights": result["insights"],
+        "study_recommendation_text": result.get("study_recommendation_text"),
+    }
+
+
 @app.put("/api/user/stats")
 def user_stats_put(stats: dict[str, Any], user_id: str = Depends(get_user_id)):
     """Update user progress/preferences for the authenticated user. Merges with existing."""
@@ -3312,12 +3639,12 @@ def user_stats_put(stats: dict[str, Any], user_id: str = Depends(get_user_id)):
 @app.get("/api/data/export")
 def data_export(user_id: str = Depends(get_user_id)):
     """
-    Export all user stats and flashcards for the authenticated user.
+    Export all user stats, flashcards, and profile for the authenticated user.
     """
     from datetime import datetime, timezone
     stats = _load_user_stats(user_id)
     cards = _load_flashcards(user_id)
-    profile = load_profile()
+    profile = load_profile_for_user(user_id)
     payload = {
         "exported_at": datetime.now(timezone.utc).isoformat(),
         "version": "1.0",
@@ -3332,13 +3659,22 @@ def data_export(user_id: str = Depends(get_user_id)):
 @app.post("/api/data/clear")
 def data_clear(user_id: str = Depends(get_user_id)):
     """
-    Clear study data for the authenticated user: reset stats to defaults, clear flashcards.
+    Clear study data for the authenticated user: reset stats, clear flashcards, reset profile.
     Does NOT delete auth (users.db) or affect other users.
     """
     default = dict(_DEFAULT_STATS)
     default["user_id"] = user_id
     _save_user_stats(default, user_id)
     _save_flashcards([], user_id)
+    existing = load_profile_for_user(user_id)
+    reset_profile = UserProfile(
+        profile_name=existing.profile_name if existing else user_id,
+        profile_mode="solo",
+        class_code=None,
+        user_role="student",
+        onboarding_complete=True,
+    )
+    save_profile_for_user(user_id, reset_profile)
     return {"ok": True, "message": f"Data cleared for user '{user_id}'."}
 
 
@@ -3370,14 +3706,21 @@ def _profile_to_dict(p: Optional[UserProfile]) -> dict[str, Any]:
 
 
 @app.get("/api/user/profile")
-def user_profile_get(user_id: str = Depends(get_user_id)):
-    """Return persisted user profile (for AuthContext sync)."""
+def user_profile_get(
+    current_user: Annotated[User, Depends(get_current_user)],
+    user_id: str = Depends(get_user_id),
+):
+    """Return persisted user profile scoped by JWT user_id. Auth-protected."""
     p = load_profile_for_user(user_id)
     return _profile_to_dict(p)
 
 
 @app.post("/api/user/profile")
-def user_profile_post(req: ProfileRequest, user_id: str = Depends(get_user_id)):
+def user_profile_post(
+    req: ProfileRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    user_id: str = Depends(get_user_id),
+):
     """Persist profile; merges with existing. Used by AuthContext. Returns saved profile."""
     existing = load_profile_for_user(user_id) or UserProfile()
     merged = UserProfile(
@@ -3395,19 +3738,15 @@ def user_profile_post(req: ProfileRequest, user_id: str = Depends(get_user_id)):
 # Sync (SyncManager + ConflictAwareOrchestrator)
 # ---------------------------------------------------------------------------
 
-_orchestrator: Optional[Any] = None
 
 
-def _get_orchestrator():
-    """Lazy-load ConflictAwareOrchestrator for conflict endpoints."""
-    global _orchestrator
-    if _orchestrator is None:
-        try:
-            from conflict_resolution_engine import ConflictAwareOrchestrator
-            _orchestrator = ConflictAwareOrchestrator(base_path=str(BASE_PATH))
-        except ImportError:
-            pass
-    return _orchestrator
+def _get_conflict_engine(user_id: str):
+    """Create a user-scoped ConflictResolutionEngine for conflict endpoints."""
+    try:
+        from conflict_resolution_engine import ConflictResolutionEngine
+        return ConflictResolutionEngine(base_path=str(BASE_PATH), user_id=user_id)
+    except ImportError:
+        return None
 
 
 def _persist_resolved_entity(entity_type: str, entity_id: str, resolved_data: dict, user_id: str) -> None:
@@ -3447,6 +3786,7 @@ def sync_trigger(user_id: str = Depends(get_user_id)):
             "failed": result.get("failed", 0),
             "pending": result.get("pending", 0),
             "online": result.get("online", False),
+            "aws_sync": result.get("aws_sync"),
             "errors": result.get("errors", []),
             "message": (
                 f"Synced {result.get('synced', 0)} item(s)"
@@ -3490,12 +3830,12 @@ def sync_status(user_id: str = Depends(get_user_id)):
 
 
 @app.get("/api/sync/conflicts")
-def get_conflicts():
-    """Return pending sync conflicts from ConflictAwareOrchestrator."""
-    orch = _get_orchestrator()
-    if orch is None:
-        return {"conflicts": [], "message": "Conflict orchestrator unavailable"}
-    conflicts = orch.get_pending_conflicts()
+def get_conflicts(user_id: str = Depends(get_user_id)):
+    """Return pending sync conflicts for the authenticated user (scoped by user_id from JWT)."""
+    engine = _get_conflict_engine(user_id)
+    if engine is None:
+        return {"conflicts": [], "message": "Conflict resolution engine unavailable"}
+    conflicts = engine.get_pending_conflicts()
     # Ensure reason is string for JSON
     for c in conflicts:
         if hasattr(c.get("reason"), "value"):
@@ -3514,19 +3854,26 @@ def resolve_conflict(entity_id: str, body: ResolveConflictRequest, user_id: str 
     if choice not in ("keep_local", "keep_cloud", "merge"):
         raise HTTPException(400, "choice must be keep_local, keep_cloud, or merge")
 
-    orch = _get_orchestrator()
-    if orch is None:
-        raise HTTPException(503, "Conflict orchestrator unavailable")
+    engine = _get_conflict_engine(user_id)
+    if engine is None:
+        raise HTTPException(503, "Conflict resolution engine unavailable")
 
     try:
-        # Get entity_type before resolve (resolve removes conflict from pending)
-        conflicts = orch.get_pending_conflicts()
+        from conflict_resolution_engine import ConflictResult
+        conflicts = engine.get_pending_conflicts()
         conflict_dict = next((c for c in conflicts if c.get("entity_id") == entity_id), None)
         entity_type = conflict_dict.get("entity_type", "UserStats") if conflict_dict else "UserStats"
 
-        resolved_data = orch.resolve_conflict_manual(entity_id, choice)
+        if not conflict_dict:
+            raise ValueError(f"No pending conflict found for entity {entity_id}")
+        conflict = ConflictResult.from_dict(conflict_dict)
+        resolved_data = engine.apply_manual_resolution(conflict, choice)
         _persist_resolved_entity(entity_type, entity_id, resolved_data, user_id)
-        orch.trigger_sync_debounced()
+        try:
+            from sync_manager import SyncManager
+            SyncManager(base_path=str(BASE_PATH), user_id=user_id).try_sync()
+        except Exception:
+            pass
         return {"ok": True, "entity_id": entity_id, "choice": choice}
     except ValueError as e:
         raise HTTPException(404, str(e))

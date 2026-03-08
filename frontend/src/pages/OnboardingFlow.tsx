@@ -303,6 +303,7 @@ export function OnboardingFlow({
       profile_name: (f.name || profile.profile_name || "Learner").trim() || "Learner",
       role: (profile.user_role || "student") as "student" | "teacher",
       mode: (profile.profile_mode || "solo") as "solo" | "teacher_linked" | "teacher_linked_provisional",
+      class_code: profile.class_code || null,
       subjects: f.subjects.length > 0 ? f.subjects.join(",") : null,
       grade: f.grade || null,
     };
@@ -310,6 +311,7 @@ export function OnboardingFlow({
     setProfile({
       profile_name: profileData.profile_name,
       profile_mode: profileData.mode,
+      class_code: profileData.class_code,
       user_role: profileData.role,
       onboarding_complete: true,
     });

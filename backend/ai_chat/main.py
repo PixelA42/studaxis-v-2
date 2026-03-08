@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -62,7 +63,8 @@ def _get_llm(temperature: float = 0.5) -> Any:
             "Neither langchain_ollama nor langchain_community.llms.Ollama available. "
             "Run: pip install --upgrade langchain-ollama"
         )
-    return OllamaLLM(model=LLM_MODEL, temperature=temperature, num_predict=_NUM_PREDICT)
+    base_url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
+    return OllamaLLM(model=LLM_MODEL, base_url=base_url, temperature=temperature, num_predict=_NUM_PREDICT)
 
 
 # Public accessors kept for grader.py and ai_integration_layer.py
@@ -422,8 +424,12 @@ def ask_ai(question: str, subject: str | None = None, user_id: str | None = None
             "question": question
         })
     except Exception as e:
+        err_msg = str(e).lower()
+        if "connection" in err_msg or "refused" in err_msg or "timeout" in err_msg:
+            response = "AI is warming up. Please wait a moment and try again, or ensure Ollama is running (ollama serve)."
+        else:
+            response = f"Error generating response: {str(e)}"
         print(f"❌ Error during chain invocation: {e}")
-        response = f"Error generating response: {str(e)}"
     
     # ============ STEP 8: SAVE ASSISTANT RESPONSE ============
     try:

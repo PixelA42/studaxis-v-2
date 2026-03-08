@@ -8,15 +8,18 @@ import { useNavigate } from "react-router-dom";
 import {
   getQuiz,
   postQuizSubmit,
+  postPanicGradeOne,
   generatePanicQuizFromTextbook,
   generatePanicQuizFromWeblink,
   generatePanicQuizFromFiles,
   getTextbooks,
   uploadTextbook,
 } from "../services/api";
+import { enqueueSyncItem } from "../services/storage";
 import type { QuizItem, QuizSubmitResult } from "../services/api";
 import { PageChrome, LoadingSpinner } from "../components";
 import { usePanicExam } from "../contexts/PanicExamContext";
+import { useAuth } from "../contexts/AuthContext";
 
 const DURATION_OPTIONS = [15, 30, 45, 60] as const;
 const SUBJECTS = ["Physics", "Biology", "Mathematics", "Chemistry", "Computer Science", "General"] as const;
@@ -149,7 +152,7 @@ function Setup({
   setError,
   onUseDefault,
 }: {
-  onLoad: (quiz: { id: string; title: string; items: QuizItem[] }) => void;
+  onLoad: (quiz: { id: string; title: string; items: QuizItem[]; question_type?: "mcq" | "open_ended" }) => void;
   loading: boolean;
   error: string | null;
   onErrorClear: () => void;
@@ -157,7 +160,9 @@ function Setup({
   setError?: (v: string | null) => void;
   onUseDefault?: () => void;
 }) {
+  const { connectivityStatus } = useAuth();
   const [subject, setSubject] = useState<string>(SUBJECTS[0]);
+  const [questionType, setQuestionType] = useState<"mcq" | "open_ended">("open_ended");
   const [tab, setTab] = useState<SourceTab>("textbook");
   const [textbooks, setTextbooks] = useState<{ id: string; name: string }[]>([]);
   const [textbookMode, setTextbookMode] = useState<"existing" | "upload">("existing");
@@ -205,23 +210,43 @@ function Setup({
           textbook_id: selectedTextbook,
           chapter: chapterInput.trim() || undefined,
           count: 5,
+          question_type: questionType,
         });
-        onLoad(res);
+        onLoad({
+          id: res.id,
+          title: res.title,
+          items: res.items,
+          question_type: res.question_type === "mcq" ? "mcq" : "open_ended",
+        });
       } else if (tab === "weblink") {
         const url = weblinkUrl.trim();
         if (!url) {
           setError?.("Enter a valid URL.");
           return;
         }
-        const res = await generatePanicQuizFromWeblink({ subject, url, count: 5 });
-        onLoad(res);
+        if (connectivityStatus === "offline") {
+          setError?.("You need to be connected to use web links.");
+          return;
+        }
+        const res = await generatePanicQuizFromWeblink({ subject, url, count: 5, question_type: questionType });
+        onLoad({
+          id: res.id,
+          title: res.title,
+          items: res.items,
+          question_type: res.question_type === "mcq" ? "mcq" : "open_ended",
+        });
       } else {
         if (files.length === 0) {
           setError?.("Select one or more files (txt, pdf, ppt).");
           return;
         }
-        const res = await generatePanicQuizFromFiles({ subject, files, count: 5 });
-        onLoad(res);
+        const res = await generatePanicQuizFromFiles({ subject, files, count: 5, question_type: questionType });
+        onLoad({
+          id: res.id,
+          title: res.title,
+          items: res.items,
+          question_type: res.question_type === "mcq" ? "mcq" : "open_ended",
+        });
       }
     } catch (err) {
       setError?.(err instanceof Error ? err.message : "Load failed.");
@@ -273,6 +298,30 @@ function Setup({
               <div>
                 <div className="text-lg font-extrabold text-heading-dark tracking-tight">Panic Mode — Setup</div>
                 <div className="font-mono text-xs text-subtle mt-0.5">Select subject & material (one source)</div>
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <div className="text-xs font-bold text-muted mb-2">Question type</div>
+              <div className="flex gap-2 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setQuestionType("mcq")}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium ${
+                    questionType === "mcq" ? "bg-accent-blue text-white" : "border border-glass-border bg-surface-light text-primary hover:bg-surface-light/80"
+                  }`}
+                >
+                  MCQ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuestionType("open_ended")}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium ${
+                    questionType === "open_ended" ? "bg-accent-blue text-white" : "border border-glass-border bg-surface-light text-primary hover:bg-surface-light/80"
+                  }`}
+                >
+                  Open-ended
+                </button>
               </div>
             </div>
 
@@ -412,7 +461,7 @@ function Lobby({
   onDurationChange,
   onStart,
 }: {
-  quiz: { id: string; title: string; items: QuizItem[] };
+  quiz: { id: string; title: string; items: QuizItem[]; question_type?: "mcq" | "open_ended" };
   durationMinutes: number;
   onDurationChange: (m: number) => void;
   onStart: () => void;
@@ -631,7 +680,7 @@ function Results({
   recommendationText,
   onRetake,
 }: {
-  quiz: { id: string; title: string; items: QuizItem[] };
+  quiz: { id: string; title: string; items: QuizItem[]; question_type?: "mcq" | "open_ended" };
   answers: Record<string, string>;
   results: QuizSubmitResult[];
   timeUp: boolean;
@@ -868,7 +917,7 @@ function ExamScreen({
   submitting,
   submitError,
 }: {
-  quiz: { id: string; title: string; items: QuizItem[] };
+  quiz: { id: string; title: string; items: QuizItem[]; question_type?: "mcq" | "open_ended" };
   durationMinutes: number;
   answers: Record<string, string>;
   onAnswerChange: (qid: string, value: string) => void;
@@ -879,6 +928,11 @@ function ExamScreen({
   const [qIdx, setQIdx] = useState(0);
   const [timeUp, setTimeUp] = useState(false);
   const [confirm, setConfirm] = useState(false);
+  const [openEndedFeedback, setOpenEndedFeedback] = useState<
+    Record<string, { score: number; feedback: string }>
+  >({});
+  const [checkingAnswer, setCheckingAnswer] = useState(false);
+  const isMcq = (quiz.question_type || "open_ended") === "mcq";
   const totalSec = durationMinutes * 60;
   const items = quiz.items;
   const q = items[qIdx];
@@ -1063,16 +1117,110 @@ function ExamScreen({
           </div>
 
           <h2 className="text-lg md:text-xl font-extrabold text-heading-dark leading-snug tracking-tight max-w-[700px] mb-9 animate-panic-slide">
-            {q.question}
+            {q.question ?? q.text ?? "?"}
           </h2>
 
-          <textarea
-            value={answers[q.id] ?? ""}
-            onChange={(e) => onAnswerChange(q.id, e.target.value)}
-            placeholder="Type your answer here..."
-            rows={6}
-            className="w-full max-w-[680px] px-5 py-4 rounded-xl border-2 border-glass-border bg-deep/30 text-primary placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent-pink focus:border-accent-pink resize-y font-sans text-sm leading-relaxed transition-all"
-          />
+          {isMcq && q.options && q.options.length > 0 ? (
+            <div className="space-y-2 max-w-[680px]">
+              {q.options.map((opt, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onAnswerChange(q.id, String(i))}
+                  className={`w-full text-left px-5 py-4 rounded-xl border-2 font-medium text-sm transition-all ${
+                    answers[q.id] === String(i)
+                      ? "border-accent-pink bg-accent-pink/10"
+                      : "border-glass-border bg-deep/30 hover:border-accent-pink/50"
+                  }`}
+                  style={{
+                    borderColor:
+                      answers[q.id] === String(i)
+                        ? ACCENT_PINK
+                        : undefined,
+                  }}
+                >
+                  {String.fromCharCode(65 + i)}. {opt}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <>
+              <textarea
+                value={answers[q.id] ?? ""}
+                onChange={(e) => onAnswerChange(q.id, e.target.value)}
+                placeholder="Type your answer here..."
+                rows={6}
+                className="w-full max-w-[680px] px-5 py-4 rounded-xl border-2 border-glass-border bg-deep/30 text-primary placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-accent-pink focus:border-accent-pink resize-y font-sans text-sm leading-relaxed transition-all"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  const ans = (answers[q.id] ?? "").trim();
+                  if (!ans) return;
+                  setCheckingAnswer(true);
+                  try {
+                    const res = await postPanicGradeOne({
+                      question_id: q.id,
+                      question: q.question ?? q.text ?? "",
+                      answer: ans,
+                      topic: q.topic ?? "General",
+                      expected_answer: q.expected_answer ?? q.sample_answer ?? "",
+                    });
+                    setOpenEndedFeedback((f) => ({
+                      ...f,
+                      [q.id]: { score: res.score, feedback: res.feedback },
+                    }));
+                  } catch {
+                    setOpenEndedFeedback((f) => ({
+                      ...f,
+                      [q.id]: { score: 0, feedback: "Grading failed." },
+                    }));
+                  } finally {
+                    setCheckingAnswer(false);
+                  }
+                }}
+                disabled={checkingAnswer || !(answers[q.id] ?? "").trim()}
+                className="mt-3 px-5 py-2.5 rounded-xl border border-accent-blue bg-accent-blue/10 text-accent-blue font-semibold text-sm hover:bg-accent-blue/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {checkingAnswer ? "Checking..." : "Check Answer"}
+              </button>
+              {openEndedFeedback[q.id] && (
+                <div
+                  className="mt-3 p-4 rounded-xl border-2 max-w-[680px]"
+                  style={{
+                    borderColor:
+                      openEndedFeedback[q.id].score >= 7
+                        ? SUCCESS
+                        : openEndedFeedback[q.id].score >= 4
+                          ? ACCENT_CORAL
+                          : ACCENT_PINK,
+                  }}
+                >
+                  <p
+                    className="font-bold text-sm mb-1"
+                    style={{
+                      color:
+                        openEndedFeedback[q.id].score >= 7
+                          ? SUCCESS
+                          : openEndedFeedback[q.id].score >= 4
+                            ? ACCENT_CORAL
+                            : ACCENT_PINK,
+                    }}
+                  >
+                    {openEndedFeedback[q.id].score >= 7
+                      ? "Great answer!"
+                      : openEndedFeedback[q.id].score >= 4
+                        ? "Partial credit"
+                        : "Needs improvement"}{" "}
+                    — {openEndedFeedback[q.id].score}/10
+                  </p>
+                  <p className="text-sm text-muted whitespace-pre-wrap">
+                    {openEndedFeedback[q.id].feedback}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <div className="hidden md:flex flex-col items-center gap-7 p-7 border-l border-glass-border bg-deep/30">
@@ -1256,6 +1404,7 @@ export function PanicModePage() {
     id: string;
     title: string;
     items: QuizItem[];
+    question_type?: "mcq" | "open_ended";
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState<"setup" | "lobby" | "exam" | "results">("setup");
@@ -1270,11 +1419,21 @@ export function PanicModePage() {
   const [setupLoading, setSetupLoading] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
 
-  const handleSetupLoad = useCallback((loadedQuiz: { id: string; title: string; items: QuizItem[] }) => {
-    setQuiz(loadedQuiz);
-    setSetupError(null);
-    setPhase("lobby");
-  }, []);
+  // Fix: if quiz is null, always reset phase to setup (guards against stale phase from any source)
+  useEffect(() => {
+    if (!quiz && phase !== "setup") {
+      setPhase("setup");
+    }
+  }, [quiz, phase]);
+
+  const handleSetupLoad = useCallback(
+    (loadedQuiz: { id: string; title: string; items: QuizItem[]; question_type?: "mcq" | "open_ended" }) => {
+      setQuiz(loadedQuiz);
+      setSetupError(null);
+      setPhase("lobby");
+    },
+    []
+  );
 
   const handleUseDefault = useCallback(() => {
     setLoading(true);
@@ -1324,7 +1483,30 @@ export function PanicModePage() {
       setPhase("results");
       setExamActive(false);
     } catch (e) {
-      setSubmitError(e instanceof Error ? e.message : "Submit failed.");
+      enqueueSyncItem({
+        type: "quiz_result",
+        payload: {
+          quizId: "panic",
+          answers: quiz.items.map((q) => ({ question_id: q.id, answer: answers[q.id] ?? "" })),
+          items: quiz.items,
+        },
+      });
+      setResults(
+        quiz.items.map((q) => ({
+          question_id: q.id,
+          correct: false,
+          score: 0,
+          correct_answer: "",
+          explanation: "Saved locally. Will sync when online.",
+        }))
+      );
+      if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      else if ((document as Document & { webkitExitFullscreen?: () => void }).webkitExitFullscreen) {
+        (document as Document & { webkitExitFullscreen: () => void }).webkitExitFullscreen();
+      }
+      setPhase("results");
+      setExamActive(false);
+      setSubmitError(null);
     } finally {
       setSubmitting(false);
     }

@@ -50,7 +50,7 @@ const ALLOWED_EXT = [".pdf", ".ppt", ".pptx"];
 
 export function QuizPage() {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, connectivityStatus } = useAuth();
   const [assignments, setAssignments] = useState<AssignmentItem[]>([]);
   const [textbooks, setTextbooks] = useState<TextbooksResponse["textbooks"]>(() => {
     try {
@@ -133,6 +133,10 @@ export function QuizPage() {
         setGenError("Enter a valid URL.");
         return;
       }
+      if (connectivityStatus === "offline") {
+        setGenError("You need to be connected to use web links.");
+        return;
+      }
     } else if (sourceTab === "file") {
       if (!uploadFile) {
         setGenError("Select or drop a PDF or PPT file.");
@@ -175,6 +179,7 @@ export function QuizPage() {
         res = await postQuizGenerateFromUrl({
           url: weblinkUrl.trim(),
           subject,
+          topic_text: topicInput.trim(),
           num_questions: count,
           question_type: qType,
           difficulty,
@@ -183,6 +188,7 @@ export function QuizPage() {
         res = await postQuizGenerateFromFile({
           file: uploadFile,
           subject,
+          topic_text: topicInput.trim(),
           num_questions: count,
           question_type: qType,
           difficulty,
@@ -191,6 +197,7 @@ export function QuizPage() {
         res = await postQuizGenerateFromText({
           text: pasteText.trim(),
           subject,
+          topic_text: topicInput.trim(),
           num_questions: count,
           question_type: qType,
           difficulty,

@@ -70,6 +70,32 @@ class ConflictResult:
     def __post_init__(self):
         if self.detected_at is None:
             self.detected_at = datetime.now(timezone.utc).isoformat()
+    
+    @classmethod
+    def from_dict(cls, d: dict) -> "ConflictResult":
+        """Build ConflictResult from dict (e.g. loaded from JSON). Handles reason as string."""
+        reason = d.get("reason")
+        if isinstance(reason, str):
+            try:
+                reason = ConflictReason(reason)
+            except ValueError:
+                reason = ConflictReason.NO_CONFLICT
+        elif not isinstance(reason, ConflictReason):
+            reason = ConflictReason.NO_CONFLICT
+        return cls(
+            conflict_detected=d.get("conflict_detected", True),
+            entity_id=d["entity_id"],
+            entity_type=d.get("entity_type", "UserStats"),
+            reason=reason,
+            local_version=d.get("local_version", 0),
+            cloud_version=d.get("cloud_version", 0),
+            local_updated_at=d.get("local_updated_at", ""),
+            cloud_updated_at=d.get("cloud_updated_at", ""),
+            local_data=d.get("local_data"),
+            cloud_data=d.get("cloud_data"),
+            conflicting_fields=d.get("conflicting_fields"),
+            detected_at=d.get("detected_at"),
+        )
 
 
 @dataclass
@@ -162,25 +188,33 @@ class ConflictResolutionEngine:
                 show_conflict_modal(conflict)
     """
     
-    def __init__(self, base_path: str = ".", config: ConflictConfig = None):
+    def __init__(self, base_path: str = ".", user_id: Optional[str] = None, config: ConflictConfig = None):
         """
         Initialize conflict resolution engine.
         
         Args:
             base_path: Base directory for data files
+            user_id: Optional user ID for per-user conflict storage. When provided,
+                     conflicts and logs are stored under data/users/{user_id}/
             config: Optional custom configuration
         """
         self.base_path = Path(base_path)
+        self.user_id = user_id
         self.config = config or ConflictConfig()
         
-        # Paths
-        self.conflicts_path = self.base_path / "data" / "pending_conflicts.json"
-        self.conflict_log_path = self.base_path / "data" / "conflict_log.jsonl"
+        # Paths — per-user when user_id provided, otherwise global (legacy)
+        if user_id:
+            user_dir = self.base_path / "data" / "users" / user_id
+            self.conflicts_path = user_dir / "pending_conflicts.json"
+            self.conflict_log_path = user_dir / "conflict_log.jsonl"
+        else:
+            self.conflicts_path = self.base_path / "data" / "pending_conflicts.json"
+            self.conflict_log_path = self.base_path / "data" / "conflict_log.jsonl"
         
         # Ensure directories exist
         self.conflicts_path.parent.mkdir(parents=True, exist_ok=True)
         
-        logger.info("ConflictResolutionEngine initialized")
+        logger.info("ConflictResolutionEngine initialized" + (f" for user {user_id}" if user_id else ""))
     
     
     # ═══════════════════════════════════════════════════════════════════════
@@ -1120,16 +1154,17 @@ class ConflictAwareOrchestrator:
             # Show conflict UI
     """
     
-    def __init__(self, base_path: str = ".", config: ConflictConfig = None):
+    def __init__(self, base_path: str = ".", user_id: Optional[str] = None, config: ConflictConfig = None):
         """
         Initialize conflict-aware orchestrator.
         
         Args:
             base_path: Base directory for data files
+            user_id: Optional user ID for per-user conflict storage
             config: Optional custom conflict configuration
         """
-        # Initialize conflict engine
-        self.conflict_engine = ConflictResolutionEngine(base_path, config)
+        # Initialize conflict engine (user-scoped when user_id provided)
+        self.conflict_engine = ConflictResolutionEngine(base_path, user_id=user_id, config=config)
         
         # Initialize base orchestrator
         from sync_orchestrator import SyncOrchestrator
@@ -1287,8 +1322,8 @@ class ConflictAwareOrchestrator:
         if not conflict_dict:
             raise ValueError(f"No pending conflict found for entity {entity_id}")
         
-        # Convert dict to ConflictResult
-        conflict = ConflictResult(**conflict_dict)
+        # Convert dict to ConflictResult (handles reason as string from JSON)
+        conflict = ConflictResult.from_dict(conflict_dict)
         
         # Apply resolution
         resolved_data = self.conflict_engine.apply_manual_resolution(

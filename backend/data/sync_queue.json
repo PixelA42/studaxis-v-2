@@ -169,5 +169,37 @@
     "retries": 0,
     "retry_count": 0,
     "last_error": ""
+  },
+  {
+    "id": "sync_1772975201.811348",
+    "type": "flashcard_create",
+    "mutation_type": "flashcard_create",
+    "payload": {
+      "userId": "hhh",
+      "deckId": "1772975201690",
+      "title": "Hut",
+      "subject": "Hut"
+    },
+    "created_at": "2026-03-08T13:06:41.811348+00:00",
+    "queued_at": "2026-03-08T13:06:41.811348+00:00",
+    "retries": 0,
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "id": "sync_1772975201.968933",
+    "type": "flashcard_create",
+    "mutation_type": "flashcard_create",
+    "payload": {
+      "userId": "hhh",
+      "deckId": "1772975201905",
+      "title": "Hut",
+      "subject": "Hut"
+    },
+    "created_at": "2026-03-08T13:06:41.968933+00:00",
+    "queued_at": "2026-03-08T13:06:41.968933+00:00",
+    "retries": 0,
+    "retry_count": 0,
+    "last_error": ""
   }
 ]
