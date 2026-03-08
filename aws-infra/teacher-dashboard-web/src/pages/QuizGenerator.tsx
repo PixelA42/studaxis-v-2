@@ -3,6 +3,7 @@ import { Icon } from '../components/icons/Icon';
 import { useTeacher } from '../context/TeacherContext';
 import { GlassCard } from '../components/dashboard/GlassCard';
 import { EmptyState } from '../components/shared/EmptyState';
+import { exportToDocx } from '../lib/quizToDocx';
 
 const API_URL = import.meta.env.VITE_API_GATEWAY_URL || '';
 
@@ -19,6 +20,7 @@ export function QuizGenerator() {
     textbookContext: '',
   });
   const [generating, setGenerating] = useState(false);
+  const [downloadingDocx, setDownloadingDocx] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generated, setGenerated] = useState<{
     title: string;
@@ -70,7 +72,7 @@ export function QuizGenerator() {
         count: questions?.length ?? payload.num_questions,
         difficulty: (data?.difficulty as string) ?? form.difficulty,
         s3_url: s3_url || undefined,
-        quizData: s3_url ? undefined : (data as Record<string, unknown>),
+        quizData: (data as Record<string, unknown>) ?? undefined,
       });
     } catch (e) {
       if (e instanceof Error) {
@@ -100,6 +102,28 @@ export function QuizGenerator() {
       a.download = `quiz-${Date.now()}.json`;
       a.click();
       URL.revokeObjectURL(url);
+    }
+  };
+
+  const handleDownloadDocx = async () => {
+    if (!generated) return;
+    setDownloadingDocx(true);
+    setError(null);
+    try {
+      let quizData = generated.quizData;
+      if (!quizData && generated.s3_url) {
+        const res = await fetch(generated.s3_url, { mode: 'cors' });
+        if (!res.ok) throw new Error(`Failed to fetch quiz from S3 (${res.status}). Try downloading JSON first.`);
+        quizData = (await res.json()) as Record<string, unknown>;
+      }
+      const safeTitle = (generated.title || 'quiz').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 50);
+      await exportToDocx(quizData, `${safeTitle}.docx`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to export DOCX.';
+      setError(msg.includes('fetch') ? `${msg} (CORS may block S3. Use JSON download.)` : msg);
+      alert(msg);
+    } finally {
+      setDownloadingDocx(false);
     }
   };
 
@@ -253,11 +277,20 @@ export function QuizGenerator() {
                   <span className="chip chip-orange">{generated.difficulty}</span>
                 </div>
               </div>
-              <div className="quiz-result-actions">
-                <button type="button" className="btn btn-primary" onClick={handleDownload}>
+              <div className="quiz-result-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleDownloadDocx}
+                  disabled={downloadingDocx}
+                >
+                  {downloadingDocx ? <div className="spinner" style={{ width: 14, height: 14 }} /> : '📄'}
+                  {downloadingDocx ? ' Exporting...' : ' Download as Word (.docx)'}
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={handleDownload}>
                   {generated.s3_url ? (
                     <>
-                      <Icon name="arrow_right" size={14} /> View / Download Quiz
+                      <Icon name="arrow_right" size={14} /> View / Download JSON
                     </>
                   ) : (
                     <>

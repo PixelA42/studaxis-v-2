@@ -119,6 +119,7 @@
 
 :root,
 [data-theme="dark"] {
+  --heading-dark: #ffffff;
   --deep: #05070a;
   --surface-light: rgba(255, 255, 255, 0.03);
   --glass-border: rgba(255, 255, 255, 0.08);
@@ -149,6 +150,7 @@
 
 /* Light theme — reference proportions: 60% off-white bg, 25% chunky blocks, 15% dark anchors */
 [data-theme="light"] {
+  --heading-dark: #000000;
   --deep: #F1F5F9; /* Slate-100 — visibly off-white, not pure white */
   --surface-light: #ffffff;
   --glass-border: rgba(15, 23, 42, 0.1);
@@ -399,5 +401,21 @@
   }
   .animate-panic-urgent {
     animation: panic-urgent 1s ease infinite;
+  }
+
+  /* Sidebar toggle button — theme-aware */
+  .sidebar-toggle-btn {
+    background: var(--surface-light);
+    border: 1.5px solid var(--glass-border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  [data-theme="dark"] .sidebar-toggle-btn {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  }
+
+  /* Notification badge — use accent */
+  .notification-badge {
+    background: var(--accent-pink);
+    color: white;
   }
 }

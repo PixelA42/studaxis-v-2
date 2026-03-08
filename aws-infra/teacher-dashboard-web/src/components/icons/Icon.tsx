@@ -28,6 +28,8 @@ const ICONS: Record<string, string> = {
   eye: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 9a3 3 0 100 6 3 3 0 000-6z',
   spark: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
   menu: 'M4 6h16 M4 12h16 M4 18h16',
+  sun: 'M12 3v1 M12 20v1 M4.22 4.22l.71.71 M18.36 18.36l.71.71 M3 12h1 M20 12h1 M4.22 19.78l.71-.71 M18.36 5.64l.71-.71 M18 12a6 6 0 11-12 0 6 6 0 0112 0z',
+  moon: 'M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z',
 };
 
 export function Icon({ name, size = 18, color = 'currentColor' }: IconProps) {

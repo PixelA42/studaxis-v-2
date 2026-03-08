@@ -4,6 +4,7 @@ import { Icon } from '../icons/Icon';
 import { Sidebar } from './Sidebar';
 import { NotificationBell } from './NotificationBell';
 import { useTeacher } from '../../context/TeacherContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const NAV_LABELS: Record<string, string> = {
   '/': 'Overview',
@@ -30,6 +31,7 @@ function getInitialSideOpen(): boolean {
 
 export function MainLayout() {
   const { teacher, logout } = useTeacher();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [sideOpen, setSideOpen] = useState(getInitialSideOpen);
@@ -77,12 +79,12 @@ export function MainLayout() {
           left: 16,
           bottom: 16,
           width: sideOpen ? 220 : 56,
-          background: 'rgba(255,255,255,0.85)',
+          background: 'var(--sd-bg-glass)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
           borderRadius: 20,
-          border: '1.5px solid rgba(255,255,255,0.9)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+          border: '1.5px solid var(--sd-border-subtle)',
+          boxShadow: 'var(--sd-shadow-card)',
           zIndex: 50,
           display: 'flex',
           flexDirection: 'column',
@@ -165,6 +167,15 @@ export function MainLayout() {
             </div>
           </div>
           <div className="dashboard-header-actions">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="theme-toggle-btn"
+              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} color="var(--sd-grey)" />
+            </button>
             <div className="chip chip-green">
               <span className="chip-dot chip-dot--green" />
               AWS Connected

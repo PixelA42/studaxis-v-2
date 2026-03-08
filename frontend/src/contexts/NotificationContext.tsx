@@ -443,11 +443,11 @@ function ToastCard({
       style={{
         width: 320,
         maxWidth: "calc(100vw - 40px)",
-        background: "white",
+        background: "var(--surface-light)",
         borderLeft: `4px solid ${accentColor}`,
-        border: "1.5px solid #e8edf5",
+        border: "1.5px solid var(--glass-border)",
         borderRadius: 14,
-        boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+        boxShadow: "var(--card-shadow)",
         overflow: "hidden",
         transform: visible ? "translateX(0)" : "translateY(-20px)",
         opacity: visible ? 1 : 0,
@@ -469,7 +469,7 @@ function ToastCard({
               style={{
                 fontSize: 13,
                 fontWeight: 700,
-                color: "#0d1b2a",
+                color: "var(--text-primary)",
               }}
             >
               {notif.title}
@@ -478,7 +478,7 @@ function ToastCard({
               <div
                 style={{
                   fontSize: 12,
-                  color: "#6b7280",
+                  color: "var(--text-muted)",
                   marginTop: 4,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -500,7 +500,7 @@ function ToastCard({
               height: 24,
               border: "none",
               background: "transparent",
-              color: "#9ca3af",
+              color: "var(--text-subtle)",
               cursor: "pointer",
               padding: 0,
               display: "flex",

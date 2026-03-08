@@ -82,18 +82,12 @@ export function Sidebar() {
       <button
         type="button"
         onClick={toggle}
-        className="absolute flex items-center justify-center text-heading-dark/80 hover:text-accent-blue hover:border-accent-blue transition-colors"
+        className="sidebar-toggle-btn absolute flex items-center justify-center text-heading-dark/80 hover:text-accent-blue hover:border-accent-blue transition-colors rounded-full w-7 h-7"
         style={{
           right: "-16px",
           top: "50%",
           transform: "translateY(-50%)",
           zIndex: 20,
-          background: "white",
-          border: "1.5px solid #e8edf5",
-          borderRadius: "50%",
-          width: "28px",
-          height: "28px",
-          boxShadow: "2px 0 8px rgba(0,0,0,0.08)",
         }}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
@@ -117,12 +111,11 @@ export function Sidebar() {
             {Icons.bell}
             {unreadCount > 0 && (
               <span
+                className="notification-badge"
                 style={{
                   position: "absolute",
                   top: -4,
                   right: -4,
-                  background: "#FA5C5C",
-                  color: "white",
                   borderRadius: "50%",
                   width: 18,
                   height: 18,

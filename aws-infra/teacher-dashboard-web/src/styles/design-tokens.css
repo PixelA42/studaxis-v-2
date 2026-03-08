@@ -30,6 +30,12 @@
 /* Default / Dark theme (student app default) */
 :root,
 [data-theme="dark"] {
+  /* Teacher-specific semantic tokens for dark mode */
+  --sd-dark: #ffffff;
+  --sd-grey: rgba(255, 255, 255, 0.6);
+  --sd-border: rgba(255, 255, 255, 0.12);
+  --sd-bg: #0d1117;
+  --sd-surface: #151a21;
   --deep: #05070a;
   --surface-light: rgba(255, 255, 255, 0.03);
   --glass-border: rgba(255, 255, 255, 0.08);
@@ -43,6 +49,11 @@
 
 /* Light theme */
 [data-theme="light"] {
+  --sd-dark: #0d1b2a;
+  --sd-grey: #6b7280;
+  --sd-border: #e8edf5;
+  --sd-bg: #f8fafc;
+  --sd-surface: #ffffff;
   --deep: #F1F5F9;
   --surface-light: #ffffff;
   --glass-border: rgba(15, 23, 42, 0.1);
@@ -56,7 +67,7 @@
 [data-theme="dark"] {
   --sd-bg-page: var(--deep);
   --sd-bg-surface: var(--surface-light);
-  --sd-bg-glass: rgba(255, 255, 255, 0.05);
+  --sd-bg-glass: rgba(21, 26, 33, 0.92);
   --sd-bg-glass-dark: rgba(15, 23, 42, 0.95);
 
   --sd-text-main: var(--text-primary);
@@ -90,7 +101,7 @@
 [data-theme="light"] {
   --sd-bg-page: var(--deep);
   --sd-bg-surface: var(--surface-light);
-  --sd-bg-glass: rgba(255, 255, 255, 0.85);
+  --sd-bg-glass: rgba(255, 255, 255, 0.9);
   --sd-bg-glass-dark: rgba(15, 23, 42, 0.9);
 
   --sd-text-main: var(--text-primary);

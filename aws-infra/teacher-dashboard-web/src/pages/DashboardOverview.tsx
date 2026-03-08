@@ -145,13 +145,13 @@ export function DashboardOverview() {
       <div className="notif-banner notif-info">
         <div className="notif-banner-icon">ℹ️</div>
         <div>
-          <div className="notif-banner-title">Connect Your AWS Backend</div>
+          <div className="notif-banner-title">Enable real-time stats and progress tracking</div>
           <div className="notif-banner-text">
-            Stats will populate once students sync via DynamoDB. Share your class code{' '}
+            Share your class code{' '}  
             <strong style={{ fontFamily: 'monospace', color: 'var(--sd-dark)' }}>
               {teacher?.classCode}
             </strong>{' '}
-            to get started.
+            to students to start syncing their activity and performance.
           </div>
         </div>
       </div>
@@ -177,7 +177,7 @@ export function DashboardOverview() {
                   <li key={s.user_id} style={{ padding: '8px 0', borderBottom: '1px solid var(--sd-border)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span><code style={{ fontSize: 12 }}>{s.user_id}</code></span>
-                      <span style={{ fontSize: 12, color: 'var(--sd-muted)' }}>
+                      <span style={{ fontSize: 12, color: 'var(--sd-text-muted)' }}>
                         Streak: {s.current_streak ?? 0} · Last sync: {s.last_sync_timestamp ? new Date(s.last_sync_timestamp).toLocaleDateString() : '—'}
                       </span>
                     </div>

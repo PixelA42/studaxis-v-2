@@ -1,8 +1,52 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: ["vite.svg", "assets/fonts/*.woff2", "pwa-512x512.png"],
+      manifest: {
+        name: "Studaxis — Offline-first AI Tutor",
+        short_name: "Studaxis",
+        description: "Offline-first AI tutor for students",
+        theme_color: "#00A8E8",
+        background_color: "#0F172A",
+        display: "standalone",
+        scope: "/",
+        icons: [
+          {
+            src: "pwa-512x512.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
+        ],
+      },
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,woff,ttf}"],
+        navigateFallbackDenylist: [/^\/api\//],
+        /* API routes bypass SW; static assets use precache (CacheFirst) */
+      },
+      devOptions: {
+        enabled: false,
+      },
+    }),
+  ],
   build: {
     rollupOptions: {
       output: {

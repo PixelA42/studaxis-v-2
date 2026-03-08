@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { GlassCard } from '../components/dashboard/GlassCard';
 import { useTeacher } from '../context/TeacherContext';
+import { useTheme } from '../context/ThemeContext';
 
 export function Settings() {
   const { teacher, setTeacher } = useTeacher();
+  const { theme, setTheme } = useTheme();
   const [teacherName, setTeacherName] = useState('');
   const [activeClassCode, setActiveClassCode] = useState('');
   const [saved, setSaved] = useState(false);
@@ -83,6 +85,34 @@ export function Settings() {
         >
           {saved ? 'Saved ✓' : 'Save Profile'}
         </button>
+      </GlassCard>
+
+      {/* Appearance */}
+      <GlassCard className="settings-section">
+        <div className="settings-section-header">
+          <span className="settings-section-icon" aria-hidden>🎨</span>
+          <div>
+            <div className="settings-section-title">Appearance</div>
+            <div className="settings-section-sub">
+              Choose light or dark theme. Matches the student app.
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-4" style={{ flexWrap: 'wrap' }}>
+          {(['light', 'dark'] as const).map((t) => (
+            <label key={t} className="flex items-center gap-2 cursor-pointer" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name="theme"
+                checked={theme === t}
+                onChange={() => setTheme(t)}
+                className="input"
+                style={{ width: 'auto' }}
+              />
+              <span style={{ color: 'var(--sd-dark)', textTransform: 'capitalize' }}>{t}</span>
+            </label>
+          ))}
+        </div>
       </GlassCard>
 
       {/* Privacy */}

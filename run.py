@@ -20,8 +20,60 @@ import time
 import webbrowser
 from pathlib import Path
 
+try:
+    from urllib.request import urlopen
+    from urllib.error import URLError
+except ImportError:
+    urlopen = None
+    URLError = Exception
+
 ROOT = Path(__file__).resolve().parent
 DIST = ROOT / "frontend" / "dist"
+CHROMA_DIR = ROOT / "backend" / "data" / "chromadb"
+OLLAMA_TIMEOUT = 2
+
+
+def _check_ollama() -> bool:
+    """Check if Ollama is reachable. Uses 2s timeout."""
+    import os
+    base = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
+    url = f"{base}/api/tags"
+    try:
+        if urlopen:
+            urlopen(url, timeout=OLLAMA_TIMEOUT)
+            return True
+    except (URLError, OSError, TimeoutError):
+        pass
+    except Exception:
+        pass
+    return False
+
+
+def _check_chromadb() -> bool:
+    """Check if ChromaDB dir exists and is usable (has collection data)."""
+    if not CHROMA_DIR.exists():
+        return False
+    try:
+        # ChromaDB stores collections in subdirs; at least one indicates init
+        items = list(CHROMA_DIR.iterdir())
+        if not items:
+            return False
+        # Optional: try lightweight open (import can be slow; skip if dir looks good)
+        for p in items:
+            if p.is_dir() and (p / "header.bin").exists():
+                return True
+        # Fallback: dir exists with content
+        return len(items) > 0
+    except OSError:
+        return False
+
+
+def _run_preflight_checks() -> None:
+    """Run pre-startup checks; print warnings only, never block."""
+    if not _check_ollama():
+        print("⚠ OLLAMA NOT RUNNING — Start with: ollama serve")
+    if not _check_chromadb():
+        print("⚠ ChromaDB not ready — Run: python backend/build_vectorstore.py")
 
 
 def main() -> None:
@@ -57,6 +109,8 @@ def main() -> None:
         sys.path.insert(0, str(ROOT))
     if str(ROOT / "backend") not in sys.path:
         sys.path.insert(0, str(ROOT / "backend"))
+
+    _run_preflight_checks()
 
     import uvicorn
     uvicorn.run(

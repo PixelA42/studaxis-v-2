@@ -22,7 +22,7 @@ export default {
         "pastel-pink": "#FFB5C5",
         "pastel-blue": "#A8D8EA",
         "pastel-yellow": "#FFEAA7",
-        "heading-dark": "#000000",
+        "heading-dark": "var(--heading-dark, #000000)",
         "main-light": "#0F172A",
         /* Warm accent palette (solid-card aesthetic) */
         "accent-warm-1": "#FA5C5C",

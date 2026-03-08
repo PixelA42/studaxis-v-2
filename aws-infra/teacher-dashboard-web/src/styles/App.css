@@ -163,6 +163,24 @@ body {
   gap: 12px;
 }
 
+.theme-toggle-btn {
+  padding: 8px 10px;
+  border: none;
+  background: var(--sd-bg);
+  color: var(--sd-grey);
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, background 0.2s;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--sd-border-subtle);
+  color: var(--sd-dark);
+}
+
 .dashboard-header-bell .notification-bell__button {
   padding: 8px 12px;
 }
