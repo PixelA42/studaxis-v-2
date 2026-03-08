@@ -254,13 +254,20 @@ def build_vector_store(rebuild: bool = False) -> Chroma:
         except Exception as e:
             print(f"[warning] Could not delete existing collection: {e}")
 
-    # Add documents to vector store (with deterministic IDs to prevent duplicates)
-    print("[info] Adding documents to vector store...")
+    # Add documents to vector store in batches (avoids OOM on large corpora)
+    BATCH_SIZE = 50
+    total = len(split_docs)
+    print(f"[info] Adding {total} chunks to vector store in batches of {BATCH_SIZE}...")
+    added = 0
     try:
-        vector_store.add_documents(split_docs, ids=doc_ids)
-        print(f"✅ Vector DB built successfully with {len(split_docs)} chunks.")
+        for start in range(0, total, BATCH_SIZE):
+            end = min(start + BATCH_SIZE, total)
+            vector_store.add_documents(split_docs[start:end], ids=doc_ids[start:end])
+            added = end
+            print(f"  ✓ batch {start}-{end} embedded ({end}/{total})")
+        print(f"✅ Vector DB built successfully with {added} chunks.")
     except Exception as e:
-        print(f"❌ Error adding documents to vector store: {e}")
+        print(f"❌ Error at chunk {added}: {e}. {added}/{total} chunks saved.")
 
     return vector_store
 

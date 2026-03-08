@@ -79,15 +79,16 @@ def create_env_file():
 
 
 def create_data_directories():
-    """Ensure data directories exist"""
+    """Ensure data directories exist under backend/data/"""
+    _data = _BACKEND_DIR / "data"
     dirs = [
-        'data/chromadb',
-        'data/sample_textbooks',
-        'data/backups'
+        _data / 'chromadb',
+        _data / 'sample_textbooks',
+        _data / 'backups',
     ]
     
     for dir_path in dirs:
-        Path(dir_path).mkdir(parents=True, exist_ok=True)
+        dir_path.mkdir(parents=True, exist_ok=True)
     
     print("✅ Data directories created")
 
