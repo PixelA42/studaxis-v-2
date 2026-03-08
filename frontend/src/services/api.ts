@@ -465,7 +465,7 @@ export async function getTextbooks(): Promise<TextbooksResponse> {
 }
 
 /**
- * Upload a PDF textbook to sample_textbooks.
+ * Upload a PDF or PPTX textbook to sample_textbooks.
  */
 export async function uploadTextbook(file: File): Promise<TextbookUploadResponse> {
   const form = new FormData();
@@ -486,6 +486,63 @@ export async function uploadTextbook(file: File): Promise<TextbookUploadResponse
     throw new Error(message);
   }
   return res.json() as Promise<TextbookUploadResponse>;
+}
+
+/**
+ * Upload a textbook with progress callback. Uses XHR for upload progress.
+ * Supports PDF and PPTX. Same storage as Flashcards and AI Chat.
+ */
+export function uploadTextbookWithProgress(
+  file: File,
+  onProgress: (loaded: number, total: number) => void
+): Promise<TextbookUploadResponse> {
+  return new Promise((resolve, reject) => {
+    const form = new FormData();
+    form.append("file", file);
+    const xhr = new XMLHttpRequest();
+    const url = API_BASE ? `${API_BASE}/api/textbooks/upload` : "/api/textbooks/upload";
+    const token = localStorage.getItem(STORAGE_TOKEN);
+
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable) {
+        onProgress(e.loaded, e.total);
+      } else {
+        onProgress(e.loaded, file.size);
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      if (xhr.status === 401) {
+        onUnauthorized?.();
+        reject(new Error("Unauthorized"));
+        return;
+      }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const json = JSON.parse(xhr.responseText) as TextbookUploadResponse;
+          resolve(json);
+        } catch {
+          reject(new Error("Invalid response"));
+        }
+      } else {
+        let message = xhr.responseText || `API error ${xhr.status}`;
+        try {
+          const json = JSON.parse(xhr.responseText) as { detail?: string };
+          if (typeof json.detail === "string") message = json.detail;
+        } catch {
+          // keep raw
+        }
+        reject(new Error(message));
+      }
+    });
+
+    xhr.addEventListener("error", () => reject(new Error("Network error")));
+    xhr.addEventListener("abort", () => reject(new Error("Upload aborted")));
+
+    xhr.open("POST", url);
+    if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.send(form);
+  });
 }
 
 /** RAG search result chunk from embedded textbooks */

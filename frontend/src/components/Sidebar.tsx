@@ -24,6 +24,7 @@ const navSections: {
       { to: "/chat", label: "AI Chat", icon: Icons.ai },
       { to: "/flashcards", label: "Flashcards", icon: Icons.cards },
       { to: "/quiz", label: "Quiz", icon: Icons.quiz },
+      { to: "/textbooks", label: "Textbooks", icon: Icons.book },
     ],
   },
   {

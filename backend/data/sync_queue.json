@@ -40,5 +40,37 @@
     "queued_at": "2026-03-05T18:11:02.172553+00:00",
     "retry_count": 0,
     "last_error": ""
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "person2",
+      "quizId": "panic",
+      "score": 0,
+      "totalQuestions": 5,
+      "subject": "Panic Mode",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-08T06:43:07.203408+00:00"
+    },
+    "queued_at": "2026-03-08T06:43:07.203408+00:00",
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "person2",
+      "quizId": "panic",
+      "score": 0,
+      "totalQuestions": 0,
+      "subject": "Panic Mode",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-08T06:43:27.624844+00:00"
+    },
+    "queued_at": "2026-03-08T06:43:27.624844+00:00",
+    "retry_count": 0,
+    "last_error": ""
   }
 ]
