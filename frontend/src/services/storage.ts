@@ -210,6 +210,7 @@ export function enqueueSyncItem(item: Omit<SyncQueueItem, "id" | "created_at" | 
   };
   queue.push(full);
   saveSyncQueue(queue);
+  window.dispatchEvent(new Event("sync-queue-updated"));
 }
 
 export function removeSyncItem(id: string): void {

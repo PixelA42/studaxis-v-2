@@ -29,7 +29,7 @@ def _get_grading_llm():
         # Create a separate low-temperature LLM for deterministic grading
         if ai.OllamaLLM is None:
             raise RuntimeError("OllamaLLM not available")
-        _grading_llm = ai.OllamaLLM(model=ai.LLM_MODEL, temperature=0.15, num_predict=ai._NUM_PREDICT)
+        _grading_llm = ai.OllamaLLM(model=ai.get_llm_model(), temperature=0.15, num_predict=ai._NUM_PREDICT)
     return _grading_llm
 
 

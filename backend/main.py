@@ -46,6 +46,7 @@ except ImportError:
     pass
 
 from ai_integration_layer import AIEngine, AIState, AITaskType
+from model_config import get_best_model
 from grading.grader import Grader
 from grading.red_pen_feedback import RedPenFeedback
 from auth_routes import router as auth_router
@@ -280,11 +281,13 @@ app.include_router(auth_router)
 
 @app.on_event("startup")
 def _startup():
-    """Ensure auth DB tables exist on startup."""
+    """Ensure auth DB tables exist on startup. Select hardware-aware model."""
     init_db()
+    model = get_best_model()
+    print(f"[Studaxis] Hardware-aware model selected: {model}")
 
 
-# CORS: allow local React (Vite 5173), same-origin (6782, 6783)
+# CORS: allow local React (Vite 5173), same-origin (8000 default, 6782, 6783)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -292,6 +295,8 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
         "http://localhost:6782",
         "http://127.0.0.1:6782",
         "http://localhost:6783",
@@ -3175,6 +3180,8 @@ def quiz_submit(quiz_id: str, req: QuizSubmitRequest, user_id: str = Depends(get
         "quizId": quiz_id,
         "result": result_payload,
     })
+    # Enqueue recordQuizAttempt for AppSync (local-first: save first, then background sync)
+    _enqueue_quiz_sync_for_submit(user_id, quiz_id, total_score, max_score, len(items_list), subject, qtype)
 
     if req.answers:
         _enqueue_panic_quiz_for_sync(req.answers, len(items_list), user_id)
@@ -3251,6 +3258,32 @@ def teacher_assign_quiz(req: TeacherAssignQuizRequest, user_id: str = Depends(ge
     })
     _save_assignments(req.class_code, items)
     return {"ok": True, "assignment_id": aid}
+
+
+def _enqueue_quiz_sync_for_submit(
+    user_id: str, quiz_id: str, total_score: float, max_score: float,
+    total_questions: int, subject: str, question_type: str,
+) -> None:
+    """Queue quiz attempt for AWS AppSync sync. Local-first: save to user_stats first, then background sync."""
+    try:
+        if not user_id or user_id == "anonymous":
+            return
+        prefs = _load_user_stats(user_id).get("preferences") or {}
+        if not prefs.get("sync_enabled", True):
+            return
+        percent = int(round((total_score / max_score * 100))) if max_score > 0 else 0
+        from sync_manager import SyncManager
+        sm = SyncManager(base_path=str(BASE_PATH), user_id=user_id)
+        sm.enqueue_quiz_sync(
+            user_id=user_id,
+            quiz_id=quiz_id,
+            score=min(100, max(0, percent)),
+            total_questions=total_questions,
+            subject=subject or "General",
+            difficulty="Medium",
+        )
+    except Exception:
+        pass  # Sync is best-effort; do not fail the request
 
 
 def _enqueue_panic_quiz_for_sync(results: list[dict[str, Any]], total_questions: int, user_id: str) -> None:

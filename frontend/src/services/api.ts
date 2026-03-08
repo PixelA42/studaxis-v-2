@@ -14,6 +14,8 @@ export function setUnauthorizedHandler(handler: (() => void) | null): void {
   onUnauthorized = handler;
 }
 
+const API_TIMEOUT_MS = 25000; // Offline-first: avoid infinite spinners when backend unreachable
+
 async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const url = `${API_BASE}${path}`;
   const isFormData = options.body instanceof FormData;
@@ -21,7 +23,11 @@ async function apiFetch(path: string, options: RequestInit = {}): Promise<Respon
   if (!isFormData) headers.set("Content-Type", "application/json");
   const token = localStorage.getItem(STORAGE_TOKEN);
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  const res = await fetch(url, { ...options, headers });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  const res = await fetch(url, { ...options, headers, signal: controller.signal }).finally(() =>
+    clearTimeout(timeoutId)
+  );
   if (res.status === 401) {
     if (token) onUnauthorized?.();
     throw new Error("Unauthorized");

@@ -205,6 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
   }, [connectivityStatus]);
 
+  /** Always persist to local FastAPI backend (Edge Brain on localhost). Sync is local-first. */
   const setProfile = useCallback((p: Partial<Profile>) => {
     setProfileState((prev) => {
       const next = { ...prev, ...p };
@@ -213,14 +214,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {
         // ignore
       }
-      if (connectivityStatus === "online") {
-        postUserProfile(next).catch(() => {
-          // Offline or error; localStorage already updated
-        });
-      }
+      postUserProfile(next).catch(() => {
+        // Backend unreachable; localStorage already updated
+      });
       return next;
     });
-  }, [connectivityStatus]);
+  }, []);
 
   /** Accept JWT, decode, save to localStorage, update user state */
   const login = useCallback((token: string, userInfo?: { username?: string; email?: string }) => {

@@ -24,6 +24,11 @@ import requests
 # Strictly local; env override for non-default Ollama port
 _OLLAMA_BASE = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
 OLLAMA_API_URL = f"{_OLLAMA_BASE}/api/generate"
+
+# Hardware-aware model selection (imported lazily to avoid circular deps)
+def _get_local_model() -> str:
+    from model_config import get_selected_model
+    return get_selected_model()
 OLLAMA_CONNECTION_FALLBACK = (
     "AI is warming up. Please wait a moment and try again, or ensure Ollama is running (ollama serve)."
 )
@@ -64,7 +69,8 @@ class AIExecutionTarget(str, Enum):
 @dataclass
 class AIConfig:
     # Placeholders are preserved until finalized in requirements/config.
-    LOCAL_AI_MODEL: str = "llama3.2"
+    # LOCAL_AI_MODEL is overridden by hardware-aware get_selected_model() when None
+    LOCAL_AI_MODEL: Optional[str] = None  # None = use get_selected_model()
     CLOUD_AI_MODEL: str = "[CLOUD_AI_MODEL]"
     EMBEDDING_MODEL: str = "[EMBEDDING_MODEL]"
     AI_TIMEOUT_SECONDS: int = 60
@@ -912,7 +918,9 @@ class AIEngine:
     def _resolve_model_name(self, target: AIExecutionTarget) -> str:
         if target == AIExecutionTarget.CLOUD:
             return self.config.CLOUD_AI_MODEL
-        return self.config.LOCAL_AI_MODEL
+        if self.config.LOCAL_AI_MODEL:
+            return self.config.LOCAL_AI_MODEL
+        return _get_local_model()
 
     def _call_ollama(
         self,
@@ -926,6 +934,9 @@ class AIEngine:
         Send non-streaming request to local Ollama API.
         Returns the generated text or raises on failure.
         """
+        from model_config import ensure_model_available
+        if not ensure_model_available(model_name):
+            raise ConnectionError(OLLAMA_CONNECTION_FALLBACK)
         payload: dict[str, Any] = {
             "model": model_name,
             "prompt": prompt,

@@ -8,6 +8,7 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotification } from "../contexts/NotificationContext";
 import { StatusIndicator } from "./StatusIndicator";
+import { useSyncQueueCount } from "../hooks/useSyncQueueCount";
 import { useCallback, useEffect, useState } from "react";
 import { Icons } from "./icons";
 
@@ -15,7 +16,7 @@ const STORAGE_SIDEBAR = "studaxis_sidebar_state";
 
 const navSections: {
   label: string;
-  items: { to: string; label: string; icon: ReactNode; badge?: number; panic?: boolean }[];
+  items: { to: string; label: string; icon: ReactNode; badge?: number; syncBadge?: boolean; panic?: boolean }[];
 }[] = [
   {
     label: "Main",
@@ -39,7 +40,7 @@ const navSections: {
     label: "System",
     items: [
       { to: "/conflicts", label: "Conflicts", icon: Icons.conflicts, badge: 0 },
-      { to: "/sync", label: "Sync Status", icon: Icons.sync },
+      { to: "/sync", label: "Sync Status", icon: Icons.sync, syncBadge: true },
     ],
   },
   {
@@ -59,6 +60,7 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(getStoredCollapsed);
   const { profile, connectivityStatus } = useAuth();
   const { unreadCount, openTray } = useNotification();
+  const syncQueueCount = useSyncQueueCount();
 
   const toggle = useCallback(() => {
     setCollapsed((c) => {
@@ -165,7 +167,12 @@ export function Sidebar() {
                     {!collapsed && (
                       <>
                         <span className="truncate">{item.label}</span>
-                        {item.badge != null && item.badge > 0 && (
+                        {item.syncBadge && syncQueueCount > 0 && (
+                          <span className="ml-auto text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full">
+                            {syncQueueCount}
+                          </span>
+                        )}
+                        {!item.syncBadge && item.badge != null && item.badge > 0 && (
                           <span className="ml-auto text-[10px] bg-error/20 text-error px-1.5 py-0.5 rounded-full">
                             {item.badge}
                           </span>

@@ -87,7 +87,7 @@ def main() -> None:
         "--port",
         type=int,
         default=6782,
-        help="Port for the API server (default: 6782)",
+        help="Port for the Edge Brain API server (default: 6782)",
     )
     args = parser.parse_args()
 
@@ -100,11 +100,12 @@ def main() -> None:
     def open_browser() -> None:
         time.sleep(2.0)
         webbrowser.open(f"http://localhost:{args.port}")
+        print(f"[Studaxis] Opened http://localhost:{args.port} in browser")
 
     if not args.no_browser:
         threading.Thread(target=open_browser, daemon=True).start()
 
-    # Run uvicorn with the same app as main.py
+    # Run uvicorn: Edge Brain (FastAPI) serves SPA + API; Ollama + ChromaDB run locally
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
     if str(ROOT / "backend") not in sys.path:

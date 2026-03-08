@@ -56,7 +56,10 @@ export function SyncPage() {
     try {
       const res = await postSync();
       setSyncMessage(res.message ?? (res.ok ? "Sync triggered." : "Sync failed."));
-      if (res.ok) loadStatus();
+      if (res.ok) {
+        loadStatus();
+        window.dispatchEvent(new Event("sync-queue-updated"));
+      }
     } catch (e) {
       setSyncMessage(e instanceof Error ? e.message : "Sync request failed.");
     } finally {

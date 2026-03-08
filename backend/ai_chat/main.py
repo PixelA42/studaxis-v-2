@@ -27,7 +27,13 @@ except ImportError:
 ROOT_DIR: Path = Path(__file__).resolve().parent.parent
 DATA_DIR: Path = ROOT_DIR / "data"
 
-LLM_MODEL: str = "llama3.2:3b"
+# Hardware-aware model selection; resolved lazily via get_llm_model()
+def get_llm_model() -> str:
+    """Return the selected model for this machine (from model_config)."""
+    from model_config import get_selected_model
+    return get_selected_model()
+
+LLM_MODEL: str = "llama3.2:3b"  # fallback only; _get_llm uses get_llm_model()
 
 # Approximate chars-per-token ratio for budget estimation
 _CHARS_PER_TOKEN = 4
@@ -63,8 +69,11 @@ def _get_llm(temperature: float = 0.5) -> Any:
             "Neither langchain_ollama nor langchain_community.llms.Ollama available. "
             "Run: pip install --upgrade langchain-ollama"
         )
+    model = get_llm_model()
+    from model_config import ensure_model_available
+    ensure_model_available(model)
     base_url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
-    return OllamaLLM(model=LLM_MODEL, base_url=base_url, temperature=temperature, num_predict=_NUM_PREDICT)
+    return OllamaLLM(model=model, base_url=base_url, temperature=temperature, num_predict=_NUM_PREDICT)
 
 
 # Public accessors kept for grader.py and ai_integration_layer.py

@@ -6,22 +6,27 @@ import { checkAppSyncConnectivity } from '../lib/appsync';
 
 type ServiceStatus = 'checking' | 'connected' | 'error' | 'pending';
 
+type ServiceKey = 'DynamoDB' | 'S3' | 'API_GATEWAY' | 'AppSync';
+
 interface StatusItem {
+  key: ServiceKey;
   svc: string;
   desc: string;
   status: ServiceStatus;
   icon: string;
 }
 
+const INITIAL_STATUS_ITEMS: StatusItem[] = [
+  { key: 'DynamoDB', svc: 'Student Progress Database', desc: 'Securely tracks student streaks, scores, and analytics.', status: 'checking', icon: '🗄️' },
+  { key: 'S3', svc: 'Cloud Storage Library', desc: 'Stores your generated quizzes, PDFs, and learning materials.', status: 'pending', icon: '📦' },
+  { key: 'API_GATEWAY', svc: 'AI Curriculum Engine (Bedrock)', desc: 'Powers the automated generation of assessments and quizzes.', status: 'pending', icon: '🤖' },
+  { key: 'AppSync', svc: 'Live Roster Connection', desc: 'Receives offline student updates the moment they connect to Wi-Fi.', status: 'checking', icon: '🔄' },
+];
+
 export function SyncStatus() {
   const { teacher } = useTeacher();
   const classCode = teacher?.classCode ?? '';
-  const [statusItems, setStatusItems] = useState<StatusItem[]>([
-    { svc: 'DynamoDB', desc: 'Sync metadata store', status: 'checking', icon: '🗄️' },
-    { svc: 'S3 Bucket', desc: 'Quiz & payload storage', status: 'pending', icon: '📦' },
-    { svc: 'API Gateway', desc: 'Quiz generation endpoint', status: 'pending', icon: '🔌' },
-    { svc: 'AppSync', desc: 'GraphQL delta sync', status: 'checking', icon: '🔄' },
-  ]);
+  const [statusItems, setStatusItems] = useState<StatusItem[]>(INITIAL_STATUS_ITEMS);
 
   useEffect(() => {
     let mounted = true;
@@ -29,10 +34,10 @@ export function SyncStatus() {
       if (!mounted) return;
       setStatusItems((prev) =>
         prev.map((s) => {
-          if (s.svc === 'AppSync') {
+          if (s.key === 'AppSync') {
             return { ...s, status: (result.ok ? 'connected' : 'error') as ServiceStatus };
           }
-          if (s.svc === 'DynamoDB') {
+          if (s.key === 'DynamoDB') {
             return { ...s, status: (result.ok ? 'connected' : 'pending') as ServiceStatus };
           }
           return s;
@@ -59,16 +64,18 @@ export function SyncStatus() {
   return (
     <main id="main-content" className="page-sync" role="main">
       <div className="page-header-block">
-        <h1 className="page-title">AWS Sync Status</h1>
-        <p className="page-sub">Real-time status of your cloud infrastructure connections.</p>
+        <h1 className="page-title">Platform Health & Status</h1>
+        <p className="page-sub">Real-time status of your platform connections.</p>
       </div>
 
       <div className="notif-banner notif-info">
-        <div className="notif-banner-icon">🔧</div>
+        <div className="notif-banner-icon">👋</div>
         <div>
-          <div className="notif-banner-title">Cloud sync status</div>
+          <div className="notif-banner-title">Invite Your Students</div>
           <div className="notif-banner-text">
-            AppSync and DynamoDB are verified via listStudentProgresses. S3 and API Gateway are used by the quiz pipeline.
+            Share your unique Class Code{' '}
+            <strong style={{ fontFamily: 'monospace', letterSpacing: 2 }}>{classCode || '—'}</strong>
+            {' '}with your students. Their offline progress will appear here automatically when they sync.
           </div>
         </div>
       </div>
@@ -87,11 +94,11 @@ export function SyncStatus() {
       </div>
 
       <GlassCard className="sync-queue-card">
-        <div className="sync-queue-title">Sync Queue</div>
+        <div className="sync-queue-title">Pending Student Updates</div>
         <EmptyState
           icon="✅"
-          title="Queue is empty"
-          description="Pending mutations appear here when students submit data offline. They sync automatically when connectivity is restored."
+          title="All student data is up to date"
+          description="When students work offline, their updates will appear here once they connect to Wi-Fi. They sync automatically when connectivity is restored."
         />
       </GlassCard>
     </main>
