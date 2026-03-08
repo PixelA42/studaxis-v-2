@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "zip": "python zip_dist.py",
+    "deploy": "npm run build && npm run zip"
   },
   "dependencies": {
     "docx": "^9.6.0",

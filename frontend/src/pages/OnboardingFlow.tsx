@@ -19,7 +19,7 @@ import {
 } from "../services/api";
 
 const TEACHER_DASHBOARD_URL =
-  import.meta.env.VITE_TEACHER_DASHBOARD_URL || "https://teacher.studaxis.com";
+  import.meta.env.VITE_TEACHER_DASHBOARD_URL || "https://main.d1wt8qoele8s90.amplifyapp.com";
 
 type Step = "login" | "otp" | "role" | "profile" | "setup" | "done";
 
@@ -1588,16 +1588,9 @@ export function OnboardingFlow({
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="onboarding-shell"
+      className="onboarding-shell min-h-screen w-full flex items-center justify-center relative overflow-hidden p-6 font-sans"
       style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         fontFamily: "'Inter','Plus Jakarta Sans','DM Sans',sans-serif",
-        padding: "24px",
-        position: "relative",
-        overflow: "hidden",
       }}
     >
       <style>{`

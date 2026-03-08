@@ -57,7 +57,7 @@ export function LandingPage() {
       <div className="ambient-glow" aria-hidden />
       <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col gap-12 md:gap-16">
         {/* Hero — content card with depth */}
-        <div className="content-card rounded-card border border-glass-border p-10 text-center">
+        <div className="content-card rounded-card border border-glass-border p-10 flex flex-col items-center text-center">
           <h1 className="text-3xl md:text-5xl font-extrabold font-anchor-bold text-heading-dark leading-tight">
             Organize{" "}
             <span className="text-chunk-blue">everything</span>
@@ -91,17 +91,17 @@ export function LandingPage() {
         </div>
 
         {/* Features — chunky color blocks (25% of layout) */}
-        <section>
+        <section className="text-center">
           <h2 className="text-2xl md:text-3xl font-extrabold font-anchor-bold text-heading-dark mb-6">
             Our <span className="text-chunk-blue">Features</span>
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 justify-items-center">
             {features.map((f, i) => {
               const { bgClass } = FEATURE_CARD_STYLES[i];
               return (
                 <div
                   key={f.title}
-                  className={`${bgClass} rounded-card p-5 text-heading-dark shadow-card transition-all duration-300 ease hover:-translate-y-1 hover:shadow-soft`}
+                  className={`${bgClass} rounded-card p-5 text-heading-dark shadow-card transition-all duration-300 ease hover:-translate-y-1 hover:shadow-soft w-full max-w-sm text-center flex flex-col items-center`}
                 >
                   <div className="w-10 h-10 rounded-lg bg-white/90 flex items-center justify-center text-xl text-heading-dark mb-3 [&>svg]:text-heading-dark">
                     {f.icon}
@@ -115,17 +115,17 @@ export function LandingPage() {
         </section>
 
         {/* Services — chunky color blocks */}
-        <section>
+        <section className="text-center">
           <h2 className="text-2xl md:text-3xl font-extrabold font-anchor-bold text-heading-dark mb-6">
             How It <span className="text-chunk-yellow">Works</span>
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 justify-items-center">
             {services.map((s, i) => {
               const { bgClass } = FEATURE_CARD_STYLES[i];
               return (
                 <div
                   key={s.title}
-                  className={`${bgClass} rounded-card p-5 text-heading-dark shadow-card transition-all duration-300 ease hover:-translate-y-1 hover:shadow-soft`}
+                  className={`${bgClass} rounded-card p-5 text-heading-dark shadow-card transition-all duration-300 ease hover:-translate-y-1 hover:shadow-soft w-full max-w-sm text-center flex flex-col items-center`}
                 >
                   <div className="w-10 h-10 rounded-lg bg-white/90 flex items-center justify-center text-xl text-heading-dark mb-3 [&>svg]:text-heading-dark">
                     {s.icon}

@@ -59,7 +59,7 @@ export function DashboardPage() {
   const [flashcardsDueCount, setFlashcardsDueCount] = useState<number>(0);
   const [insights, setInsights] = useState<InsightItem[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
-  const [loadingSync, setLoadingSync] = useState(true);
+  const [, setLoadingSync] = useState(true);
   const [loadingFlashcards, setLoadingFlashcards] = useState(true);
   const [loadingInsights, setLoadingInsights] = useState(true);
 
