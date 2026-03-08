@@ -1,42 +1,83 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { GlassCard } from '../components/dashboard/GlassCard';
 import { CloudSyncStatus } from '../components/dashboard/CloudSyncStatus';
 import { StaleDataWarning } from '../components/sync/StaleDataWarning';
 import { SkeletonCard } from '../components/shared/Skeleton';
 import { useTeacher } from '../context/TeacherContext';
+import { checkAppSyncConnectivity, listStudentProgresses, triggerBackendSyncIfConfigured, type StudentProgress } from '../lib/appsync';
 import type { SyncState } from '../types';
-
-const DEMO_STUDENT_SYNC = [
-  { id: 'STU001', name: 'Student A', lastSync: new Date(Date.now() - 600000).toISOString(), status: 'connected' as const, pendingItems: 0 },
-  { id: 'STU002', name: 'Student B', lastSync: new Date(Date.now() - 1800000).toISOString(), status: 'connected' as const, pendingItems: 0 },
-  { id: 'STU003', name: 'Student C', lastSync: new Date(Date.now() - 90000000).toISOString(), status: 'offline' as const, pendingItems: 3 },
-  { id: 'STU004', name: 'Student D', lastSync: new Date(Date.now() - 3600000).toISOString(), status: 'connected' as const, pendingItems: 0 },
-  { id: 'STU005', name: 'Student E', lastSync: null, status: 'offline' as const, pendingItems: 0 },
-];
-
-const STATS = [
-  { icon: '🏫', label: 'Total Classes', value: '—', sub: 'Active this term', color: 'rgba(250,92,92,0.1)' },
-  { icon: '👥', label: 'Active Students', value: '—', sub: 'Synced in last 24h', color: 'rgba(0,168,232,0.1)' },
-  { icon: '📝', label: 'Assignment Completion', value: '—%', sub: 'Class average', color: 'rgba(16,185,129,0.1)' },
-  { icon: '📊', label: 'Recent Activity', value: '—', sub: 'Last 24 hours', color: 'rgba(253,138,107,0.1)' },
-];
 
 export function DashboardOverview() {
   const { teacher } = useTeacher();
-  const [loading] = useState(false);
+  const classCode = teacher?.classCode ?? '';
+  const [loading, setLoading] = useState(true);
+  const [students, setStudents] = useState<StudentProgress[]>([]);
   const [syncState, setSyncState] = useState<SyncState>({
     status: 'connected',
-    lastSyncTimestamp: new Date().toISOString(),
+    lastSyncTimestamp: null,
   });
 
-  const handleManualSync = () => {
-    setSyncState((s) => ({ ...s, status: 'syncing' }));
-    setTimeout(() => {
-      setSyncState({ status: 'connected', lastSyncTimestamp: new Date().toISOString() });
-    }, 1500);
-  };
+  const refreshSyncStatus = useCallback(async () => {
+    const result = await checkAppSyncConnectivity(classCode);
+    setSyncState((s) => ({
+      ...s,
+      status: result.ok ? 'connected' : 'error',
+      lastSyncTimestamp: result.ok ? result.lastSyncTimestamp : s.lastSyncTimestamp,
+      errorMessage: result.error,
+    }));
+  }, [classCode]);
 
-  const studentSync = DEMO_STUDENT_SYNC;
+  const refreshStudents = useCallback(async () => {
+    try {
+      const items = await listStudentProgresses(classCode || '');
+      setStudents(items);
+    } catch {
+      // Keep previous data on error
+    }
+  }, [classCode]);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    Promise.all([refreshSyncStatus(), refreshStudents()]).finally(() => {
+      if (mounted) setLoading(false);
+    });
+    return () => { mounted = false; };
+  }, [refreshSyncStatus, refreshStudents]);
+
+  const handleManualSync = useCallback(async () => {
+    setSyncState((s) => ({ ...s, status: 'syncing' }));
+    triggerBackendSyncIfConfigured(); // optional: POST /api/sync if VITE_TEACHER_BACKEND_URL set
+    const result = await checkAppSyncConnectivity(classCode);
+    setSyncState({
+      status: result.ok ? 'connected' : 'error',
+      lastSyncTimestamp: result.ok ? result.lastSyncTimestamp : null,
+      errorMessage: result.error,
+    });
+    if (result.ok) refreshStudents();
+  }, [classCode, refreshStudents]);
+
+  const studentSync = students.map((s) => ({
+    id: s.user_id,
+    name: s.user_id,
+    lastSync: s.last_sync_timestamp || null,
+    status: (() => {
+      if (!s.last_sync_timestamp) return 'offline' as const;
+      const hours = (Date.now() - new Date(s.last_sync_timestamp).getTime()) / (1000 * 60 * 60);
+      return hours < 24 ? ('connected' as const) : ('offline' as const);
+    })(),
+    pendingItems: 0,
+  }));
+
+  const STATS = useMemo(() => {
+    const active24h = studentSync.filter((s) => s.status === 'connected').length;
+    return [
+      { icon: '🏫', label: 'Total Classes', value: classCode ? '1' : '—', sub: 'Active this term', color: 'rgba(250,92,92,0.1)' },
+      { icon: '👥', label: 'Active Students', value: String(students.length), sub: 'Synced in last 24h', color: 'rgba(0,168,232,0.1)' },
+      { icon: '📝', label: 'Assignment Completion', value: '—%', sub: 'Class average', color: 'rgba(16,185,129,0.1)' },
+      { icon: '📊', label: 'Recent Activity', value: String(active24h), sub: 'Last 24 hours', color: 'rgba(253,138,107,0.1)' },
+    ];
+  }, [classCode, students.length, studentSync]);
 
   const staleStudents = useMemo(
     () =>
@@ -122,13 +163,28 @@ export function DashboardOverview() {
         <div className="bento-section__half">
           <GlassCard>
             <h2 className="card-title">Recent Student Activity</h2>
-            <div className="empty-state empty-state--compact">
-              <div className="empty-state__icon" style={{ fontSize: 32 }}>📡</div>
-              <h3 className="empty-state__title" style={{ fontSize: 14 }}>Waiting for sync</h3>
-              <p className="empty-state__description" style={{ fontSize: 12 }}>
-                Activity appears once students come online and sync progress data.
-              </p>
-            </div>
+            {students.length === 0 ? (
+              <div className="empty-state empty-state--compact">
+                <div className="empty-state__icon" style={{ fontSize: 32 }}>📡</div>
+                <h3 className="empty-state__title" style={{ fontSize: 14 }}>Waiting for sync</h3>
+                <p className="empty-state__description" style={{ fontSize: 12 }}>
+                  Activity appears once students come online and sync progress data.
+                </p>
+              </div>
+            ) : (
+              <ul className="recent-activity-list" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {students.slice(0, 5).map((s) => (
+                  <li key={s.user_id} style={{ padding: '8px 0', borderBottom: '1px solid var(--sd-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span><code style={{ fontSize: 12 }}>{s.user_id}</code></span>
+                      <span style={{ fontSize: 12, color: 'var(--sd-muted)' }}>
+                        Streak: {s.current_streak ?? 0} · Last sync: {s.last_sync_timestamp ? new Date(s.last_sync_timestamp).toLocaleDateString() : '—'}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </GlassCard>
         </div>
         <div className="bento-section__half">

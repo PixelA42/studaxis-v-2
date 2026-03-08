@@ -119,8 +119,8 @@ export function QuizPage() {
 
   const handleGenerate = async () => {
     setGenError(null);
-    if (!topicInput.trim()) {
-      setGenError("Field required");
+    if (sourceTab === "topic" && !topicInput.trim()) {
+      setGenError("Please enter a topic or concept.");
       return;
     }
     if (sourceTab === "textbook") {

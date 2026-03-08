@@ -27,6 +27,7 @@ const ICONS: Record<string, string> = {
   class: 'M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z',
   eye: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 9a3 3 0 100 6 3 3 0 000-6z',
   spark: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
+  menu: 'M4 6h16 M4 12h16 M4 18h16',
 };
 
 export function Icon({ name, size = 18, color = 'currentColor' }: IconProps) {

@@ -1,35 +1,19 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import type { ThemeMode } from '../types';
-
-const STORAGE_KEY = 'teacher-dashboard-theme';
-
-function getInitialTheme(): ThemeMode {
-  if (typeof window === 'undefined') return 'light';
-  const stored = localStorage.getItem(STORAGE_KEY) as ThemeMode | null;
-  return stored === 'dark' || stored === 'light' ? stored : 'light';
-}
+import React, { createContext, useContext, useEffect } from 'react';
 
 interface ThemeContextValue {
-  theme: ThemeMode;
-  toggleTheme: () => void;
+  theme: 'light';
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
-
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem(STORAGE_KEY, theme);
-  }, [theme]);
-
-  const toggleTheme = useCallback(() => {
-    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+    document.documentElement.setAttribute('data-theme', 'light');
+    localStorage.removeItem('teacher-dashboard-theme');
   }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme: 'light' }}>
       {children}
     </ThemeContext.Provider>
   );

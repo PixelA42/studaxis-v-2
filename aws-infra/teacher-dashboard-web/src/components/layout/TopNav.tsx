@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { useTheme } from '../../context/ThemeContext';
 import type { SyncStatus } from '../../types';
 import { SyncStatusBadge } from '../sync/SyncStatusBadge';
 import { NotificationBell } from './NotificationBell';
@@ -11,7 +10,6 @@ interface TopNavProps {
 }
 
 export function TopNav({ teacherName, syncStatus, lastSyncTimestamp }: TopNavProps) {
-  const { theme, toggleTheme } = useTheme();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -81,16 +79,6 @@ export function TopNav({ teacherName, syncStatus, lastSyncTimestamp }: TopNavPro
                 <a href="#account" className="top-nav__dropdown-item" onClick={() => setDropdownOpen(false)}>
                   Account
                 </a>
-                <button
-                  type="button"
-                  className="top-nav__dropdown-item"
-                  onClick={() => {
-                    toggleTheme();
-                    setDropdownOpen(false);
-                  }}
-                >
-                  {theme === 'light' ? 'Dark mode' : 'Light mode'}
-                </button>
                 <hr className="top-nav__dropdown-divider" />
                 <a href="#logout" className="top-nav__dropdown-item" onClick={() => setDropdownOpen(false)}>
                   Sign out

@@ -70,6 +70,12 @@ def _validate_args(args: dict) -> dict | None:
     if score > total_q:
         raise ValueError("score cannot exceed totalQuestions")
 
+    class_code = args.get("classCode") or args.get("class_code")
+    if class_code is not None:
+        class_code = str(class_code).strip() or None
+    if not class_code:
+        class_code = "SOLO"  # Solo/Independent learner — private, not visible to teachers
+
     return {
         "userId": str(args["userId"]).strip(),
         "quizId": str(args["quizId"]).strip(),
@@ -79,6 +85,7 @@ def _validate_args(args: dict) -> dict | None:
         "difficulty": str(args.get("difficulty", "Medium")).strip(),
         "deviceId": str(args.get("deviceId", "unknown")).strip(),
         "completedAtLocal": args.get("completedAtLocal"),  # ISO timestamp from device
+        "classCode": class_code,
     }
 
 
@@ -114,14 +121,19 @@ def _write_quiz_attempt(data: dict, cid: str) -> dict:
     stats_table.put_item(Item=attempt_item)
 
     # ── 2. Update student aggregate row (upsert) ───────────────────────
-    logger.info("[%s] Updating aggregate metadata for user %s", cid, data["userId"])
+    class_code = data.get("classCode") or data.get("class_code") or "SOLO"
+    completed_at = data.get("completedAtLocal") or now_iso
+    last_quiz_date = completed_at[:10] if len(completed_at) >= 10 else now_iso[:10]  # YYYY-MM-DD
+    logger.info("[%s] Updating aggregate metadata for user %s (class_code=%s)", cid, data["userId"], class_code)
     stats_table.update_item(
         Key={"user_id": data["userId"]},
         UpdateExpression=(
             "SET last_sync_timestamp = :ts, "
             "    sync_status         = :synced, "
             "    device_id           = :dev, "
-            "    last_quiz_score     = :score "
+            "    last_quiz_score     = :score, "
+            "    last_quiz_date      = :lqd, "
+            "    class_code          = :cc "
             "ADD total_sessions :one"
         ),
         ExpressionAttributeValues={
@@ -129,6 +141,8 @@ def _write_quiz_attempt(data: dict, cid: str) -> dict:
             ":synced": "synced",
             ":dev": data["deviceId"],
             ":score": _decimal(data["score"]),
+            ":lqd": last_quiz_date,
+            ":cc": class_code,
             ":one": _decimal(1),
         },
     )
@@ -151,23 +165,30 @@ def _write_streak_update(args: dict, cid: str) -> dict:
     """
     user_id = str(args.get("userId", "")).strip()
     streak = int(args.get("currentStreak", 0))
+    class_code = args.get("classCode") or args.get("class_code")
+    if class_code is not None:
+        class_code = str(class_code).strip() or "SOLO"
+    else:
+        class_code = "SOLO"
     if not user_id:
         raise ValueError("userId is required for streak update")
 
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    logger.info("[%s] Streak update for %s → %d", cid, user_id, streak)
+    logger.info("[%s] Streak update for %s → %d (class_code=%s)", cid, user_id, streak, class_code)
     stats_table.update_item(
         Key={"user_id": user_id},
         UpdateExpression=(
             "SET current_streak       = :streak, "
             "    last_sync_timestamp  = :ts, "
-            "    sync_status          = :synced"
+            "    sync_status          = :synced, "
+            "    class_code           = :cc"
         ),
         ExpressionAttributeValues={
             ":streak": _decimal(streak),
             ":ts": now_iso,
             ":synced": "synced",
+            ":cc": class_code,
         },
     )
 
@@ -223,50 +244,34 @@ def _write_student_aggregate_stats(payload: dict, cid: str) -> dict:
     total_score = float(payload.get("total_score", 0))
     streak = int(payload.get("streak", 0))
     last_sync = payload.get("last_sync") or datetime.now(timezone.utc).isoformat()
+    last_quiz_date = payload.get("last_quiz_date") or (last_sync[:10] if len(last_sync) >= 10 else None)
+    class_code = str(payload.get("class_code", "SOLO")).strip() or "SOLO"
 
     now_iso = datetime.now(timezone.utc).isoformat()
 
     logger.info(
-        "[%s] Writing student aggregate: student_id=%s, score=%.1f, streak=%d",
-        cid, student_id, total_score, streak
+        "[%s] Writing student aggregate: student_id=%s, score=%.1f, streak=%d, class_code=%s",
+        cid, student_id, total_score, streak, class_code
     )
 
-    # Write/update student aggregate record
-    stats_table.put_item(
-        Item={
-            "user_id": student_id,              # partition key
-            "record_type": "student_aggregate",   # distinguishes from quiz attempts
-            "studentId": student_id,
-            "deviceId": device_id,
-            "quizAttempts": _decimal(quiz_attempts),
-            "totalScore": _decimal(total_score),
-            "currentStreak": _decimal(streak),
-            "lastSyncDevice": last_sync,
-            "syncedAt": now_iso,
-            "syncStatus": "synced",
-        }
-    )
-
-    # Also update aggregate metadata (for quick lookups)
-    stats_table.update_item(
-        Key={"user_id": student_id},
-        UpdateExpression=(
-            "SET sync_status           = :synced, "
-            "    last_sync_timestamp   = :ts, "
-            "    device_id             = :dev, "
-            "    current_streak        = :streak, "
-            "    total_quiz_attempts   = :attempts, "
-            "    total_score           = :score "
-        ),
-        ExpressionAttributeValues={
-            ":synced": "synced",
-            ":ts": now_iso,
-            ":dev": device_id,
-            ":streak": _decimal(streak),
-            ":attempts": _decimal(quiz_attempts),
-            ":score": _decimal(total_score),
-        },
-    )
+    # Write/update student aggregate record (snake_case for listStudentProgresses compatibility)
+    put_item = {
+        "user_id": student_id,
+        "record_type": "student_aggregate",
+        "studentId": student_id,
+        "deviceId": device_id,
+        "class_code": class_code,
+        "quizAttempts": _decimal(quiz_attempts),
+        "totalScore": _decimal(total_score),
+        "current_streak": _decimal(streak),
+        "lastSyncDevice": last_sync,
+        "last_sync_timestamp": last_sync,
+        "syncedAt": now_iso,
+        "syncStatus": "synced",
+    }
+    if last_quiz_date:
+        put_item["last_quiz_date"] = last_quiz_date
+    stats_table.put_item(Item=put_item)
 
     return {
         "studentId": student_id,

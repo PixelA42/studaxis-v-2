@@ -73,6 +73,46 @@ def _decimal_to_native(obj):
     return obj
 
 
+def _list_student_progresses(class_code: str | None, limit: int, next_token: str | None, cid: str) -> dict:
+    """
+    Scan studaxis-student-sync for student aggregates, filter by class_code.
+    Hackathon: Scan + FilterExpression (no GSI). Excludes quiz_attempt rows.
+    Solo learners (class_code=SOLO) never appear in teacher view.
+    """
+    if not class_code or not str(class_code).strip():
+        logger.info("[%s] listStudentProgresses: no class_code — returning [] (teacher must provide)", cid)
+        return {"items": [], "nextToken": None}
+
+    scan_kwargs = {
+        "FilterExpression": Attr("class_code").eq(str(class_code).strip()) & (
+            Attr("record_type").not_exists() | Attr("record_type").ne("quiz_attempt")
+        ),
+        "Limit": min(limit or 100, 200),
+    }
+    if next_token:
+        scan_kwargs["ExclusiveStartKey"] = json.loads(next_token)
+
+    resp = sync_table.scan(**scan_kwargs)
+    items = resp.get("Items", [])
+    next_key = resp.get("LastEvaluatedKey")
+
+    # Map to StudentProgress shape
+    result = []
+    for it in items:
+        result.append({
+            "user_id": it.get("user_id"),
+            "current_streak": int(it.get("current_streak", 0)) if it.get("current_streak") is not None else 0,
+            "device_id": it.get("device_id"),
+            "last_quiz_date": it.get("last_quiz_date"),
+            "last_sync_timestamp": it.get("last_sync_timestamp") or "",
+            "class_code": it.get("class_code"),
+        })
+    return {
+        "items": [_decimal_to_native(r) for r in result],
+        "nextToken": json.dumps(next_key) if next_key else None,
+    }
+
+
 def _get_last_sync_timestamp(user_id: str, cid: str) -> str | None:
     """Look up when this student last synced so we can send only new content."""
     try:
@@ -225,6 +265,14 @@ def lambda_handler(event, context):
             logger.info("[%s] Listing all quizzes for teacher dashboard", cid)
             quizzes = _fetch_quizzes("All", cid)
             return [_decimal_to_native(q) for q in quizzes]
+
+        elif field == "listStudentProgresses":
+            # Teacher dashboard: students filtered by class_code (Scan + FilterExpression)
+            class_code = args.get("class_code") or args.get("classCode")
+            limit = int(args.get("limit", 100))
+            next_token = args.get("nextToken")
+            logger.info("[%s] listStudentProgresses: class_code=%s", cid, class_code)
+            return _list_student_progresses(class_code, limit, next_token, cid)
 
         else:
             raise ValueError(f"Unknown fieldName: {field}")

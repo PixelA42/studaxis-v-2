@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 export interface Teacher {
+  teacherId?: string;
   name: string;
   email: string;
   subject: string;

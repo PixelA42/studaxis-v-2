@@ -28,7 +28,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
 
   return (
     <nav className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`} aria-label="Main navigation">
-      <div className="sidebar__brand">
+      <div className={`sidebar__brand ${collapsed ? 'sidebar__brand--collapsed' : ''}`}>
         <span className="sidebar__logo">📐</span>
         {!collapsed && (
           <div>
@@ -38,8 +38,9 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
         )}
       </div>
 
-      <div className="sidebar__menu-label">Menu</div>
-      <ul className="sidebar__nav" role="list">
+      <div className="sidebar__nav-wrap">
+        <div className="sidebar__menu-label">Menu</div>
+        <ul className="sidebar__nav" role="list">
         {NAV_ITEMS.map((item) => {
           const isActive = item.path === '/' ? location.pathname === '/' : location.pathname.startsWith(item.path);
           return (
@@ -55,7 +56,8 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
             </li>
           );
         })}
-      </ul>
+        </ul>
+      </div>
     </nav>
   );
 }

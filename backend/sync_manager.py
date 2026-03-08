@@ -71,6 +71,34 @@ class SyncManager:
     # PUBLIC API — Queue Mutations
     # ═══════════════════════════════════════════════════════════════════════
 
+    def _get_class_code(self) -> Optional[str]:
+        """
+        Fetch class_code from local profile. Solo learners return "SOLO".
+        Returns None if profile not found (will default to SOLO in Lambda).
+        """
+        try:
+            # Per-user profile: data/users/{user_id}/profile.json
+            profile_path = self.base_path / "data" / "users" / self.user_id / "profile.json"
+            if profile_path.exists():
+                with open(profile_path, encoding="utf-8") as f:
+                    data = json.load(f)
+                cc = data.get("class_code")
+                if cc and str(cc).strip():
+                    return str(cc).strip()
+                return "SOLO"  # Independent/Solo learner
+            # Fallback: single-user profile.json
+            fallback = self.base_path / "data" / "profile.json"
+            if fallback.exists():
+                with open(fallback, encoding="utf-8") as f:
+                    data = json.load(f)
+                cc = data.get("class_code")
+                if cc and str(cc).strip():
+                    return str(cc).strip()
+                return "SOLO"
+        except (OSError, json.JSONDecodeError, KeyError):
+            pass
+        return "SOLO"  # Default: Solo mode (private, not visible to teachers)
+
     def enqueue_quiz_sync(
         self,
         user_id: str,
@@ -80,16 +108,19 @@ class SyncManager:
         subject: str = "General",
         difficulty: str = "Medium",
         device_id: str = None,
+        class_code: Optional[str] = None,
     ) -> bool:
         """
         Queue a quiz attempt for sync to AppSync.
         Called after record_quiz_attempt() saves locally.
         If device_id is None, generates/retrieves persistent device ID.
+        If class_code is None, fetches from profile.json (Solo mode → "SOLO").
         """
         # Use persistent device ID if not provided
         if device_id is None:
             from device_id import get_or_generate_device_id
             device_id = get_or_generate_device_id()
+        cc = class_code if (class_code and str(class_code).strip()) else self._get_class_code()
         item = SyncItem(
             mutation_type="recordQuizAttempt",
             payload={
@@ -101,6 +132,7 @@ class SyncManager:
                 "difficulty": difficulty,
                 "deviceId": device_id,
                 "completedAtLocal": datetime.now(timezone.utc).isoformat(),
+                "classCode": cc,
             },
             queued_at=datetime.now(timezone.utc).isoformat(),
         )
@@ -113,13 +145,16 @@ class SyncManager:
         self,
         user_id: str,
         current_streak: int,
+        class_code: Optional[str] = None,
     ) -> bool:
-        """Queue a streak update for sync to AppSync."""
+        """Queue a streak update for sync to AppSync. class_code from profile if not provided."""
+        cc = class_code if (class_code and str(class_code).strip()) else self._get_class_code()
         item = SyncItem(
             mutation_type="updateStreak",
             payload={
                 "userId": user_id,
                 "currentStreak": current_streak,
+                "classCode": cc,
             },
             queued_at=datetime.now(timezone.utc).isoformat(),
         )
@@ -309,7 +344,8 @@ class SyncManager:
               $subject: String,
               $difficulty: String,
               $deviceId: String,
-              $completedAtLocal: String
+              $completedAtLocal: String,
+              $classCode: String
             ) {
               recordQuizAttempt(
                 userId: $userId,
@@ -319,7 +355,8 @@ class SyncManager:
                 subject: $subject,
                 difficulty: $difficulty,
                 deviceId: $deviceId,
-                completedAtLocal: $completedAtLocal
+                completedAtLocal: $completedAtLocal,
+                classCode: $classCode
               ) {
                 attemptId
                 userId
@@ -333,8 +370,8 @@ class SyncManager:
             """
         elif mutation_type == "updateStreak":
             mutation = """
-            mutation UpdateStreak($userId: String!, $currentStreak: Int!) {
-              updateStreak(userId: $userId, currentStreak: $currentStreak) {
+            mutation UpdateStreak($userId: String!, $currentStreak: Int!, $classCode: String) {
+              updateStreak(userId: $userId, currentStreak: $currentStreak, classCode: $classCode) {
                 userId
                 currentStreak
                 syncedAt

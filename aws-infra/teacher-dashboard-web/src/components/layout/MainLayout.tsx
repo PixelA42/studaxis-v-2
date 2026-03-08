@@ -23,12 +23,25 @@ function getCurrentLabel(pathname: string): string {
   return 'Overview';
 }
 
+function getInitialSideOpen(): boolean {
+  if (typeof window === 'undefined') return true;
+  return window.innerWidth >= 768;
+}
+
 export function MainLayout() {
-  const { teacher } = useTeacher();
+  const { teacher, logout } = useTeacher();
   const navigate = useNavigate();
   const location = useLocation();
-  const [sideOpen, setSideOpen] = useState(true);
+  const [sideOpen, setSideOpen] = useState(getInitialSideOpen);
+  const [isMobile, setIsMobile] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => {
     contentRef.current?.scrollTo(0, 0);
@@ -38,13 +51,43 @@ export function MainLayout() {
   const teacherName = teacher?.name || 'Teacher';
   const teacherSubject = teacher?.subject || 'Subject';
 
+  const sidebarVisible = isMobile ? sideOpen : true;
+  const marginLeft = isMobile
+    ? 0
+    : sideOpen
+      ? 252
+      : 88;
+
   return (
-    <div className="app-root app-root--dashboard">
+    <div
+      className="app-root app-root--dashboard"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'var(--sd-bg)',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Floating sidebar */}
       <aside
-        className={`app-sidebar ${!sideOpen ? 'app-sidebar--collapsed' : ''}`}
+        className={`app-sidebar app-sidebar--floating ${!sideOpen ? 'app-sidebar--collapsed' : ''} ${!sidebarVisible ? 'app-sidebar--hidden' : ''}`}
         style={{
-          width: sideOpen ? 240 : 64,
-          transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          position: 'fixed',
+          top: 16,
+          left: 16,
+          bottom: 16,
+          width: sideOpen ? 220 : 56,
+          background: 'rgba(255,255,255,0.85)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderRadius: 20,
+          border: '1.5px solid rgba(255,255,255,0.9)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+          zIndex: 50,
+          display: 'flex',
+          flexDirection: 'column',
+          transition: 'width 0.3s cubic-bezier(0.16,1,0.3,1), transform 0.25s ease',
+          overflow: 'hidden',
         }}
       >
         <Sidebar collapsed={!sideOpen} />
@@ -60,30 +103,66 @@ export function MainLayout() {
                 <div className="sidebar-footer-subject">{teacherSubject}</div>
               </div>
             </div>
+            <button
+              type="button"
+              className="sidebar-footer-signout"
+              onClick={() => logout()}
+            >
+              Sign out
+            </button>
           </div>
         )}
 
         <button
           type="button"
-          className="sidebar-collapse-btn"
+          className="sidebar-collapse-btn-inner"
           onClick={() => setSideOpen((p) => !p)}
           aria-label={sideOpen ? 'Collapse sidebar' : 'Expand sidebar'}
         >
-          <Icon name={sideOpen ? 'arrow_left' : 'arrow_right'} size={12} color="var(--sd-grey)" />
+          <Icon name={sideOpen ? 'arrow_left' : 'arrow_right'} size={16} color="var(--sd-grey)" />
+          {sideOpen && <span>Collapse</span>}
         </button>
       </aside>
 
-      <div className="app-main-content">
-        <header className="dashboard-header">
-          <div>
-            <span className="dashboard-header-title">{currentLabel}</span>
-            <span className="dashboard-header-date">
-              {new Date().toLocaleDateString('en-IN', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-              })}
-            </span>
+      {/* Full-width content area */}
+      <div
+        className="app-main-content"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        <header
+          className="dashboard-header"
+          style={{
+            marginLeft: marginLeft,
+            transition: 'margin-left 0.3s cubic-bezier(0.16,1,0.3,1)',
+          }}
+        >
+          <div className="dashboard-header-left">
+            {isMobile && (
+              <button
+                type="button"
+                className="dashboard-hamburger"
+                onClick={() => setSideOpen((p) => !p)}
+                aria-label="Toggle menu"
+              >
+                <Icon name="menu" size={20} color="var(--sd-dark)" />
+              </button>
+            )}
+            <div>
+              <span className="dashboard-header-title">{currentLabel}</span>
+              <span className="dashboard-header-date">
+                {new Date().toLocaleDateString('en-IN', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                })}
+              </span>
+            </div>
           </div>
           <div className="dashboard-header-actions">
             <div className="chip chip-green">
@@ -103,10 +182,30 @@ export function MainLayout() {
           </div>
         </header>
 
-        <div ref={contentRef} className="app-content">
+        <div
+          ref={contentRef}
+          className="app-content"
+          style={{
+            marginLeft: marginLeft,
+            transition: 'margin-left 0.3s cubic-bezier(0.16,1,0.3,1)',
+            flex: 1,
+            overflow: 'auto',
+            minHeight: 0,
+            padding: 24,
+          }}
+        >
           <Outlet />
         </div>
       </div>
+
+      {/* Mobile overlay when sidebar open */}
+      {isMobile && sideOpen && (
+        <div
+          className="sidebar-backdrop"
+          aria-hidden
+          onClick={() => setSideOpen(false)}
+        />
+      )}
     </div>
   );
 }

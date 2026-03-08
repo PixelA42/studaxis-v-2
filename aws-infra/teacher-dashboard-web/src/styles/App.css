@@ -32,24 +32,36 @@ body {
 /* Sidebar + content */
 .app-root--dashboard {
   display: flex;
-  height: 100%;
-  min-height: 100vh;
+  height: 100vh;
+  width: 100vw;
   overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
 }
 
 .app-sidebar {
-  width: 240px;
-  flex-shrink: 0;
-  background: var(--sd-bg-surface);
-  border-right: 1.5px solid var(--sd-border);
-  overflow: hidden;
-  position: relative;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.app-sidebar--floating {
+  /* Inline styles handle positioning */
 }
 
 .app-sidebar--collapsed {
-  width: 64px;
+  /* Width controlled by inline style */
+}
+
+.app-sidebar--hidden {
+  transform: translateX(-100%);
+  pointer-events: none;
+}
+
+.sidebar--collapsed {
+  padding: 8px 4px;
 }
 
 .app-main-content {
@@ -57,19 +69,80 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  height: 100%;
   min-height: 0;
+  margin: 0;
+  padding: 0;
 }
 
 .dashboard-header {
   background: var(--sd-bg-surface);
   border-bottom: 1.5px solid var(--sd-border);
   padding: 0 28px;
+  margin: 0;
   height: 60px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+}
+
+.dashboard-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dashboard-hamburger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 8px;
+  color: var(--sd-dark);
+}
+
+.dashboard-hamburger:hover {
+  background: var(--sd-bg);
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 40;
+  backdrop-filter: blur(2px);
+}
+
+.sidebar-collapse-btn-inner {
+  margin: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  border: none;
+  background: var(--sd-bg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--sd-grey);
+  font-family: var(--sd-font-stack);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sidebar-collapse-btn-inner:hover {
+  background: rgba(107, 114, 128, 0.1);
+}
+
+.app-sidebar--collapsed .sidebar-collapse-btn-inner {
+  justify-content: center;
+}
+
+.app-sidebar--collapsed .sidebar-collapse-btn-inner span {
+  display: none;
 }
 
 .dashboard-header-title {
@@ -188,23 +261,25 @@ body {
   color: var(--sd-grey);
 }
 
-.sidebar-collapse-btn {
-  position: absolute;
-  top: 50%;
-  right: -12px;
-  transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--sd-bg-surface);
-  border: 1.5px solid var(--sd-border);
+.sidebar-footer-signout {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--sd-grey);
+  background: transparent;
+  border: 1px solid var(--sd-border);
+  border-radius: 8px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 30;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
+  transition: background 0.2s, color 0.2s;
 }
+.sidebar-footer-signout:hover {
+  background: rgba(250, 92, 92, 0.08);
+  color: var(--sd-accent-coral);
+}
+
+/* .sidebar-collapse-btn removed — now using .sidebar-collapse-btn-inner inside sidebar */
 
 .sidebar__menu-label {
   font-size: 10px;
@@ -222,6 +297,7 @@ body {
   width: 0;
   padding: 0;
   height: 0;
+  margin: 0;
 }
 
 .sidebar--collapsed .sidebar__link {
@@ -825,41 +901,90 @@ body {
 .settings-section-title {
   font-weight: 800;
   font-size: 15px;
-  color: var(--sd-dark);
+  color: var(--sd-text-main);
 }
 
 .settings-section-sub {
   font-size: 12px;
-  color: var(--sd-grey);
-}
-
-.settings-aws-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 20px;
+  color: var(--sd-text-muted);
 }
 
 .settings-profile-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+  margin-bottom: 20px;
 }
 
-.btn-blue {
-  background: var(--sd-accent-blue);
-  color: white;
-  box-shadow: 0 4px 14px rgba(0, 168, 232, 0.3);
+.settings-save-btn {
+  margin-top: 4px;
 }
 
-.btn-blue:hover:not(:disabled) {
-  box-shadow: 0 6px 20px rgba(0, 168, 232, 0.4);
+/* Theme toggle */
+.settings-theme-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.settings-theme-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sd-text-main);
+}
+
+.settings-theme-toggle {
+  flex-shrink: 0;
 }
 
 .settings-privacy-text {
   font-size: 13px;
-  color: var(--sd-grey);
+  color: var(--sd-text-muted);
   line-height: 1.8;
+}
+
+/* System Health badges */
+.settings-health-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-health-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface-light);
+  border: 1px solid var(--sd-border-subtle);
+  border-radius: var(--sd-radius-stat);
+  font-size: 14px;
+}
+
+.settings-health-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.settings-health-dot--connected,
+.settings-health-dot--active {
+  background: var(--sd-semantic-success);
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+}
+
+.settings-health-label {
+  font-weight: 600;
+  color: var(--sd-text-main);
+}
+
+.settings-health-status {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--sd-semantic-success);
 }
 
 .app-content {
@@ -1412,14 +1537,34 @@ textarea:focus-visible {
 /* Sidebar */
 .sidebar {
   padding: var(--sd-space-4);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
+
 .sidebar__brand {
   display: flex;
   align-items: center;
   gap: var(--sd-space-3);
   margin-bottom: var(--sd-space-6);
+  padding: 20px 16px;
   padding-bottom: var(--sd-space-4);
   border-bottom: 1px solid var(--sd-border-subtle);
+  flex-shrink: 0;
+}
+
+.sidebar__brand--collapsed {
+  padding: 16px 10px;
+  justify-content: center;
+  margin-bottom: var(--sd-space-4);
+}
+
+.sidebar__nav-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .sidebar__logo {
   font-size: 28px;

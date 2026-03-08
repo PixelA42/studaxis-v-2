@@ -2,64 +2,6 @@
   {
     "mutation_type": "recordQuizAttempt",
     "payload": {
-      "userId": "student_001",
-      "quizId": "quiz_test_001",
-      "score": 8,
-      "totalQuestions": 10,
-      "subject": "Mathematics",
-      "difficulty": "Medium",
-      "deviceId": "local-device",
-      "completedAtLocal": "2026-03-04T11:54:22.474998+00:00"
-    },
-    "queued_at": "2026-03-04T11:54:22.474998+00:00",
-    "retry_count": 0,
-    "last_error": ""
-  },
-  {
-    "mutation_type": "updateStreak",
-    "payload": {
-      "userId": "student_001",
-      "currentStreak": 5
-    },
-    "queued_at": "2026-03-04T11:54:22.477849+00:00",
-    "retry_count": 0,
-    "last_error": ""
-  },
-  {
-    "mutation_type": "recordQuizAttempt",
-    "payload": {
-      "userId": "student_001",
-      "quizId": "quiz_history_001",
-      "score": 8,
-      "totalQuestions": 10,
-      "subject": "General",
-      "difficulty": "Medium",
-      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
-      "completedAtLocal": "2026-03-05T18:11:02.172553+00:00"
-    },
-    "queued_at": "2026-03-05T18:11:02.172553+00:00",
-    "retry_count": 0,
-    "last_error": ""
-  },
-  {
-    "mutation_type": "recordQuizAttempt",
-    "payload": {
-      "userId": "person2",
-      "quizId": "panic",
-      "score": 0,
-      "totalQuestions": 5,
-      "subject": "Panic Mode",
-      "difficulty": "Medium",
-      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
-      "completedAtLocal": "2026-03-08T06:43:07.203408+00:00"
-    },
-    "queued_at": "2026-03-08T06:43:07.203408+00:00",
-    "retry_count": 0,
-    "last_error": ""
-  },
-  {
-    "mutation_type": "recordQuizAttempt",
-    "payload": {
       "userId": "person2",
       "quizId": "panic",
       "score": 0,
@@ -70,24 +12,8 @@
       "completedAtLocal": "2026-03-08T06:43:27.624844+00:00"
     },
     "queued_at": "2026-03-08T06:43:27.624844+00:00",
-    "retry_count": 0,
-    "last_error": ""
-  },
-  {
-    "mutation_type": "recordQuizAttempt",
-    "payload": {
-      "userId": "hhh",
-      "quizId": "panic",
-      "score": 0,
-      "totalQuestions": 3,
-      "subject": "Panic Mode",
-      "difficulty": "Medium",
-      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
-      "completedAtLocal": "2026-03-08T10:02:30.664820+00:00"
-    },
-    "queued_at": "2026-03-08T10:02:30.664820+00:00",
-    "retry_count": 0,
-    "last_error": ""
+    "retry_count": 1,
+    "last_error": "GraphQL error: ValidationError: totalQuestions must be > 0"
   },
   {
     "id": "sync_1772968862.373834",
@@ -102,8 +28,8 @@
     "created_at": "2026-03-08T11:21:02.377334+00:00",
     "queued_at": "2026-03-08T11:21:02.377334+00:00",
     "retries": 0,
-    "retry_count": 0,
-    "last_error": ""
+    "retry_count": 1,
+    "last_error": "AWS sync not configured for this type"
   },
   {
     "id": "sync_1772969213.531891",
@@ -118,8 +44,8 @@
     "created_at": "2026-03-08T11:26:53.534037+00:00",
     "queued_at": "2026-03-08T11:26:53.534037+00:00",
     "retries": 0,
-    "retry_count": 0,
-    "last_error": ""
+    "retry_count": 1,
+    "last_error": "AWS sync not configured for this type"
   },
   {
     "id": "sync_1772969332.52107",
@@ -134,8 +60,8 @@
     "created_at": "2026-03-08T11:28:52.521070+00:00",
     "queued_at": "2026-03-08T11:28:52.521070+00:00",
     "retries": 0,
-    "retry_count": 0,
-    "last_error": ""
+    "retry_count": 1,
+    "last_error": "AWS sync not configured for this type"
   },
   {
     "id": "sync_1772973019.184898",
@@ -150,8 +76,8 @@
     "created_at": "2026-03-08T12:30:19.184898+00:00",
     "queued_at": "2026-03-08T12:30:19.184898+00:00",
     "retries": 0,
-    "retry_count": 0,
-    "last_error": ""
+    "retry_count": 1,
+    "last_error": "AWS sync not configured for this type"
   },
   {
     "id": "sync_1772973118.897333",
@@ -167,8 +93,8 @@
     "created_at": "2026-03-08T12:31:58.897333+00:00",
     "queued_at": "2026-03-08T12:31:58.897333+00:00",
     "retries": 0,
-    "retry_count": 0,
-    "last_error": ""
+    "retry_count": 1,
+    "last_error": "AWS sync not configured for this type"
   },
   {
     "id": "sync_1772975201.811348",
@@ -183,8 +109,8 @@
     "created_at": "2026-03-08T13:06:41.811348+00:00",
     "queued_at": "2026-03-08T13:06:41.811348+00:00",
     "retries": 0,
-    "retry_count": 0,
-    "last_error": ""
+    "retry_count": 1,
+    "last_error": "AWS sync not configured for this type"
   },
   {
     "id": "sync_1772975201.968933",
@@ -199,7 +125,7 @@
     "created_at": "2026-03-08T13:06:41.968933+00:00",
     "queued_at": "2026-03-08T13:06:41.968933+00:00",
     "retries": 0,
-    "retry_count": 0,
-    "last_error": ""
+    "retry_count": 1,
+    "last_error": "AWS sync not configured for this type"
   }
 ]

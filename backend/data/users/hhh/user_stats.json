@@ -1,6 +1,6 @@
 {
   "user_id": "",
-  "last_sync_timestamp": null,
+  "last_sync_timestamp": "2026-03-08T14:53:20.255149+00:00",
   "streak": {
     "current": 1,
     "longest": 1,
@@ -21,7 +21,7 @@
   "flashcard_stats": {
     "total_reviewed": 2,
     "mastered": 0,
-    "due_for_review": 264,
+    "due_for_review": 10,
     "cards": {
       "1": {
         "ease": "hard",
@@ -35,31 +35,31 @@
     {
       "role": "assistant",
       "content": "Hi! I'm your AI tutor powered by Llama 3.2 with RAG grounding from your textbooks. Ask me anything — I work fully offline. 🎓",
-      "timestamp": "2026-03-08T12:27:09.350Z"
+      "timestamp": "2026-03-08T15:26:01.957Z"
     },
     {
       "role": "user",
-      "content": "Explain step-by-step: solve x^2+3x-6",
-      "timestamp": "2026-03-08T12:35:41.171Z",
+      "content": "all formulas for class 11th ncert maths",
+      "timestamp": "2026-03-08T15:26:30.788Z",
       "is_clarification": false
     },
     {
       "role": "assistant",
-      "content": "I'd be happy to help you solve the quadratic equation x^2 + 3x - 6 step by step. Here's the breakdown:\n\n**Step 1: Factorize the quadratic equation (if possible)**\n\nUnfortunately, this equation does not factorize easily, so we'll need to use other methods. The equation is in the form ax^2 + bx + c, where a = 1, b = 3, and c = -6.\n\n**Step 2: Check if the equation is a perfect square trinomial**\n\nA perfect square trinomial can be factorized into the square of a binomial. To check, we need to see if the middle term (3x) is twice the product of the square roots of the first and last terms.\n\nb^2 = (2 * √(ac)) = (2 * √(1 * -6)) = 2√(-6)\n\nSince b^2 is not a perfect square, we know that this is not a perfect square trinomial.\n\n**Step 3: Use the quadratic formula**\n\nThe quadratic formula is:\n\nx = (-b ± √(b^2 - 4ac)) / 2a\n\nIn our case, a = 1, b = 3, and c = -6.\n\n**Step 4: Plug the values into the quadratic formula**\n\nx = (-(3) ± √((3)^2 - 4 * 1 * -6)) / 2 * 1\nx = (-3 ± √(9 + 24)) / 2\nx = (-3 ± √33) / 2\n\n**Step 5: Simplify the solutions**\n\nWe have two possible solutions:\n\nx = (-3 + √33) / 2\nx = (-3 - √33) / 2\n\n**Step 6: Check the solutions (optional)**\n\nIf you'd like to check your solutions, you can plug them back into the original equation to see if they're true.\n\nI hope this step-by-step guide helps you solve the quadratic equation x^2 + 3x - 6!",
-      "timestamp": "2026-03-08T12:35:53.509Z",
+      "content": "Class 11th NCERT Maths Formulas:\n\n**Algebra**\n\n* Mean: $\\frac{\\text{Sum of values}}{\\text{Number of values}}$\n* Median: Middle value in a sorted list of values\n* Mode: Value that appears most frequently\n* Range: Difference between maximum and minimum values\n* Quadratic Formula: $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$\n\n**Geometry**\n\n* Circumference of a Circle: $2\\pi r$\n* Area of a Circle: $\\pi r^2$\n* Perimeter of a Triangle: Sum of lengths of all sides\n* Area of a Triangle: $\\frac{1}{2} \\times \\text{base} \\times \\text{height}$\n* Pythagorean Theorem: $$a^2 + b^2 = c^2$$\n\n**Trigonometry**\n\n* Sine, Cosine, and Tangent Ratios: $$\\sin \\theta = \\frac{\\text{opposite}}{\\text{hypotenuse}}, \\cos \\theta = \\frac{\\text{adjacent}}{\\text{hypotenuse}}, \\tan \\theta = \\frac{\\text{opposite}}{\\text{adjacent}}$$\n* Pythagorean Identity: $$\\sin^2 \\theta + \\cos^2 \\theta = 1$$\n* Sum and Difference Formulas: $$\\sin (A \\pm B) = \\sin A \\cos B \\pm \\cos A \\sin B$$\n\n**Statistics and Probability**\n\n* Mean and Median: Measures of central tendency\n* Mode and Median: Measures of central tendency\n* Standard Deviation: Measure of dispersion\n* Probability Formula: $$P(\\text{event}) = \\frac{\\text{Number of favorable outcomes}}{\\text{Total number of outcomes}}$$\n\nThese are some of the key formulas and concepts in Class 11th NCERT Maths. If you have any specific questions or need clarification on any of these topics, feel free to ask!",
+      "timestamp": "2026-03-08T15:27:12.414Z",
       "is_clarification": false
     },
     {
       "role": "user",
-      "content": "[Clarification] i didn't get the formula",
-      "timestamp": "2026-03-08T12:36:20.967Z",
-      "is_clarification": true
+      "content": "what is bias tradeoff",
+      "timestamp": "2026-03-08T15:29:54.830Z",
+      "is_clarification": false
     },
     {
       "role": "assistant",
-      "content": "To solve the quadratic equation x^2 + 3x - 6, we can use the quadratic formula. The formula is:\n\nx = (-b ± √(b^2 - 4ac)) / 2a\n\nIn our case, a = 1, b = 3, and c = -6. Plugging these values into the formula, we get:\n\nx = (-3 ± √(3^2 - 4 * 1 * -6)) / 2 * 1\nx = (-3 ± √(9 + 24)) / 2\nx = (-3 ± √33) / 2\n\nThis is the step-by-step solution for the given quadratic equation.",
-      "timestamp": "2026-03-08T12:36:27.602Z",
-      "is_clarification": true
+      "content": "In Maths, particularly in Statistics and Probability, there isn't a direct concept called \"bias tradeoff.\" However, I think you might be referring to the tradeoff between bias and variance in prediction models.\n\nBias-Variance Tradeoff:\n\nIn simple terms, this tradeoff refers to the balance between two types of errors in a prediction model:\n\n1. **Bias**: This is the difference between the predicted value and the actual value, which is often due to the model's tendency to overfit or underfit the data. A high bias means the model is too simple and doesn't capture the underlying patterns well.\n2. **Variance**: This is the difference between the predicted value and the predicted value of a different model, which is often due to the model's tendency to overfit or underfit the data. A high variance means the model is too complex and overestimates the noise in the data.\n\nThe ideal tradeoff is to have a model with low bias (predicts the correct average value) and low variance (minimizes the fluctuations around the average value). However, as one tries to reduce bias, variance often increases, and vice versa.\n\nThink of it like trying to draw a line that best fits a set of points. A good line should have low bias (be close to the average point) and low variance (not wobble too much). However, if you try to make the line too perfect (low bias), it might also overfit the noise in the data (high variance).\n\nThis tradeoff is an important consideration in model selection and design in Statistics and Machine Learning.\n\nRecap: The bias-variance tradeoff is a fundamental concept in Statistics and Machine Learning, where a balance must be struck between bias (overfitting) and variance (overfitting noise).",
+      "timestamp": "2026-03-08T15:30:28.165Z",
+      "is_clarification": false
     }
   ],
   "preferences": {

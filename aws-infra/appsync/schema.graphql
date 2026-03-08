@@ -7,8 +7,8 @@ schema {
 type Mutation {
   createStudentProgress(input: CreateStudentProgressInput!): StudentProgress
   deleteStudentProgress(input: DeleteStudentProgressInput!): StudentProgress
-  recordQuizAttempt(completedAtLocal: String, deviceId: String, difficulty: String, quizId: String!, score: Int!, subject: String, totalQuestions: Int!, userId: String!): QuizAttemptSyncResponse
-  updateStreak(currentStreak: Int!, userId: String!): StreakSyncResponse
+  recordQuizAttempt(classCode: String, completedAtLocal: String, deviceId: String, difficulty: String, quizId: String!, score: Int!, subject: String, totalQuestions: Int!, userId: String!): QuizAttemptSyncResponse
+  updateStreak(classCode: String, currentStreak: Int!, userId: String!): StreakSyncResponse
   updateStudentProgress(input: UpdateStudentProgressInput!): StudentProgress
 }
 
@@ -26,7 +26,7 @@ type Query {
   getQuizPresignedUrl(quiz_id: String!): PresignedUrlResponse
   listQuizzes: [QuizMeta]
   getStudentProgress(user_id: ID!): StudentProgress
-  listStudentProgresses(filter: TableStudentProgressFilterInput, limit: Int, nextToken: String): StudentProgressConnection
+  listStudentProgresses(class_code: String, filter: TableStudentProgressFilterInput, limit: Int, nextToken: String): StudentProgressConnection
 }
 
 type PresignedUrlResponse {
@@ -62,6 +62,7 @@ type StreakSyncResponse {
 }
 
 type StudentProgress {
+  class_code: String
   current_streak: Int!
   device_id: String
   last_quiz_date: String
@@ -81,6 +82,7 @@ type Subscription {
 }
 
 input CreateStudentProgressInput {
+  class_code: String
   current_streak: Int!
   device_id: String
   last_quiz_date: String
@@ -161,6 +163,7 @@ input TableStringFilterInput {
 }
 
 input TableStudentProgressFilterInput {
+  class_code: TableStringFilterInput
   current_streak: TableIntFilterInput
   device_id: TableStringFilterInput
   last_quiz_date: TableStringFilterInput
@@ -169,6 +172,7 @@ input TableStudentProgressFilterInput {
 }
 
 input UpdateStudentProgressInput {
+  class_code: String
   current_streak: Int
   device_id: String
   last_quiz_date: String

@@ -164,15 +164,15 @@ def lambda_handler(event, context):
         return _cors_response(400, {"error": "Invalid JSON body"})
 
     try:
-        if path.endswith("/generateQuiz"):
+        if path.endswith("/generateQuiz") or path.endswith("/generate-quiz"):
             topic = body.get("topic", "").strip()
             difficulty = body.get("difficulty", "medium").strip()
             num_questions = int(body.get("num_questions", 3))
 
             if not topic:
                 return _cors_response(400, {"error": "Missing required field: topic"})
-            if num_questions < 1 or num_questions > 10:
-                return _cors_response(400, {"error": "num_questions must be 1-10"})
+            if num_questions < 1 or num_questions > 20:
+                return _cors_response(400, {"error": "num_questions must be 1-20"})
 
             logger.info("Generating quiz: topic=%s, difficulty=%s, n=%d", topic, difficulty, num_questions)
             quiz = _generate_quiz(topic, difficulty, num_questions)

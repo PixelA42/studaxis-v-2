@@ -4,39 +4,103 @@ import { useTeacher } from '../context/TeacherContext';
 import { GlassCard } from '../components/dashboard/GlassCard';
 import { EmptyState } from '../components/shared/EmptyState';
 
+const API_URL = import.meta.env.VITE_API_GATEWAY_URL || '';
+
 export function QuizGenerator() {
   const { teacher } = useTeacher();
   const [form, setForm] = useState({
-    textbook: '',
+    textbookId: '',
     topic: '',
     subject: teacher?.subject || 'Physics',
     type: 'mcq' as 'mcq' | 'open' | 'mix',
     count: 10,
     difficulty: 'medium' as 'easy' | 'medium' | 'hard',
     assignTo: 'all',
+    textbookContext: '',
   });
   const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [generated, setGenerated] = useState<{
-    quiz_id: string;
     title: string;
     count: number;
     difficulty: string;
-    s3_key: string;
+    s3_url?: string;
+    quizData?: Record<string, unknown>;
   } | null>(null);
 
   const upd = (k: string, v: string | number) => setForm((p) => ({ ...p, [k]: v }));
 
   const generate = async () => {
     setGenerating(true);
-    await new Promise((r) => setTimeout(r, 2000));
-    setGenerating(false);
-    setGenerated({
-      quiz_id: 'QZ-' + Date.now(),
-      title: `${form.subject}: ${form.topic || 'General'} Quiz`,
-      count: form.count,
+    setError(null);
+    setGenerated(null);
+
+    const payload = {
+      textbook_id: form.textbookId || undefined,
+      topic: form.topic.trim() || form.subject,
       difficulty: form.difficulty,
-      s3_key: `quizzes/QZ-${Date.now()}.json`,
-    });
+      num_questions: Math.min(Math.max(1, form.count), 20),
+      textbook_context: form.textbookContext.trim() || undefined,
+    };
+
+    try {
+      if (!API_URL) {
+        throw new Error('API Gateway URL not configured (VITE_API_GATEWAY_URL)');
+      }
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(60000), // 60s Bedrock can be slow
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}: ${res.statusText}`);
+      }
+
+      const s3_url = data?.s3_url as string | undefined;
+      const questions = data?.questions as unknown[] | undefined;
+      const quiz_title = data?.quiz_title as string | undefined;
+      const title = quiz_title || `${form.subject}: ${form.topic || 'General'} Quiz`;
+
+      setGenerated({
+        title,
+        count: questions?.length ?? payload.num_questions,
+        difficulty: (data?.difficulty as string) ?? form.difficulty,
+        s3_url: s3_url || undefined,
+        quizData: s3_url ? undefined : (data as Record<string, unknown>),
+      });
+    } catch (e) {
+      if (e instanceof Error) {
+        if (e.name === 'AbortError') setError('Request timed out (60s). Try fewer questions.');
+        else setError(e.message);
+      } else {
+        setError('Failed to generate quiz. Check network and API config.');
+      }
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleDownload = () => {
+    if (!generated) return;
+    if (generated.s3_url) {
+      window.open(generated.s3_url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    if (generated.quizData) {
+      const blob = new Blob([JSON.stringify(generated.quizData, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `quiz-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   };
 
   return (
@@ -44,7 +108,7 @@ export function QuizGenerator() {
       <div className="page-header-block">
         <h1 className="page-title">AI Quiz Generator</h1>
         <p className="page-sub">
-          Powered by Amazon Bedrock · Generated quizzes save to S3 and push to students on sync.
+          AI-powered quiz via Amazon Bedrock · API Gateway → Lambda · Results ready to assign.
         </p>
       </div>
 
@@ -54,12 +118,22 @@ export function QuizGenerator() {
             <div className="quiz-form-header">
               <div className="quiz-form-icon">🧠</div>
               <div>
-                <div className="quiz-form-title">Bedrock Quiz Generation</div>
-                <div className="quiz-form-sub">API Gateway → Lambda → Bedrock → S3</div>
+                <div className="quiz-form-title">AI Quiz Generation</div>
+                <div className="quiz-form-sub">Request → API Gateway → Bedrock → Store</div>
               </div>
             </div>
 
             <div className="quiz-form-fields">
+              <div>
+                <label className="label">Textbook ID (optional)</label>
+                <input
+                  className="input"
+                  placeholder="e.g. PHYS-101, NCERT-X"
+                  value={form.textbookId}
+                  onChange={(e) => upd('textbookId', e.target.value)}
+                />
+              </div>
+
               <div className="quiz-form-row">
                 <div>
                   <label className="label">Subject</label>
@@ -98,29 +172,11 @@ export function QuizGenerator() {
                 <textarea
                   className="input"
                   rows={3}
-                  placeholder="Paste relevant textbook excerpt to ground the quiz... Bedrock will use this as RAG context."
+                  placeholder="Paste relevant textbook excerpt to ground the quiz..."
+                  value={form.textbookContext}
+                  onChange={(e) => upd('textbookContext', e.target.value)}
                   style={{ resize: 'vertical' }}
                 />
-              </div>
-
-              <div>
-                <label className="label">Question Type</label>
-                <div className="toggle-group">
-                  {[
-                    ['mcq', 'Multiple Choice'],
-                    ['open', 'Open Ended'],
-                    ['mix', 'Mixed'],
-                  ].map(([v, l]) => (
-                    <button
-                      key={v}
-                      type="button"
-                      className={`toggle-btn ${form.type === v ? 'active' : ''}`}
-                      onClick={() => upd('type', v)}
-                    >
-                      {l}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               <div>
@@ -149,6 +205,13 @@ export function QuizGenerator() {
                 </select>
               </div>
 
+              {error && (
+                <div className="notif-banner notif-error" style={{ marginBottom: 12 }}>
+                  <div className="notif-banner-icon">⚠️</div>
+                  <div className="notif-banner-text">{error}</div>
+                </div>
+              )}
+
               <button
                 type="button"
                 className="btn btn-primary quiz-generate-btn"
@@ -158,12 +221,12 @@ export function QuizGenerator() {
                 {generating ? (
                   <>
                     <div className="spinner" />
-                    Generating with Bedrock...
+                    Generating quiz...
                   </>
                 ) : (
                   <>
                     <Icon name="spark" size={15} />
-                    Generate Quiz with Bedrock
+                    Generate Quiz
                   </>
                 )}
               </button>
@@ -178,7 +241,9 @@ export function QuizGenerator() {
                 <div className="quiz-result-icon">✅</div>
                 <div>
                   <div className="quiz-result-title">Quiz Generated!</div>
-                  <div className="quiz-result-sub">Saved to S3 · Ready to assign</div>
+                  <div className="quiz-result-sub">
+                    {generated.s3_url ? 'Ready to download from S3' : 'Ready to download'}
+                  </div>
                 </div>
               </div>
               <div className="quiz-result-meta">
@@ -186,15 +251,19 @@ export function QuizGenerator() {
                 <div className="quiz-result-chips">
                   <span className="chip chip-blue">{generated.count} questions</span>
                   <span className="chip chip-orange">{generated.difficulty}</span>
-                  <span className="chip chip-grey">S3: {generated.s3_key}</span>
                 </div>
               </div>
               <div className="quiz-result-actions">
-                <button type="button" className="btn btn-primary">
-                  <Icon name="arrow_right" size={14} /> Assign to Class
-                </button>
-                <button type="button" className="btn btn-ghost">
-                  <Icon name="eye" size={15} />
+                <button type="button" className="btn btn-primary" onClick={handleDownload}>
+                  {generated.s3_url ? (
+                    <>
+                      <Icon name="arrow_right" size={14} /> View / Download Quiz
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="arrow_right" size={14} /> Download JSON
+                    </>
+                  )}
                 </button>
               </div>
             </GlassCard>
@@ -203,19 +272,18 @@ export function QuizGenerator() {
               <EmptyState
                 icon="🧠"
                 title="Ready to Generate"
-                description="Fill in the form and Bedrock will create your quiz. Results save to S3 automatically."
+                description="Fill in topic and settings. The AI will create your quiz via Bedrock."
               />
             </GlassCard>
           )}
 
           <GlassCard className="quiz-aws-card">
-            <div className="quiz-aws-title">⚡ AWS Flow</div>
+            <div className="quiz-aws-title">⚡ Quiz Pipeline</div>
             {[
               ['API Gateway', 'Validates & routes request'],
-              ['Quiz Lambda', 'Orchestrates generation'],
+              ['Lambda', 'Orchestrates generation'],
               ['Amazon Bedrock', 'Generates quiz content'],
-              ['S3 Bucket', 'Stores quiz JSON'],
-              ['DynamoDB', 'Records assignment state'],
+              ['Response', 'JSON or S3 presigned URL'],
             ].map(([svc, desc], i) => (
               <div key={i} className="quiz-aws-row">
                 <div

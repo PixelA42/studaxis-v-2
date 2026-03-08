@@ -1,96 +1,87 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { GlassCard } from '../components/dashboard/GlassCard';
-import { useTheme } from '../context/ThemeContext';
 import { useTeacher } from '../context/TeacherContext';
 
 export function Settings() {
-  const { theme, toggleTheme } = useTheme();
-  const { teacher } = useTeacher();
-  const [aws, setAws] = useState({
-    region: 'ap-south-1',
-    table: 'studaxis-student-sync',
-    bucket: '',
-    apiUrl: '',
-  });
+  const { teacher, setTeacher } = useTeacher();
+  const [teacherName, setTeacherName] = useState('');
+  const [activeClassCode, setActiveClassCode] = useState('');
+  const [saved, setSaved] = useState(false);
 
-  const upd = (k: string, v: string) => setAws((p) => ({ ...p, [k]: v }));
+  useEffect(() => {
+    setTeacherName(teacher?.name ?? '');
+    setActiveClassCode(teacher?.classCode ?? '');
+  }, [teacher]);
+
+  const handleSaveProfile = () => {
+    const updated = teacher
+      ? { ...teacher, name: teacherName, classCode: activeClassCode }
+      : {
+          name: teacherName,
+          classCode: activeClassCode,
+          email: '',
+          subject: '',
+          grade: '',
+          school: '',
+          city: '',
+          board: '',
+          className: '',
+          numStudents: '',
+        };
+    setTeacher(updated);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
 
   return (
     <main id="main-content" className="page-settings" role="main">
       <div className="page-header-block">
         <h1 className="page-title">Settings</h1>
-        <p className="page-sub">Configure your AWS infrastructure and teaching preferences.</p>
+        <p className="page-sub">Manage your profile and view system status.</p>
       </div>
 
-      {/* AWS Config */}
+      {/* Account & Roster */}
       <GlassCard className="settings-section">
         <div className="settings-section-header">
-          <span className="settings-section-icon">☁️</span>
+          <span className="settings-section-icon" aria-hidden>👤</span>
           <div>
-            <div className="settings-section-title">AWS Configuration</div>
+            <div className="settings-section-title">Account & Roster</div>
             <div className="settings-section-sub">
-              Connect to your DynamoDB, S3, and API Gateway endpoints.
+              Your display name and class code for filtering roster and AppSync queries.
             </div>
           </div>
         </div>
-        <div className="settings-aws-grid">
-          <div>
-            <label className="label">AWS Region</label>
-            <select className="select" value={aws.region} onChange={(e) => upd('region', e.target.value)}>
-              {['ap-south-1', 'us-east-1', 'us-west-2', 'eu-west-1', 'ap-southeast-1'].map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="label">DynamoDB Table</label>
-            <input
-              className="input"
-              placeholder="studaxis-student-sync"
-              value={aws.table}
-              onChange={(e) => upd('table', e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="label">S3 Bucket Name</label>
-            <input
-              className="input"
-              placeholder="studaxis-payloads-prod"
-              value={aws.bucket}
-              onChange={(e) => upd('bucket', e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="label">API Gateway URL</label>
-            <input
-              className="input"
-              placeholder="https://xxxxx.execute-api.ap-south-1.amazonaws.com/prod"
-              value={aws.apiUrl}
-              onChange={(e) => upd('apiUrl', e.target.value)}
-            />
-          </div>
-        </div>
-        <button type="button" className="btn btn-blue">Test Connection</button>
-      </GlassCard>
-
-      {/* Teacher Profile */}
-      <GlassCard className="settings-section">
-        <div className="settings-section-title">Teacher Profile</div>
         <div className="settings-profile-grid">
-          {[
-            { l: 'Full Name', v: teacher?.name, k: 'name' },
-            { l: 'Email', v: teacher?.email, k: 'email' },
-            { l: 'School', v: teacher?.school, k: 'school' },
-            { l: 'Subject', v: teacher?.subject, k: 'subject' },
-          ].map((f) => (
-            <div key={f.k}>
-              <label className="label">{f.l}</label>
-              <input className="input" defaultValue={f.v || ''} readOnly />
-            </div>
-          ))}
+          <div>
+            <label className="label" htmlFor="teacher-name">Teacher Name</label>
+            <input
+              id="teacher-name"
+              className="input"
+              type="text"
+              placeholder="e.g. Mr. Sharma"
+              value={teacherName}
+              onChange={(e) => setTeacherName(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="active-class-code">Active Class Code</label>
+            <input
+              id="active-class-code"
+              className="input"
+              type="text"
+              placeholder="e.g. CS101"
+              value={activeClassCode}
+              onChange={(e) => setActiveClassCode(e.target.value)}
+            />
+          </div>
         </div>
-        <button type="button" className="btn btn-primary" style={{ marginTop: 20 }}>
-          Save Changes
+        <button
+          type="button"
+          className="btn btn-primary settings-save-btn"
+          onClick={handleSaveProfile}
+          disabled={saved}
+        >
+          {saved ? 'Saved ✓' : 'Save Profile'}
         </button>
       </GlassCard>
 
@@ -98,29 +89,37 @@ export function Settings() {
       <GlassCard className="settings-section">
         <div className="settings-section-title">🔒 Privacy & Data</div>
         <div className="settings-privacy-text">
-          <strong style={{ color: 'var(--sd-dark)' }}>What syncs to AWS:</strong> Anonymized progress summaries,
-          quiz scores, streak counts, last sync timestamps.
+          <strong>What syncs:</strong> Anonymized progress summaries, quiz scores, streak counts, last sync timestamps.
           <br />
-          <strong style={{ color: 'var(--sd-dark)' }}>What never leaves the device:</strong> Chat transcripts, raw
-          quiz answers, personal learning notes, AI conversation history.
+          <strong>What never leaves the device:</strong> Chat transcripts, raw quiz answers, personal learning notes, AI conversation history.
           <br />
-          <strong style={{ color: 'var(--sd-dark)' }}>Encryption:</strong> DynamoDB uses AWS-managed keys. S3 uses
-          SSE-S3 (AES-256). All transport over HTTPS/TLS.
+          <strong>Encryption:</strong> AWS-managed keys at rest. All transport over HTTPS/TLS.
         </div>
       </GlassCard>
 
-      {/* Appearance */}
+      {/* System Health */}
       <GlassCard className="settings-section">
-        <h2 className="card-title">Appearance</h2>
-        <p className="card-sub">Theme and display preferences</p>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          onClick={toggleTheme}
-          aria-pressed={theme === 'dark'}
-        >
-          {theme === 'light' ? '🌙 Dark mode' : '☀️ Light mode'}
-        </button>
+        <div className="settings-section-header">
+          <span className="settings-section-icon" aria-hidden>📡</span>
+          <div>
+            <div className="settings-section-title">System Health</div>
+            <div className="settings-section-sub">
+              Read-only status. Configuration is managed via environment variables.
+            </div>
+          </div>
+        </div>
+        <div className="settings-health-grid">
+          <div className="settings-health-badge" role="status">
+            <span className="settings-health-dot settings-health-dot--connected" aria-hidden />
+            <span className="settings-health-label">Cloud Sync</span>
+            <span className="settings-health-status">Connected</span>
+          </div>
+          <div className="settings-health-badge" role="status">
+            <span className="settings-health-dot settings-health-dot--active" aria-hidden />
+            <span className="settings-health-label">Curriculum Engine (Bedrock)</span>
+            <span className="settings-health-status">Active</span>
+          </div>
+        </div>
       </GlassCard>
     </main>
   );
