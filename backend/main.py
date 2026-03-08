@@ -3240,6 +3240,81 @@ def student_assignment_complete(req: AssignmentCompleteRequest, user_id: str = D
     return {"ok": True}
 
 
+def _teachers_dir() -> Path:
+    """Data directory for teacher records (onboarding, class creation)."""
+    d = DATA_DIR / "teachers"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _teacher_file(class_code: str) -> Path:
+    """Path to teacher record for a class. Keyed by class_code."""
+    safe = re.sub(r"[^a-zA-Z0-9_-]", "_", (class_code or "").strip())[:64]
+    return _teachers_dir() / f"{safe or 'default'}.json"
+
+
+def _load_teacher(class_code: str) -> dict[str, Any] | None:
+    """Load teacher record for class. Returns None if not found."""
+    try:
+        path = _teacher_file(class_code)
+        if path.is_file():
+            return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        pass
+    return None
+
+
+def _save_teacher(class_code: str, data: dict[str, Any]) -> None:
+    """Save teacher record for class."""
+    try:
+        path = _teacher_file(class_code)
+        path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        pass
+
+
+class TeacherOnboardRequest(BaseModel):
+    """Teacher onboarding data from StudaxisTeacherDashboard.jsx flow."""
+    name: str = Field(..., min_length=1)
+    email: str = Field(..., min_length=1)
+    subject: str = Field(default="")
+    grade: str = Field(default="")
+    school: str = Field(default="")
+    city: str = Field(default="")
+    board: str = Field(default="")
+    className: str = Field(..., min_length=1)
+    classCode: str = Field(..., min_length=3)
+    numStudents: str = Field(default="")
+
+
+@app.post("/api/teacher/onboard")
+def teacher_onboard(req: TeacherOnboardRequest):
+    """
+    Register teacher + create first class. Public endpoint (no auth).
+    Persists to data/teachers/{class_code}.json for backend assignment routing.
+    Called by teacher dashboard after onboarding completion.
+    """
+    cc = req.classCode.strip()
+    existing = _load_teacher(cc)
+    if existing:
+        logger.info("Teacher class code %s already registered; updating", cc)
+    payload = {
+        "name": req.name,
+        "email": req.email.strip().lower(),
+        "subject": req.subject,
+        "grade": req.grade,
+        "school": req.school,
+        "city": req.city,
+        "board": req.board,
+        "className": req.className,
+        "classCode": cc,
+        "numStudents": req.numStudents,
+        "onboarded_at": datetime.now(timezone.utc).isoformat(),
+    }
+    _save_teacher(cc, payload)
+    return {"ok": True, "classCode": cc}
+
+
 class TeacherAssignQuizRequest(BaseModel):
     class_code: str = Field(..., min_length=1)
     quiz_id: str = Field(..., min_length=1)

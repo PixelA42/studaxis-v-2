@@ -1,5 +1,10 @@
 /* Onboarding — matching StudaxisTeacherDashboard.jsx reference */
 
+body,
+#root {
+  overflow: auto !important;
+}
+
 @keyframes fadeUp {
   from {
     opacity: 0;
@@ -43,6 +48,7 @@
 .onboarding-container {
   width: 100%;
   max-width: 520px;
+  padding-bottom: 80px;
 }
 
 .onboarding-logo {

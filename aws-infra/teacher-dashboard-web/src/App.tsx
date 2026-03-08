@@ -1,6 +1,7 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { TeacherProvider, useTeacher } from './context/TeacherContext';
+import { Onboarding } from './pages/Onboarding';
 import { Login } from './pages/Login';
 import { MainLayout } from './components/layout/MainLayout';
 import { DashboardOverview } from './pages/DashboardOverview';
@@ -39,7 +40,8 @@ function AppContentWrapper() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login onComplete={completeOnboarding} />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="/onboard" element={<Onboarding onComplete={completeOnboarding} signInLink={<Link to="/login" className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: 12 }}>Sign In →</Link>} />} />
+          <Route path="*" element={<Navigate to="/onboard" replace />} />
         </Routes>
       </BrowserRouter>
     );

@@ -53,11 +53,11 @@ export function LandingPage() {
   const { userLoggedIn } = useAuth();
 
   return (
-    <div className="min-h-screen flex flex-col bg-deep p-6 md:p-10">
+    <div className="w-full min-h-screen flex flex-col bg-deep m-0 p-0">
       <div className="ambient-glow" aria-hidden />
-      <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col gap-12 md:gap-16">
+      <div className="relative z-10 w-full flex flex-col gap-12 md:gap-16 py-6 md:py-10">
         {/* Hero — content card with depth */}
-        <div className="content-card rounded-card border border-glass-border p-10 flex flex-col items-center text-center">
+        <div className="content-card rounded-card border border-glass-border mx-auto max-w-[860px] w-full px-6 md:px-[60px] py-10 flex flex-col items-center text-center">
           <h1 className="text-3xl md:text-5xl font-extrabold font-anchor-bold text-heading-dark leading-tight">
             Organize{" "}
             <span className="text-chunk-blue">everything</span>
@@ -91,7 +91,7 @@ export function LandingPage() {
         </div>
 
         {/* Features — chunky color blocks (25% of layout) */}
-        <section className="text-center">
+        <section className="text-center max-w-[900px] mx-auto px-6">
           <h2 className="text-2xl md:text-3xl font-extrabold font-anchor-bold text-heading-dark mb-6">
             Our <span className="text-chunk-blue">Features</span>
           </h2>
@@ -115,7 +115,7 @@ export function LandingPage() {
         </section>
 
         {/* Services — chunky color blocks */}
-        <section className="text-center">
+        <section className="text-center max-w-[900px] mx-auto px-6">
           <h2 className="text-2xl md:text-3xl font-extrabold font-anchor-bold text-heading-dark mb-6">
             How It <span className="text-chunk-yellow">Works</span>
           </h2>

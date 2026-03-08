@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Icon } from '../components/icons/Icon';
 import type { Teacher } from '../context/TeacherContext';
 import '../styles/onboarding.css';
@@ -117,6 +118,9 @@ export function Login({ onComplete }: LoginProps) {
 
         <p className="onboarding-footer">
           🔒 MVP auth · Cognito coming in Phase 2 · Data syncs via AWS AppSync
+        </p>
+        <p className="onboarding-footer" style={{ marginTop: 8 }}>
+          New teacher? <Link to="/onboard" className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: 12 }}>Complete setup →</Link>
         </p>
       </div>
     </div>

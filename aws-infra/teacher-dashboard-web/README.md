@@ -1,6 +1,16 @@
 # Studaxis Teacher Dashboard (AWS Amplify)
 
-Cloud-based Teacher Dashboard UI for the Studaxis EdTech platform. Runs on AWS Amplify and connects to cloud data models. UI structure and state handling only — no backend logic.
+Cloud-based Teacher Dashboard UI for the Studaxis EdTech platform. Runs on AWS Amplify and connects to cloud data models.
+
+## Onboarding flow (StudaxisTeacherDashboard.jsx reference)
+
+1. **Welcome** — Intro, AI Quiz Generation, DynamoDB sync, Bedrock
+2. **Profile** — Name, email, subject, grade
+3. **School** — School name, city, board
+4. **First Class** — Class name, expected students, class code (auto-generated)
+5. **Done** — Summary, next steps
+
+On completion, data is persisted locally and optionally to backend when `VITE_TEACHER_BACKEND_URL` is set (`POST /api/teacher/onboard`).
 
 ## Features
 

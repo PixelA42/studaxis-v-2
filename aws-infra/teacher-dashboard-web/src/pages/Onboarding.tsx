@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Icon } from '../components/icons/Icon';
 import type { Teacher } from '../context/TeacherContext';
+import { postTeacherOnboard } from '../lib/teacherApi';
 import '../styles/onboarding.css';
 
 const ONBOARD_STEPS = [
@@ -13,9 +14,11 @@ const ONBOARD_STEPS = [
 
 interface OnboardingProps {
   onComplete: (data: Teacher) => void;
+  /** Optional "Sign In" link for returning teachers (e.g. <Link to="/login">Sign In →</Link>) */
+  signInLink?: React.ReactNode;
 }
 
-export function Onboarding({ onComplete }: OnboardingProps) {
+export function Onboarding({ onComplete, signInLink }: OnboardingProps) {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<Partial<Teacher>>({
     name: '',
@@ -41,7 +44,23 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const next = async () => {
     if (step === ONBOARD_STEPS.length - 2) {
       setLoading(true);
-      await new Promise((r) => setTimeout(r, 1200));
+      try {
+        await postTeacherOnboard({
+          name: data.name || '',
+          email: data.email || '',
+          subject: data.subject || '',
+          grade: data.grade || '',
+          school: data.school || '',
+          city: data.city || '',
+          board: data.board || '',
+          className: data.className || '',
+          classCode: data.classCode || classCode.current,
+          numStudents: data.numStudents || '',
+        });
+      } catch (e) {
+        console.warn('Backend teacher onboard failed (using local only):', e);
+      }
+      await new Promise((r) => setTimeout(r, 800));
       setLoading(false);
       setStep((s) => s + 1);
     } else if (step === ONBOARD_STEPS.length - 1) {
@@ -117,6 +136,11 @@ export function Onboarding({ onComplete }: OnboardingProps) {
         <p className="onboarding-footer">
           🔒 Your data syncs via AWS AppSync · Encrypted at rest via DynamoDB
         </p>
+        {signInLink && (
+          <p className="onboarding-footer" style={{ marginTop: 8 }}>
+            Already have an account? {signInLink}
+          </p>
+        )}
       </div>
     </div>
   );
