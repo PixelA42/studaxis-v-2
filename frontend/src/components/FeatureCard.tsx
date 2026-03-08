@@ -11,7 +11,9 @@ export interface FeatureCardProps {
   description: string;
   meta?: string;
   variant?: "default" | "ai" | "flashcards" | "panic";
-  pastelBg?: "pink" | "blue" | "yellow";
+  pastelBg?: "pink" | "blue" | "yellow" | "coral" | "peach";
+  /** Use light/white icon styling when card has dark or saturated background (e.g. blue) */
+  iconOnDark?: boolean;
   children?: ReactNode;
 }
 
@@ -22,11 +24,16 @@ const iconColorClasses = {
   red: "text-red-400 bg-red-500/10 border-red-500/30",
 };
 
+/** Icon styling for cards with saturated backgrounds (blue) — keeps icon visible on the left */
+const iconOnDarkClasses = "text-white bg-white/20 border-white/30";
+
 /* Chunky color blocks — large solid fills per reference (25% of layout) */
-const chunkBgClasses = {
+const chunkBgClasses: Record<string, string> = {
   pink: "bg-chunk-pink",
   blue: "bg-chunk-blue",
   yellow: "bg-chunk-yellow",
+  coral: "bg-chunk-coral",
+  peach: "bg-chunk-peach",
 };
 
 export function FeatureCard({
@@ -36,6 +43,7 @@ export function FeatureCard({
   description,
   meta,
   pastelBg,
+  iconOnDark,
   children,
 }: FeatureCardProps) {
   const isChunk = !!pastelBg;
@@ -43,11 +51,12 @@ export function FeatureCard({
   const textClass = isChunk ? "text-heading-dark" : "text-primary";
   const subTextClass = isChunk ? "text-heading-dark/80" : "text-primary/70";
   const metaClass = isChunk ? "text-heading-dark/70" : "text-primary/50";
+  const iconClasses = iconOnDark ? iconOnDarkClasses : iconColorClasses[iconColor];
   return (
     <div className={`${bgClass} rounded-card p-5 shadow-card hover:shadow-soft transition-shadow ${!isChunk ? "border border-glass-border" : ""}`}>
       <div className="flex items-start gap-4">
         <div
-          className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-xl border ${iconColorClasses[iconColor]}`}
+          className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-xl border ${iconClasses}`}
           aria-hidden
         >
           {icon}

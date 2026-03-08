@@ -154,6 +154,8 @@ export async function getHardware(): Promise<HardwareResponse> {
 export interface ChatRequest {
   message: string;
   is_clarification?: boolean;
+  subject?: string;
+  textbook_id?: string | null;
   context?: {
     difficulty?: string;
     chat_history?: Array<{ role: string; content: string }>;
@@ -282,8 +284,34 @@ export async function postChat(params: ChatRequest): Promise<ChatResponse> {
     body: JSON.stringify({
       message: params.message,
       is_clarification: params.is_clarification ?? false,
+      subject: params.subject ?? undefined,
+      textbook_id: params.textbook_id ?? undefined,
       context: params.context ?? undefined,
     }),
+  });
+}
+
+/** Chat history session (Layer 2 persistence) */
+export interface ChatHistorySession {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  timestamp: string;
+  subject: string;
+}
+
+/** Fetch chat history from backend (restore when localStorage is empty). */
+export async function fetchChatHistory(): Promise<ChatHistorySession[]> {
+  return request<ChatHistorySession[]>("/api/chat/history");
+}
+
+/** Save a chat session to backend after New Chat. */
+export async function saveChatHistoryToBackend(
+  session: ChatHistorySession
+): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>("/api/chat/history/save", {
+    method: "POST",
+    body: JSON.stringify(session),
   });
 }
 
@@ -448,7 +476,13 @@ export async function checkOllamaPing(): Promise<{ ok: boolean }> {
 
 /** Response from GET /api/textbooks */
 export interface TextbooksResponse {
-  textbooks: Array<{ id: string; name: string }>;
+  textbooks: Array<{
+    id: string;
+    name: string;
+    filename?: string;
+    subject?: string;
+    uploaded_at?: string;
+  }>;
 }
 
 /** Response from POST /api/textbooks/upload */

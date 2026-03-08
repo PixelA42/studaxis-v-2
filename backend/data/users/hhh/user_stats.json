@@ -2,9 +2,11 @@
   "user_id": "student_001",
   "last_sync_timestamp": null,
   "streak": {
-    "current": 0,
-    "longest": 0,
-    "last_activity_date": null
+    "current": 1,
+    "longest": 1,
+    "last_activity_date": null,
+    "last_active_date": "2026-03-08",
+    "milestone_next": 7
   },
   "quiz_stats": {
     "total_attempted": 0,
@@ -21,36 +23,24 @@
   "chat_history": [
     {
       "role": "user",
-      "content": "bhdbed",
-      "timestamp": "2026-03-08T06:48:33.090Z",
+      "content": "n n",
+      "timestamp": "2026-03-08T09:41:42.051Z",
       "is_clarification": false
     },
     {
       "role": "assistant",
-      "content": "Hello! I'm here to help you understand and learn new concepts.\n\nYou asked a question, but I didn't receive it. Could you please ask your question again? I'll do my best to help.",
-      "timestamp": "2026-03-08T06:48:58.120Z",
-      "is_clarification": false
-    },
-    {
-      "role": "user",
-      "content": "what is a sparrow",
-      "timestamp": "2026-03-08T06:49:08.412Z",
-      "is_clarification": false
-    },
-    {
-      "role": "assistant",
-      "content": "A sparrow is a small bird that belongs to the family Sparrowidae. They are typically grayish-brown in color, with a short, rounded tail and a small, pointed bill. Sparrows are found in a wide range of habitats, including backyards, parks, and rural areas, and can be seen in many parts of the world.\n\nSome common characteristics of sparrows include:\n\n* Small size, usually around 4-6 inches (10-15 cm) in length\n* Short, rounded tail\n* Small, pointed bill\n* Grayish-brown plumage\n* Often found in flocks\n\nSparrows are also known for their ability to adapt to different environments and to survive in a variety of situations. They are an important part of many ecosystems, helping to control insect and rodent populations.",
-      "timestamp": "2026-03-08T06:49:14.278Z",
+      "content": "I'm ready to help. Unfortunately, I didn't receive the question from the learner as you mentioned. Could you please rephrase the user's question or provide more context about what they asked about?",
+      "timestamp": "2026-03-08T09:41:50.489Z",
       "is_clarification": false
     }
   ],
   "preferences": {
-    "difficulty_level": "Beginner",
+    "difficulty_level": "Intermediate",
     "theme": "light",
     "language": "English",
     "sync_enabled": true,
-    "subject": "chemistry",
-    "grade": "College"
+    "subject": "physics",
+    "grade": "Grade 9"
   },
   "hardware_info": {}
 }

@@ -109,20 +109,29 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppStateProvider>
-        <ThemeProvider>
-          <FlashcardDeckProvider>
-            <NotificationProvider>
-              <PanicExamProvider>
-                <BootGuard>
-                  <AppRoutes />
-                </BootGuard>
-              </PanicExamProvider>
-            </NotificationProvider>
-          </FlashcardDeckProvider>
-        </ThemeProvider>
-      </AppStateProvider>
-    </AuthProvider>
+    <div
+      style={{
+        height: "100vh",
+        width: "100vw",
+        overflow: "hidden",
+        display: "flex",
+      }}
+    >
+      <AuthProvider>
+        <AppStateProvider>
+          <ThemeProvider>
+            <FlashcardDeckProvider>
+              <NotificationProvider>
+                <PanicExamProvider>
+                  <BootGuard>
+                    <AppRoutes />
+                  </BootGuard>
+                </PanicExamProvider>
+              </NotificationProvider>
+            </FlashcardDeckProvider>
+          </ThemeProvider>
+        </AppStateProvider>
+      </AuthProvider>
+    </div>
   );
 }

@@ -200,7 +200,7 @@ export function TextbooksPage() {
               style={{ display: "none" }}
             />
             <header>
-              <div className="tb-header-meta">V.04 — Optical Engine</div>
+              <div className="tb-header-meta">Textbooks — Studaxis</div>
               <h1 className="tb-h1">
                 Import
                 <br />
@@ -212,8 +212,7 @@ export function TextbooksPage() {
             <div className="tb-prism-intersection" aria-hidden />
             <div className="tb-upload-prompt">
               <p>
-                Drag textbooks or slide decks into the optical field to begin
-                ingestion.
+              Simply drop your textbooks or slides here to start learning instantly.
               </p>
               <div className="tb-file-types">
                 <span className="tb-type-tag">PDF</span>
@@ -249,7 +248,7 @@ export function TextbooksPage() {
                 <p style={{ color: "var(--tb-subtle)", fontSize: 13 }}>
                   {existingTextbooks.length === 0
                     ? "Drop files or click to add."
-                    : "Drop files or click to add more."}
+                    : "Happy Learning!"}
                 </p>
               ) : (
                 queue.map((item) => (

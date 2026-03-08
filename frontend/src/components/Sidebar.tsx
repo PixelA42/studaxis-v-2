@@ -17,7 +17,7 @@ const navSections: {
   items: { to: string; label: string; icon: ReactNode; badge?: number; panic?: boolean }[];
 }[] = [
   {
-    label: "Core Tools",
+    label: "Main",
     items: [
       { to: "/home", label: "Home", icon: Icons.home },
       { to: "/dashboard", label: "Dashboard", icon: Icons.dashboard },
@@ -28,7 +28,7 @@ const navSections: {
     ],
   },
   {
-    label: "Analytics",
+    label: "Things",
     items: [
       { to: "/insights", label: "Insights", icon: Icons.insights },
       { to: "/panic-mode", label: "Panic Mode", icon: Icons.panic, panic: true },
@@ -72,7 +72,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`relative flex flex-col flex-shrink-0 content-card border-r border-t-0 border-b-0 border-l-0 rounded-r-2xl transition-all duration-300 z-10 ${
+      className={`sidebar-nav relative flex flex-col h-full flex-shrink-0 overflow-visible content-card border-r border-t-0 border-b-0 border-l-0 rounded-r-2xl transition-all duration-300 z-10 ${
         collapsed ? "w-sidebar-collapsed" : "w-sidebar"
       }`}
       aria-label="Main navigation"
@@ -80,13 +80,25 @@ export function Sidebar() {
       <button
         type="button"
         onClick={toggle}
-        className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white border border-heading-dark/10 flex items-center justify-center text-heading-dark/80 hover:text-accent-blue hover:border-accent-blue shadow-card transition-colors"
+        className="absolute flex items-center justify-center text-heading-dark/80 hover:text-accent-blue hover:border-accent-blue transition-colors"
+        style={{
+          right: "-16px",
+          top: "50%",
+          transform: "translateY(-50%)",
+          zIndex: 20,
+          background: "white",
+          border: "1.5px solid #e8edf5",
+          borderRadius: "50%",
+          width: "28px",
+          height: "28px",
+          boxShadow: "2px 0 8px rgba(0,0,0,0.08)",
+        }}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         <span className={`text-xs transition-transform ${collapsed ? "rotate-180" : ""}`}>‹</span>
       </button>
 
-      <div className={`p-5 border-b border-glass-border ${collapsed ? "flex justify-center" : ""}`}>
+      <div className={`flex-shrink-0 p-5 border-b border-glass-border ${collapsed ? "flex justify-center" : ""}`}>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-accent-blue flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
             S
@@ -97,7 +109,7 @@ export function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 overflow-hidden flex flex-col py-3">
+      <nav className="flex-1 min-h-0 overflow-y-auto flex flex-col py-3">
         {navSections.map((section) => (
           <div key={section.label || "footer"} className="mb-4">
             {section.label && !collapsed && (
@@ -143,7 +155,10 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className={`p-3 border-t border-glass-border ${collapsed ? "flex justify-center" : ""}`}>
+      <div
+        className={`flex-shrink-0 p-3 border-t border-glass-border ${collapsed ? "flex justify-center" : ""}`}
+        style={{ marginTop: "auto" }}
+      >
         {!collapsed && (
           <>
             {profile.profile_name && (

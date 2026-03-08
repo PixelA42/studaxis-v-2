@@ -41,6 +41,14 @@ from auth_routes import router as auth_router
 from database import User, init_db
 from dependencies import get_current_user, get_user_id
 from profile_store import UserProfile, load_profile, save_profile, load_profile_for_user, save_profile_for_user
+from stats_algorithms import (
+    ensure_flashcard_structure,
+    ensure_streak_structure,
+    update_flashcard_entry,
+    update_flashcard_stats_from_cards,
+    update_quiz_stats as _update_quiz_stats,
+    update_streak as _update_streak,
+)
 
 # ---------------------------------------------------------------------------
 # Base path for AI engine and data (user_stats, profile, etc.)
@@ -67,6 +75,11 @@ def _stats_file(user_id: str) -> Path:
 def _flashcards_file(user_id: str) -> Path:
     """Return path to per-user flashcards.json."""
     return _user_dir(user_id) / "flashcards.json"
+
+
+def _chat_history_file(user_id: str) -> Path:
+    """Return path to per-user chat_history.json."""
+    return _user_dir(user_id) / "chat_history.json"
 
 app = FastAPI(
     title="Studaxis API",
@@ -121,15 +134,19 @@ def get_ai_engine() -> AIEngine:
 _DEFAULT_STATS: dict[str, Any] = {
     "user_id": "",
     "last_sync_timestamp": None,
-    "streak": {"current": 0, "longest": 0, "last_activity_date": None},
+    "streak": {"current": 0, "longest": 0, "last_active_date": None, "milestone_next": 7},
     "quiz_stats": {
         "total_attempted": 0,
         "total_correct": 0,
         "average_score": 0.0,
         "last_quiz_date": None,
         "by_topic": {},
+        "total_score_sum": 0,
+        "total_max_sum": 0,
+        "average_percent": 0,
+        "last_score": None,
     },
-    "flashcard_stats": {"total_reviewed": 0, "mastered": 0, "due_for_review": 0},
+    "flashcard_stats": {"total_reviewed": 0, "mastered": 0, "due_for_review": 0, "cards": {}},
     "chat_history": [],
     "preferences": {
         "difficulty_level": "Beginner",
@@ -230,6 +247,8 @@ class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, description="User message")
     is_clarification: bool = Field(default=False, description="True if this is a follow-up clarification")
     context: Optional[dict[str, Any]] = Field(default=None, description="Optional: difficulty, chat_history, subject, etc.")
+    subject: Optional[str] = Field(default=None, description="Selected subject (e.g. General, Maths)")
+    textbook_id: Optional[str] = Field(default=None, description="Attached textbook id (filename) for RAG")
 
 
 class ChatResponse(BaseModel):
@@ -604,14 +623,27 @@ def storage_files(user_id: str = Depends(get_user_id)):
 # ---------------------------------------------------------------------------
 
 
-def _list_textbooks() -> list[dict[str, str]]:
+def _list_textbooks() -> list[dict[str, Any]]:
     """List *.pdf, *.txt, and *.pptx files in sample_textbooks."""
-    out: list[dict[str, str]] = []
+    from datetime import datetime, timezone
+    out: list[dict[str, Any]] = []
     if not SAMPLE_TEXTBOOKS_DIR.is_dir():
         return out
     for p in sorted(SAMPLE_TEXTBOOKS_DIR.iterdir()):
         if p.is_file() and p.suffix.lower() in (".pdf", ".txt", ".pptx"):
-            out.append({"id": p.name, "name": p.stem})
+            subject = p.stem.split("_")[0] if "_" in p.stem else p.stem
+            try:
+                mtime = p.stat().st_mtime
+                uploaded_at = datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
+            except OSError:
+                uploaded_at = ""
+            out.append({
+                "id": p.name,
+                "filename": p.name,
+                "name": p.stem,
+                "subject": subject,
+                "uploaded_at": uploaded_at,
+            })
     return out
 
 
@@ -1011,7 +1043,39 @@ class FlashcardsReplaceRequest(BaseModel):
 def flashcards_replace(req: FlashcardsReplaceRequest, user_id: str = Depends(get_user_id)):
     """Replace stored flashcards for the authenticated user."""
     _save_flashcards(req.cards, user_id)
+    stats = _load_user_stats(user_id)
+    ensure_streak_structure(stats)
+    ensure_flashcard_structure(stats)
+    update_flashcard_stats_from_cards(stats, req.cards)
+    _update_streak(stats)
+    _save_user_stats(stats, user_id)
     return {"ok": True, "count": len(req.cards)}
+
+
+class FlashcardReviewRequest(BaseModel):
+    card_id: str = Field(..., description="Card identifier")
+    ease: str = Field(..., description="'hard' | 'medium' | 'easy'")
+    next_review: str = Field(..., description="Next review date (YYYY-MM-DD)")
+
+
+@app.post("/api/flashcards/review")
+def flashcards_review(req: FlashcardReviewRequest, user_id: str = Depends(get_user_id)):
+    """Record a single flashcard review; updates streak and flashcard stats."""
+    stats = _load_user_stats(user_id)
+    ensure_streak_structure(stats)
+    ensure_flashcard_structure(stats)
+    mastered = req.ease == "easy"
+    update_flashcard_entry(stats, req.card_id, req.ease, req.next_review, mastered=mastered)
+    cards = _load_flashcards(user_id)
+    for c in cards:
+        if (c.get("id") or "") == req.card_id:
+            c["next_review"] = req.next_review
+            break
+    _save_flashcards(cards, user_id)
+    update_flashcard_stats_from_cards(stats, cards)
+    _update_streak(stats)
+    _save_user_stats(stats, user_id)
+    return {"ok": True}
 
 
 @app.post("/api/flashcards/explain", response_model=FlashcardExplainResponse)
@@ -1080,9 +1144,17 @@ def study_recommendation(req: StudyRecommendationRequest):
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(req: ChatRequest, user_id: str = Depends(get_user_id)):
     """Turn-based chat with local LLM. Supports clarification follow-ups and RAG context."""
+    stats = _load_user_stats(user_id)
+    ensure_streak_structure(stats)
+    _update_streak(stats)
+    _save_user_stats(stats, user_id)
     engine = get_ai_engine()
     ctx: dict[str, Any] = dict(req.context) if req.context else {}
     ctx["is_clarification"] = req.is_clarification
+    if req.subject is not None:
+        ctx["subject"] = req.subject
+    if req.textbook_id is not None:
+        ctx["textbook_id"] = req.textbook_id
     try:
         response = engine.request(
             task_type=AITaskType.CHAT,
@@ -1100,6 +1172,55 @@ def chat(req: ChatRequest, user_id: str = Depends(get_user_id)):
         confidence_score=response.confidence_score,
         metadata=response.metadata,
     )
+
+
+# ---------------------------------------------------------------------------
+# Chat history (Layer 2 persistence — backend JSON, restores when localStorage cleared)
+# ---------------------------------------------------------------------------
+
+
+class ChatHistorySession(BaseModel):
+    """A saved chat session for history persistence."""
+    id: str
+    title: str
+    messages: list[dict[str, Any]] = Field(default_factory=list)
+    timestamp: str
+    subject: str = "General"
+
+
+def _load_chat_history(user_id: str) -> list[dict[str, Any]]:
+    """Load chat history for user from JSON file."""
+    path = _chat_history_file(user_id)
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, list) else []
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
+def _save_chat_history(sessions: list[dict[str, Any]], user_id: str) -> None:
+    """Save chat history for user to JSON file."""
+    path = _chat_history_file(user_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(sessions, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+@app.post("/api/chat/history/save")
+def chat_history_save(session: ChatHistorySession, user_id: str = Depends(get_user_id)):
+    """Append a saved chat session to the user's chat_history.json."""
+    sessions = _load_chat_history(user_id)
+    sessions.insert(0, session.model_dump())
+    _save_chat_history(sessions, user_id)
+    return {"ok": True}
+
+
+@app.get("/api/chat/history")
+def chat_history_get(user_id: str = Depends(get_user_id)):
+    """Return array of saved chat sessions for restore when localStorage is empty."""
+    sessions = _load_chat_history(user_id)
+    return sessions
 
 
 @app.post("/api/grade", response_model=GradeResponse)
@@ -1266,17 +1387,48 @@ def panic_generate_files(
     return {"id": "panic", "title": f"Panic Mode — {subject}", "items": items}
 
 
+def _resolve_quiz_items(quiz_id: str, items_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Resolve quiz items for grading (from req.items or static QUIZ_ITEMS/PANIC_ITEMS)."""
+    if items_list:
+        return items_list
+    if quiz_id in ("quick", "default"):
+        return QUIZ_ITEMS
+    if quiz_id == "panic":
+        return PANIC_ITEMS
+    for item in QUIZ_ITEMS + PANIC_ITEMS:
+        if item.get("id") == quiz_id:
+            return [item]
+    return []
+
+
 @app.post("/api/quiz/{quiz_id}/submit", response_model=QuizSubmitResponse)
 def quiz_submit(quiz_id: str, req: QuizSubmitRequest, user_id: str = Depends(get_user_id)):
-    """Submit quiz answers; grade via AI and update user stats."""
+    """Submit quiz answers; grade via AI/local and update user stats."""
     engine = get_ai_engine()
     stats = _load_user_stats(user_id)
+    ensure_streak_structure(stats)
     quiz_stats = stats.setdefault("quiz_stats", {})
     topic_scores: dict[str, list[float]] = {}
-    items_list = req.items or []
+    items_list = _resolve_quiz_items(quiz_id, req.items or [])
+    total_score = 0.0
+    max_score = len(req.answers) * 10.0 if req.answers else 0.0
+
     for r in req.answers:
-        topic = r.get("topic", "General")
+        qid = r.get("question_id", "")
+        answer_text = r.get("answer", "")
         score = float(r.get("score", 0))
+        if score == 0 and items_list:
+            for it in items_list:
+                if it.get("id") == qid:
+                    score = _local_score(answer_text, it.get("expected_answer", ""))
+                    break
+        r["score"] = score
+        r["topic"] = r.get("topic") or next(
+            (it.get("topic", "General") for it in items_list if it.get("id") == qid),
+            "General",
+        )
+        topic = r["topic"]
+        total_score += score
         topic_scores.setdefault(topic, []).append(score)
         total_attempted = int(quiz_stats.get("total_attempted", 0)) + 1
         total_correct = int(quiz_stats.get("total_correct", 0)) + (1 if score >= 6.0 else 0)
@@ -1288,6 +1440,9 @@ def quiz_submit(quiz_id: str, req: QuizSubmitRequest, user_id: str = Depends(get
         te = by_topic.setdefault(topic, {"attempts": 0, "avg_score": 0.0})
         te["attempts"] = int(te.get("attempts", 0)) + 1
         te["avg_score"] = round(((float(te.get("avg_score", 0)) * (te["attempts"] - 1)) + score) / te["attempts"], 2)
+    if max_score > 0:
+        _update_quiz_stats(stats, total_score, max_score)
+    _update_streak(stats)
     _save_user_stats(stats, user_id)
 
     weak_topics_text: Optional[str] = None
@@ -1337,7 +1492,11 @@ def quiz_submit(quiz_id: str, req: QuizSubmitRequest, user_id: str = Depends(get
     if req.answers:
         _enqueue_panic_quiz_for_sync(req.answers, len(items_list), user_id)
 
-    return {"weak_topics_text": weak_topics_text, "recommendation_text": recommendation_text}
+    results = [
+        {"question_id": r.get("question_id", ""), "score": r.get("score", 0), "topic": r.get("topic", "General")}
+        for r in req.answers
+    ]
+    return {"results": results, "weak_topics_text": weak_topics_text, "recommendation_text": recommendation_text}
 
 
 def _enqueue_panic_quiz_for_sync(results: list[dict[str, Any]], total_questions: int, user_id: str) -> None:
@@ -1416,11 +1575,15 @@ def panic_grade_one(req: PanicGradeOneRequest):
 def panic_finalize(req: PanicFinalizeRequest, user_id: str = Depends(get_user_id)):
     """Update stats from pre-graded results and return weak topics + recommendation. Falls back on timeout."""
     stats = _load_user_stats(user_id)
+    ensure_streak_structure(stats)
     quiz_stats = stats.setdefault("quiz_stats", {})
     topic_scores: dict[str, list[float]] = {}
+    total_score = 0.0
+    max_score = len(req.results) * 10.0 if req.results else 0.0
     for r in req.results:
         topic = r.get("topic", "General")
         score = float(r.get("score", 0))
+        total_score += score
         topic_scores.setdefault(topic, []).append(score)
         total_attempted = int(quiz_stats.get("total_attempted", 0)) + 1
         total_correct = int(quiz_stats.get("total_correct", 0)) + (1 if score >= 6.0 else 0)
@@ -1432,6 +1595,9 @@ def panic_finalize(req: PanicFinalizeRequest, user_id: str = Depends(get_user_id
         te = by_topic.setdefault(topic, {"attempts": 0, "avg_score": 0.0})
         te["attempts"] = int(te.get("attempts", 0)) + 1
         te["avg_score"] = round(((float(te.get("avg_score", 0)) * (te["attempts"] - 1)) + score) / te["attempts"], 2)
+    if max_score > 0:
+        _update_quiz_stats(stats, total_score, max_score)
+    _update_streak(stats)
     _save_user_stats(stats, user_id)
 
     weak_topics_text: Optional[str] = None
@@ -1507,7 +1673,11 @@ def user_me(current_user: Annotated[User, Depends(get_current_user)]):
 @app.get("/api/user/stats")
 def user_stats_get(user_id: str = Depends(get_user_id)):
     """Return user progress, streaks, preferences for the authenticated user."""
-    return _load_user_stats(user_id)
+    stats = _load_user_stats(user_id)
+    ensure_streak_structure(stats)
+    _update_streak(stats)
+    _save_user_stats(stats, user_id)
+    return stats
 
 
 @app.put("/api/user/stats")

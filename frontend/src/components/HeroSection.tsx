@@ -327,9 +327,9 @@ export default function HeroSection() {
           }}
         >
           {[
-            { val: "10K+", label: "Learners" },
-            { val: "98%", label: "Satisfaction" },
-            { val: "500+", label: "Topics" },
+            { val: "Secure", label: "Cloud Sync" },
+            { val: "AI-Powered", label: "Study Recommendations" },
+            { val: "Offline", label: "Learning Support" },
           ].map((stat, i) => (
             <div
               key={i}
@@ -408,7 +408,7 @@ export default function HeroSection() {
                 marginLeft: "6px",
               }}
             >
-              Join today
+              Unlock your learning potential
             </span>
           </div>
         </div>

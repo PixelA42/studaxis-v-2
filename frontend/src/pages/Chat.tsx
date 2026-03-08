@@ -13,12 +13,22 @@ import {
   postChat,
   getTextbooks,
   uploadTextbook,
-  ragSearch,
+  fetchChatHistory,
+  saveChatHistoryToBackend,
   type ChatMessage,
 } from "../services/api";
 
 const MAX_HISTORY = 50;
+const CHAT_HISTORY_STORAGE = "studaxis_chat_history";
 const LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
+
+type ChatSession = {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  timestamp: string;
+  subject: string;
+};
 
 const QUICK_ACTIONS = [
   { label: "Explain Topic", prompt: "Explain this concept: " },
@@ -60,41 +70,6 @@ function formatHistoryTime(iso: string): "Today" | "Yesterday" | "Earlier" {
   }
 }
 
-/** Build sidebar history items from flat chat_history */
-function buildHistoryItems(messages: ChatMessage[]): Array<{
-  id: string;
-  title: string;
-  preview: string;
-  subject: string;
-  time: "Today" | "Yesterday" | "Earlier";
-  startIdx: number;
-}> {
-  const items: Array<{
-    id: string;
-    title: string;
-    preview: string;
-    subject: string;
-    time: "Today" | "Yesterday" | "Earlier";
-    startIdx: number;
-  }> = [];
-  for (let i = 0; i < messages.length; i++) {
-    if (messages[i].role === "user") {
-      const content = messages[i].content;
-      const title = content.length > 40 ? content.slice(0, 37) + "..." : content;
-      const preview = content.length > 50 ? content.slice(0, 47) + "..." : content;
-      items.push({
-        id: `hist-${i}`,
-        title,
-        preview,
-        subject: "General",
-        time: formatHistoryTime(messages[i].timestamp),
-        startIdx: i,
-      });
-    }
-  }
-  return items.reverse().slice(0, 20);
-}
-
 const INITIAL_MESSAGES: ChatMessage[] = [
   {
     role: "assistant",
@@ -107,6 +82,13 @@ const INITIAL_MESSAGES: ChatMessage[] = [
 export function ChatPage() {
   const { profile, connectivityStatus } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [chatHistory, setChatHistory] = useState<ChatSession[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(CHAT_HISTORY_STORAGE) ?? "[]");
+    } catch {
+      return [];
+    }
+  });
   const [level, setLevel] = useState<string>("Beginner");
   const [loading, setLoading] = useState(false);
   const [input, setInput] = useState("");
@@ -115,17 +97,23 @@ export function ChatPage() {
   const [clarifyInputs, setClarifyInputs] = useState<Record<number, string>>({});
   const [clarifyExpanded, setClarifyExpanded] = useState<Record<number, boolean>>({});
   const [error, setError] = useState<string | null>(null);
-  const [subject, setSubject] = useState<string>("General");
+  const [subject, setSubject] = useState<string>(
+    () => localStorage.getItem("studaxis_chat_subject") ?? "General"
+  );
   const [activeTextbook, setActiveTextbook] = useState<string | null>(null);
-  const [textbooks, setTextbooks] = useState<{ id: string; name: string }[]>([]);
+  const [attachedTextbook, setAttachedTextbook] = useState<{ id: string; filename: string } | null>(null);
+  const [textbooks, setTextbooks] = useState<
+    Array<{ id: string; name: string; filename?: string; subject?: string; uploaded_at?: string }>
+  >([]);
   const [attachOpen, setAttachOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [subjectOpen, setSubjectOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<{ content: string; source?: string; subject?: string }[]>([]);
-  const [searching, setSearching] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [pendingUploadFile, setPendingUploadFile] = useState<File | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [isUploadZoneHover, setIsUploadZoneHover] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attachRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -218,12 +206,44 @@ export function ChatPage() {
   }, [loadInitial]);
 
   useEffect(() => {
+    let parsed: ChatSession[] = [];
+    try {
+      const local = localStorage.getItem(CHAT_HISTORY_STORAGE);
+      parsed = local ? (JSON.parse(local) as ChatSession[]) : [];
+    } catch {
+      /* invalid JSON; treat as empty */
+    }
+    if (!parsed.length) {
+      fetchChatHistory()
+        .then((sessions) => {
+          setChatHistory(sessions);
+          try {
+            localStorage.setItem(CHAT_HISTORY_STORAGE, JSON.stringify(sessions));
+          } catch {
+            // ignore
+          }
+        })
+        .catch(() => {
+          /* Backend unavailable; stay with empty */
+        });
+    }
+  }, []);
+
+  useEffect(() => {
     getTextbooks().then((r) => setTextbooks(r.textbooks)).catch(() => setTextbooks([]));
   }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("studaxis_chat_subject", subject);
+    } catch {
+      // ignore
+    }
+  }, [subject]);
 
   const saveHistory = useCallback(async (next: ChatMessage[]) => {
     setMessages(next);
@@ -244,14 +264,15 @@ export function ChatPage() {
         timestamp: new Date().toISOString(),
         is_clarification: isClarification,
       };
-      const isFirstMessage = messages.length === 1 && messages[0].role === "assistant";
-      const next = isFirstMessage ? [userMsg] : [...messages, userMsg];
+      const next = [...messages, userMsg];
       await saveHistory(next);
       setLoading(true);
       try {
         const res = await postChat({
           message: text.trim(),
           is_clarification: isClarification,
+          subject,
+          textbook_id: attachedTextbook?.id ?? null,
           context: {
             difficulty: level,
             chat_history: next.slice(-20).map((m) => ({ role: m.role, content: m.content })),
@@ -281,12 +302,20 @@ export function ChatPage() {
         setLoading(false);
       }
     },
-    [messages, level, subject, activeTextbook, profile.profile_name, saveHistory]
+    [messages, level, subject, attachedTextbook, activeTextbook, profile.profile_name, saveHistory]
   );
 
   useEffect(() => {
     getTextbooks().then((r) => setTextbooks(r.textbooks)).catch(() => setTextbooks([]));
+  }, [attachOpen, searchOpen]);
+
+  useEffect(() => {
+    if (!attachOpen) setPendingUploadFile(null);
   }, [attachOpen]);
+
+  useEffect(() => {
+    if (!uploading) setPendingUploadFile(null);
+  }, [uploading]);
 
   const handleTextbookUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -305,18 +334,6 @@ export function ChatPage() {
     e.target.value = "";
   }, []);
 
-  const handleRagSearch = useCallback(async () => {
-    if (!searchQuery.trim()) return;
-    setSearching(true);
-    try {
-      const res = await ragSearch(searchQuery.trim(), 5);
-      setSearchResults(res.results ?? []);
-    } catch {
-      setSearchResults([]);
-    } finally {
-      setSearching(false);
-    }
-  }, [searchQuery]);
 
   useEffect(() => {
     const close = (e: MouseEvent) => {
@@ -339,6 +356,31 @@ export function ChatPage() {
   }, []);
 
   const handleNewChat = useCallback(async () => {
+    if (messages.length > 0) {
+      const firstUserMsg = messages.find((m) => m.role === "user");
+      const title = firstUserMsg
+        ? (firstUserMsg.content.slice(0, 40) + (firstUserMsg.content.length > 40 ? "..." : ""))
+        : "New chat";
+      const newSession: ChatSession = {
+        id: Date.now().toString(),
+        title,
+        messages: [...messages],
+        timestamp: new Date().toISOString(),
+        subject: subject ?? "General",
+      };
+      setChatHistory((prev) => {
+        const next = [newSession, ...prev];
+        try {
+          localStorage.setItem(CHAT_HISTORY_STORAGE, JSON.stringify(next));
+        } catch {
+          // ignore
+        }
+        return next;
+      });
+      saveChatHistoryToBackend(newSession).catch(() => {
+        /* Layer 2 optional; offline continues to work */
+      });
+    }
     setMessages(INITIAL_MESSAGES);
     setActiveChatId(null);
     setClarifyInputs({});
@@ -349,6 +391,11 @@ export function ChatPage() {
     } catch {
       // ignore
     }
+  }, [messages, subject]);
+
+  const loadChat = useCallback((session: ChatSession) => {
+    setMessages(session.messages);
+    setActiveChatId(session.id);
   }, []);
 
   const handleClear = useCallback(async () => {
@@ -402,41 +449,37 @@ export function ChatPage() {
     return messages.filter((m) => m.role === "user" || m.role === "assistant");
   }, [messages]);
 
-  const historyItems = useMemo(() => buildHistoryItems(messages), [messages]);
-
   const groupedHistory = useMemo(() => {
-    const groups: Record<"Today" | "Yesterday" | "Earlier", typeof historyItems> = {
+    const groups: Record<"Today" | "Yesterday" | "Earlier", ChatSession[]> = {
       Today: [],
       Yesterday: [],
       Earlier: [],
     };
-    for (const item of historyItems) {
-      groups[item.time].push(item);
+    for (const session of chatHistory) {
+      const time = formatHistoryTime(session.timestamp);
+      groups[time].push(session);
     }
     return groups;
-  }, [historyItems]);
+  }, [chatHistory]);
 
   const isOnline = connectivityStatus === "online";
 
   return (
-    <div
-      className="flex -m-6 min-h-0 flex-1 overflow-visible"
-      style={{
-        background: "#f0f4ff",
-        fontFamily: "'Plus Jakarta Sans', 'DM Sans', sans-serif",
-      }}
-    >
+    <div className="chat-layout flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-deep">
       <style>{`
+        .chat-layout { display: flex; flex-direction: row; height: 100%; overflow: hidden; }
+        .chat-messages { flex: 1; overflow-y: auto; min-height: 0; padding-bottom: 16px; }
+        .chat-input-bar { flex-shrink: 0; border-top: 1px solid #f1f3f8; }
         .chat-hist-item { transition: background 0.18s, transform 0.15s; cursor: pointer; }
         .chat-hist-item:hover { background: rgba(0,168,232,0.07) !important; transform: translateX(3px); }
-        .chat-hist-item.active { background: rgba(0,168,232,0.12) !important; border-left: 3px solid #00a8e8 !important; }
+        .chat-hist-item.active { background: rgba(0,168,232,0.12) !important; border-left: 3px solid var(--accent-blue) !important; }
         .chat-action-btn { transition: all 0.18s ease; cursor: pointer; }
         .chat-action-btn:hover { transform: translateY(-2px); }
         .chat-send-btn { transition: all 0.18s ease; cursor: pointer; }
         .chat-send-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
         .chat-send-btn:active { transform: scale(0.96); }
         .chat-icon-btn { transition: all 0.2s; cursor: pointer; background: transparent; border: none; outline: none; }
-        .chat-icon-btn:hover { color: #00a8e8 !important; transform: translateY(-3px); }
+        .chat-icon-btn:hover { color: var(--accent-blue) !important; transform: translateY(-3px); }
         .chat-msg-bubble { animation: chatFadeUp 0.35s cubic-bezier(0.16,1,0.3,1); }
         @keyframes chatFadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
         @keyframes chatBlink { 0%,100%{opacity:1} 50%{opacity:0.2} }
@@ -449,16 +492,8 @@ export function ChatPage() {
 
       {/* ─── SIDEBAR ─── */}
       {sidebarOpen && (
-        <div
-          className="chat-sidebar-anim flex-shrink-0 flex flex-col"
-          style={{
-            width: "268px",
-            background: "#fff",
-            borderRight: "1.5px solid #e8edf5",
-            boxShadow: "2px 0 16px rgba(0,0,0,0.04)",
-          }}
-        >
-          <div style={{ padding: "20px 18px 14px", borderBottom: "1px solid #f1f3f8" }}>
+        <div className="chat-sidebar-anim flex-shrink-0 flex flex-col w-[268px] bg-surface-light border-r border-glass-border shadow-card">
+          <div className="px-[18px] pt-5 pb-3.5 border-b border-glass-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <div
@@ -528,20 +563,20 @@ export function ChatPage() {
                   >
                     {group}
                   </div>
-                  {items.map((chat) => (
+                  {items.map((session) => (
                     <div
-                      key={chat.id}
-                      className={`chat-hist-item ${activeChatId === chat.id ? "active" : ""}`}
+                      key={session.id}
+                      className={`chat-hist-item ${activeChatId === session.id ? "active" : ""}`}
                       role="button"
                       tabIndex={0}
-                      onClick={() => setActiveChatId(chat.id)}
-                      onKeyDown={(e) => e.key === "Enter" && setActiveChatId(chat.id)}
+                      onClick={() => loadChat(session)}
+                      onKeyDown={(e) => e.key === "Enter" && loadChat(session)}
                       style={{
                         padding: "10px",
                         borderRadius: "10px",
                         marginBottom: "3px",
                         borderLeft: "3px solid transparent",
-                        background: activeChatId === chat.id ? "rgba(0,168,232,0.1)" : "transparent",
+                        background: activeChatId === session.id ? "rgba(0,168,232,0.1)" : "transparent",
                       }}
                     >
                       <div className="flex items-center gap-2 mb-1">
@@ -552,54 +587,32 @@ export function ChatPage() {
                             padding: "2px 7px",
                             borderRadius: "20px",
                             flexShrink: 0,
-                            background: `${SUBJECT_COLORS[chat.subject] || "#9ca3af"}18`,
-                            color: SUBJECT_COLORS[chat.subject] || "#9ca3af",
-                            border: `1px solid ${SUBJECT_COLORS[chat.subject] || "#9ca3af"}30`,
+                            background: `${SUBJECT_COLORS[session.subject] || "#9ca3af"}18`,
+                            color: SUBJECT_COLORS[session.subject] || "#9ca3af",
+                            border: `1px solid ${SUBJECT_COLORS[session.subject] || "#9ca3af"}30`,
                           }}
                         >
-                          {chat.subject}
+                          {session.subject}
                         </span>
                       </div>
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          fontWeight: 700,
-                          color: "#0d1b2a",
-                          letterSpacing: "-0.2px",
-                          marginBottom: "2px",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {chat.title}
+                      <div className="text-xs font-bold text-primary tracking-tight mb-0.5 truncate">
+                        {session.title}
                       </div>
-                      <div
-                        style={{
-                          fontSize: "11px",
-                          color: "#9ca3af",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {chat.preview}
+                      <div className="text-[11px] text-muted truncate">
+                        {session.title.length > 50 ? session.title.slice(0, 47) + "..." : session.title}
                       </div>
                     </div>
                   ))}
                 </div>
               );
             })}
-            {historyItems.length === 0 && (
-              <p style={{ fontSize: "12px", color: "#9ca3af", padding: "8px" }}>No recent chats</p>
+            {chatHistory.length === 0 && (
+              <p className="text-xs text-muted p-2">No recent chats</p>
             )}
           </div>
 
-          <div style={{ padding: "12px 14px", borderTop: "1px solid #f1f3f8" }}>
-            <div
-              className="flex items-center gap-2 p-2 rounded-lg"
-              style={{ background: "#f8f9fc" }}
-            >
+          <div className="p-3 border-t border-glass-border">
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-deep/30">
               <div
                 style={{
                   width: "28px",
@@ -639,7 +652,7 @@ export function ChatPage() {
       )}
 
       {/* ─── MAIN AREA ─── */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex h-full min-h-0 flex-col min-w-0 overflow-hidden">
         {/* Header */}
         <div
           className="flex items-center gap-3 px-6 flex-shrink-0"
@@ -750,15 +763,54 @@ export function ChatPage() {
             <button
               type="button"
               onClick={handleClear}
-              className="px-3 py-1.5 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-semibold hover:border-[#FA5C5C] hover:text-[#FA5C5C] hover:bg-[#fff5f5] transition-all"
+              className="px-3 py-1.5 rounded-lg border-2 border-glass-border text-muted text-sm font-semibold hover:border-accent-warm-1 hover:text-accent-warm-1 hover:bg-accent-warm-1/10 transition-all"
             >
               Clear
             </button>
           </div>
         </div>
 
+        {/* Subject context bar — visible when non-General subject selected */}
+        {subject !== "General" && (
+          <div
+            className="flex-shrink-0 sticky top-0 z-10"
+            style={{
+              background: "rgba(0,168,232,0.06)",
+              borderBottom: "1.5px solid rgba(0,168,232,0.15)",
+              padding: "8px 20px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              fontSize: "12px",
+              fontWeight: 600,
+              color: "#00a8e8",
+            }}
+          >
+            <span>🎯 Subject context: {subject}</span>
+            <button
+              type="button"
+              onClick={() => setSubject("General")}
+              className="chat-icon-btn"
+              style={{
+                marginLeft: "auto",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                background: "transparent",
+                color: "#00a8e8",
+                border: "1px solid rgba(0,168,232,0.3)",
+                cursor: "pointer",
+                fontSize: "14px",
+                lineHeight: 1,
+              }}
+              aria-label="Clear subject"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
         {/* Messages area */}
-        <div className="flex-1 overflow-y-auto p-7">
+        <div className="chat-messages flex-1 overflow-y-auto p-7">
           {displayMessages.length === 1 && displayMessages[0].role === "assistant" && !loading && (
             <div className="flex flex-col items-center justify-center h-full gap-4">
               <div>
@@ -779,18 +831,10 @@ export function ChatPage() {
                 </svg>
               </div>
               <div className="text-center">
-                <div
-                  style={{
-                    fontSize: "17px",
-                    fontWeight: 800,
-                    color: "#0d1b2a",
-                    marginBottom: "6px",
-                    letterSpacing: "-0.4px",
-                  }}
-                >
+                <div className="text-primary text-[17px] font-extrabold mb-1.5 tracking-tight">
                   Ask me anything from your textbooks.
                 </div>
-                <div style={{ fontSize: "13.5px", color: "#9ca3af", fontWeight: 400 }}>
+                <div className="text-muted text-[13.5px] font-normal">
                   I&apos;m fully offline — no internet needed.
                 </div>
               </div>
@@ -799,13 +843,13 @@ export function ChatPage() {
                   <button
                     key={i}
                     type="button"
-                    className="chat-action-btn flex items-center gap-2 py-3 px-4 rounded-xl bg-white border-2 border-[#e8edf5] text-[#374151] text-sm font-bold text-left hover:border-[#00a8e8] hover:text-[#00a8e8] hover:bg-[rgba(0,168,232,0.04)]"
+                    className="chat-action-btn flex items-center gap-2 py-3 px-4 rounded-xl bg-surface-light border-2 border-glass-border text-primary text-sm font-bold text-left hover:border-accent-blue hover:text-accent-blue hover:bg-accent-blue/5"
                     onClick={() => {
                       setInput(a.prompt);
                       textareaRef.current?.focus();
                     }}
                   >
-                    <span style={{ color: "#00a8e8", flexShrink: 0 }}>
+                    <span className="text-accent-blue shrink-0">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                         <path
                           d="M12 3v1m0 16v1M4.22 4.22l.707.707m12.727 12.727.707.707M3 12h1m16 0h1M4.927 19.073l.707-.707M18.364 5.636l.707-.707"
@@ -855,18 +899,7 @@ export function ChatPage() {
                   <circle cx="12" cy="12" r="3" stroke="white" strokeWidth="1.5" />
                 </svg>
               </div>
-              <div
-                style={{
-                  padding: "13px 18px",
-                  borderRadius: "4px 16px 16px 16px",
-                  background: "#fff",
-                  border: "1.5px solid #e8edf5",
-                  display: "flex",
-                  gap: "5px",
-                  alignItems: "center",
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-                }}
-              >
+              <div className="flex gap-1.5 items-center p-3.5 pl-[18px] rounded-tl-sm rounded-tr-2xl rounded-br-2xl rounded-bl-2xl bg-surface-light border border-glass-border shadow-card">
                 {[0, 1, 2].map((i) => (
                   <span
                     key={i}
@@ -887,29 +920,71 @@ export function ChatPage() {
         </div>
 
         {error && (
-          <p className="px-6 py-2 text-sm text-red-600" role="alert">
+          <p className="px-6 py-2 text-sm text-error" role="alert">
             {error}
           </p>
         )}
 
         {/* ─── INPUT BOX ─── */}
-        <div className="flex-shrink-0 px-6 pb-5 pt-4">
-          <div
-            style={{
-              position: "relative",
-              background: "linear-gradient(to bottom right, #6b6b6b, #2c2c2c, #232323)",
-              borderRadius: "18px",
-              padding: "1.5px",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
+        <div className="chat-input-bar flex-shrink-0 px-6 pb-5 pt-4">
+          {attachedTextbook && (
             <div
               style={{
-                background: "rgba(10,12,18,0.92)",
-                borderRadius: "17px",
-                overflow: "visible",
+                background: "#fff",
+                border: "1.5px solid #e8edf5",
+                borderRadius: "12px",
+                padding: "10px 14px",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                position: "relative",
+                overflow: "hidden",
+                marginBottom: "10px",
               }}
             >
+              <div
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: "4px",
+                  background: "linear-gradient(180deg, #FA5C5C, #FD8A6B)",
+                }}
+              />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, marginLeft: "6px" }}>
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <polyline points="14 2 14 8 20 8" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: "12px", fontWeight: 600, color: "#0d1b2a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {attachedTextbook.filename.length > 28 ? attachedTextbook.filename.slice(0, 25) + "..." : attachedTextbook.filename}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAttachedTextbook(null)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#FA5C5C",
+                  cursor: "pointer",
+                  padding: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                aria-label="Remove textbook"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          )}
+          <div className="relative rounded-2xl bg-surface-light border border-glass-border shadow-card overflow-hidden">
+            <div className="rounded-[15px] overflow-visible">
               <div className="pt-3.5 px-4">
                 <textarea
                   ref={textareaRef}
@@ -919,7 +994,7 @@ export function ChatPage() {
                   placeholder={`Ask a question... (${level})`}
                   rows={2}
                   disabled={loading}
-                  className="w-full bg-transparent text-[#f0f1f5] text-[13.5px] font-normal leading-relaxed resize-none outline-none border-none placeholder:text-white/35"
+                  className="w-full bg-transparent text-primary text-[13.5px] font-normal leading-relaxed resize-none outline-none border-none placeholder:text-subtle"
                 />
               </div>
               <div className="flex items-center justify-between py-2.5 px-3.5 pb-3">
@@ -928,7 +1003,7 @@ export function ChatPage() {
                   <div ref={attachRef} className="relative">
                     <button
                       type="button"
-                      className={`chat-icon-btn p-1.5 rounded-md ${attachOpen ? "text-[#00a8e8]" : "text-white/25"}`}
+                      className={`chat-icon-btn p-1.5 rounded-md ${attachOpen ? "text-accent-blue" : "text-subtle"}`}
                       title="Attach Textbook/PDF"
                       onClick={() => { setAttachOpen(!attachOpen); setSearchOpen(false); setSubjectOpen(false); }}
                     >
@@ -941,7 +1016,7 @@ export function ChatPage() {
                   <div ref={searchRef} className="relative">
                     <button
                       type="button"
-                      className={`chat-icon-btn p-1.5 rounded-md ${searchOpen ? "text-[#00a8e8]" : "text-white/25"}`}
+                      className={`chat-icon-btn p-1.5 rounded-md ${searchOpen ? "text-accent-blue" : "text-subtle"}`}
                       title="Search Knowledge Base"
                       onClick={() => { setSearchOpen(!searchOpen); setAttachOpen(false); setSubjectOpen(false); }}
                     >
@@ -955,7 +1030,7 @@ export function ChatPage() {
                   <div ref={subjectRef} className="relative">
                     <button
                       type="button"
-                      className={`chat-icon-btn p-1.5 rounded-md ${subjectOpen ? "text-[#00a8e8]" : "text-white/25"}`}
+                      className={`chat-icon-btn p-1.5 rounded-md ${subjectOpen ? "text-accent-blue" : "text-subtle"}`}
                       title="Select Subject"
                       onClick={() => { setSubjectOpen(!subjectOpen); setAttachOpen(false); setSearchOpen(false); }}
                     >
@@ -971,27 +1046,152 @@ export function ChatPage() {
                   createPortal(
                     <div
                       ref={attachDropdownRef}
-                      className="min-w-[320px] max-w-[min(480px,95vw)] rounded-xl bg-[#1a1d24] border border-white/10 shadow-xl p-3 z-[9999] overflow-y-auto"
+                      className="min-w-[320px] max-w-[min(480px,95vw)] rounded-xl bg-surface-light border border-glass-border shadow-soft p-3 z-[9999] overflow-y-auto"
                       style={{
                         position: "fixed",
                         left: attachPos.left,
                         ...getDropdownPlacement(attachPos),
                       }}
                     >
-                      <div className="text-xs font-semibold text-white/80 mb-2">Textbooks & notes</div>
-                      <label className="block mb-2">
-                        <span className="text-xs text-white/60">Upload PDF</span>
-                        <input
-                          type="file"
-                          accept=".pdf"
-                          onChange={handleTextbookUpload}
-                          disabled={uploading}
-                          className="block w-full mt-1 text-xs text-white/80 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-[#00a8e8] file:text-white"
-                        />
-                      </label>
+                      <div style={{ fontSize: "12px", fontWeight: 600, marginBottom: "8px", color: "var(--text-primary)" }}>Textbooks & notes</div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f?.name.toLowerCase().endsWith(".pdf")) setPendingUploadFile(f);
+                          handleTextbookUpload(e);
+                        }}
+                        disabled={uploading}
+                        style={{ display: "none" }}
+                      />
+                      {pendingUploadFile ? (
+                        <div
+                          style={{
+                            background: "#fff",
+                            border: "1.5px solid #e8edf5",
+                            borderRadius: "12px",
+                            padding: "10px 14px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            position: "relative",
+                            overflow: "hidden",
+                            marginBottom: "8px",
+                            fontFamily: "'Plus Jakarta Sans', sans-serif",
+                          }}
+                        >
+                          <div
+                            style={{
+                              position: "absolute",
+                              left: 0,
+                              top: 0,
+                              bottom: 0,
+                              width: "4px",
+                              background: "linear-gradient(180deg, #FA5C5C, #FD8A6B)",
+                            }}
+                          />
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, marginLeft: "6px" }}>
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <polyline points="14 2 14 8 20 8" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: "12px", fontWeight: 600, color: "#0d1b2a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {pendingUploadFile.name.length > 28 ? pendingUploadFile.name.slice(0, 25) + "..." : pendingUploadFile.name}
+                            </div>
+                            <div style={{ fontSize: "10px", color: "#9ca3af" }}>
+                              {pendingUploadFile.size < 1024
+                                ? `${pendingUploadFile.size} B`
+                                : pendingUploadFile.size < 1024 * 1024
+                                  ? `${(pendingUploadFile.size / 1024).toFixed(1)} KB`
+                                  : `${(pendingUploadFile.size / (1024 * 1024)).toFixed(1)} MB`}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setPendingUploadFile(null);
+                              if (fileInputRef.current) fileInputRef.current.value = "";
+                            }}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "#FA5C5C",
+                              cursor: "pointer",
+                              padding: "4px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                            aria-label="Remove file"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                              <line x1="18" y1="6" x2="6" y2="18" />
+                              <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => fileInputRef.current?.click()}
+                          onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsDragOver(true);
+                          }}
+                          onDragLeave={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsDragOver(false);
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsDragOver(false);
+                            const file = e.dataTransfer.files?.[0];
+                            if (file?.name.toLowerCase().endsWith(".pdf") && fileInputRef.current) {
+                              const dt = new DataTransfer();
+                              dt.items.add(file);
+                              fileInputRef.current.files = dt.files;
+                              fileInputRef.current.dispatchEvent(new Event("change", { bubbles: true }));
+                            }
+                          }}
+                          style={{
+                            border: "2px dashed " + (isDragOver || isUploadZoneHover ? "#FA5C5C" : "#e8edf5"),
+                            borderRadius: "16px",
+                            padding: "20px",
+                            background: isDragOver ? "rgba(250,92,92,0.06)" : isUploadZoneHover ? "rgba(250,92,92,0.03)" : "#fafbfc",
+                            transition: "all 0.2s ease",
+                            cursor: "pointer",
+                            transform: isDragOver ? "scale(1.01)" : undefined,
+                            fontFamily: "'Plus Jakarta Sans', sans-serif",
+                          }}
+                          onMouseEnter={() => setIsUploadZoneHover(true)}
+                          onMouseLeave={() => setIsUploadZoneHover(false)}
+                        >
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", textAlign: "center" }}>
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke="#FA5C5C" strokeWidth="2" strokeLinecap="round" />
+                              <polyline points="17 8 12 3 7 8" stroke="#FA5C5C" strokeWidth="2" strokeLinecap="round" />
+                              <line x1="12" y1="3" x2="12" y2="15" stroke="#FA5C5C" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
+                            <div style={{ fontSize: "13.5px", fontWeight: 700, color: "#0d1b2a" }}>
+                              Upload Textbook or Notes
+                            </div>
+                            <div style={{ fontSize: "11.5px", color: "#9ca3af" }}>
+                              PDF, DOCX, TXT — drag here or click to browse
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       {textbooks.length > 0 && (
                         <>
-                          <div className="text-xs text-white/60 mb-1">Existing</div>
+                          <div className="text-xs text-muted mb-1">Existing</div>
                           <div className="max-h-40 overflow-y-auto space-y-1">
                             {textbooks.map((t) => (
                               <button
@@ -1001,7 +1201,7 @@ export function ChatPage() {
                                   setActiveTextbook(t.id);
                                   setAttachOpen(false);
                                 }}
-                                className={`block w-full text-left px-2 py-1.5 rounded text-xs break-words whitespace-normal ${activeTextbook === t.id ? "bg-[#00a8e8]/30 text-white" : "text-white/80 hover:bg-white/10"}`}
+                                className={`block w-full text-left px-2 py-1.5 rounded text-xs break-words whitespace-normal ${activeTextbook === t.id ? "bg-accent-blue/30 text-primary" : "text-muted hover:bg-accent-blue/10"}`}
                               >
                                 {t.name}
                               </button>
@@ -1013,7 +1213,7 @@ export function ChatPage() {
                         <button
                           type="button"
                           onClick={() => setActiveTextbook(null)}
-                          className="mt-2 text-xs text-white/50 hover:text-white/80"
+                          className="mt-2 text-xs text-subtle hover:text-primary"
                         >
                           Clear selection
                         </button>
@@ -1027,47 +1227,44 @@ export function ChatPage() {
                   createPortal(
                     <div
                       ref={searchDropdownRef}
-                      className="min-w-[300px] max-w-[min(420px,90vw)] rounded-xl bg-[#1a1d24] border border-white/10 shadow-xl p-3 z-[9999] overflow-y-auto"
+                      className="min-w-[300px] max-w-[min(420px,90vw)] rounded-xl bg-surface-light border border-glass-border shadow-soft p-3 z-[9999] overflow-y-auto"
                       style={{
                         position: "fixed",
                         left: searchPos.left,
                         ...getDropdownPlacement(searchPos),
                       }}
                     >
-                      <div className="text-xs font-semibold text-white/80 mb-2">Search textbooks</div>
-                      <div className="flex gap-1 mb-2">
-                        <input
-                          type="text"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && handleRagSearch()}
-                          placeholder="Query..."
-                          className="flex-1 px-2 py-1.5 rounded bg-white/10 text-white text-xs placeholder:text-white/40 border border-white/10"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleRagSearch}
-                          disabled={searching || !searchQuery.trim()}
-                          className="px-2 py-1.5 rounded bg-[#00a8e8] text-white text-xs font-medium disabled:opacity-50"
-                        >
-                          Search
-                        </button>
-                      </div>
-                      {searchResults.length > 0 && (
-                        <div className="max-h-36 overflow-y-auto space-y-1 text-xs text-white/70">
-                          {searchResults.map((r, i) => (
-                            <div
-                              key={i}
-                              className="p-2 rounded bg-white/5 border border-white/5 break-words whitespace-normal text-xs"
+                      <div className="text-xs font-semibold text-primary mb-2">Attach textbook from library</div>
+                      {textbooks.length === 0 ? (
+                        <p className="text-xs text-subtle mb-2">
+                          No textbooks uploaded yet.
+                          <br />
+                          <Link to="/textbooks" className="text-accent-blue hover:underline" onClick={() => setSearchOpen(false)}>
+                            Go to Textbooks to upload one.
+                          </Link>
+                        </p>
+                      ) : (
+                        <div className="max-h-48 overflow-y-auto space-y-1">
+                          {textbooks.map((t) => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => {
+                                setAttachedTextbook({ id: t.id, filename: t.filename ?? t.id });
+                                setSearchOpen(false);
+                              }}
+                              className="block w-full text-left px-3 py-2.5 rounded-lg border border-glass-border hover:border-accent-blue hover:bg-accent-blue/5 transition-colors"
                             >
-                              {r.content?.slice(0, 200)}
-                              {(r.content?.length ?? 0) > 200 ? "…" : ""}
-                            </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-base">📚</span>
+                                <span className="text-sm font-semibold text-primary truncate">{t.filename ?? t.name ?? t.id}</span>
+                              </div>
+                              <div className="text-[11px] text-muted mt-0.5">
+                                {[t.subject, t.uploaded_at ? new Date(t.uploaded_at).toLocaleDateString() : ""].filter(Boolean).join(" · ")}
+                              </div>
+                            </button>
                           ))}
                         </div>
-                      )}
-                      {searchResults.length === 0 && searchQuery && !searching && (
-                        <p className="text-xs text-white/50">No matches. Try different keywords.</p>
                       )}
                     </div>,
                     document.body,
@@ -1078,14 +1275,14 @@ export function ChatPage() {
                   createPortal(
                     <div
                       ref={subjectDropdownRef}
-                      className="min-w-[200px] max-w-[min(280px,95vw)] rounded-xl bg-[#1a1d24] border border-white/10 shadow-xl p-2 z-[9999] overflow-y-auto"
+                      className="min-w-[200px] max-w-[min(280px,95vw)] rounded-xl bg-surface-light border border-glass-border shadow-soft p-2 z-[9999] overflow-y-auto"
                       style={{
                         position: "fixed",
                         left: subjectPos.left,
                         ...getDropdownPlacement(subjectPos),
                       }}
                     >
-                      <div className="text-xs font-semibold text-white/80 mb-2">Subject</div>
+                      <div className="text-xs font-semibold text-primary mb-2">Subject</div>
                       <div className="space-y-0.5">
                         {SUBJECTS.map((s) => (
                           <button
@@ -1095,7 +1292,7 @@ export function ChatPage() {
                               setSubject(s);
                               setSubjectOpen(false);
                             }}
-                            className={`block w-full text-left px-2 py-1.5 rounded text-xs ${subject === s ? "bg-[#00a8e8]/30 text-white" : "text-white/80 hover:bg-white/10"}`}
+                            className={`block w-full text-left px-2 py-1.5 rounded text-xs ${subject === s ? "bg-accent-blue/30 text-primary" : "text-muted hover:bg-accent-blue/10"}`}
                           >
                             {s}
                           </button>
@@ -1107,30 +1304,19 @@ export function ChatPage() {
                   )}
                 <button
                   type="button"
-                  className="chat-send-btn flex items-center gap-2 pl-3 pr-1 py-0.5 rounded-xl border-none text-sm font-bold disabled:opacity-60 disabled:cursor-not-allowed"
-                  style={{
-                    background: input.trim()
-                      ? "linear-gradient(135deg, #059669, #10b981)"
-                      : "linear-gradient(to top, #292929, #555, #292929)",
-                    color: input.trim() ? "#fff" : "#6b6b6b",
-                    boxShadow: input.trim()
-                      ? "0 3px 12px rgba(16,185,129,0.4), inset 0 1px 0 rgba(255,255,255,0.2)"
-                      : "inset 0 4px 2px -3px rgba(255,255,255,0.3)",
-                  }}
+                  className={`chat-send-btn flex items-center gap-2 pl-3 pr-1 py-0.5 rounded-xl border-none text-sm font-bold disabled:opacity-60 disabled:cursor-not-allowed ${
+                    input.trim()
+                      ? "bg-accent-blue text-white shadow-[0_2px_8px_rgba(0,168,232,0.35)] hover:opacity-90"
+                      : "bg-deep/40 text-subtle border border-glass-border"
+                  }`}
                   onClick={handleSend}
                   disabled={loading || !input.trim()}
                 >
                   Send
                   <span
-                    style={{
-                      width: "30px",
-                      height: "30px",
-                      borderRadius: "10px",
-                      background: input.trim() ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
+                    className={`flex items-center justify-center w-[30px] h-[30px] rounded-[10px] ${
+                      input.trim() ? "bg-white/20" : "bg-black/10 dark:bg-white/10"
+                    }`}
                   >
                     <svg width="14" height="14" viewBox="0 0 512 512" fill="currentColor">
                       <path d="M473 39.05a24 24 0 0 0-25.5-5.46L47.47 185h-.08a24 24 0 0 0 1 45.16l.41.13 137.3 58.63a16 16 0 0 0 15.54-3.59L422 80a7.07 7.07 0 0 1 10 10L226.66 310.26a16 16 0 0 0-3.59 15.54l58.65 137.38c.06.2.12.38.19.57c3.2 9.27 11.3 15.81 21.09 16.25h1a24.63 24.63 0 0 0 23-15.46L478.39 64.62A24 24 0 0 0 473 39.05" />
@@ -1145,7 +1331,7 @@ export function ChatPage() {
               <button
                 key={i}
                 type="button"
-                className="py-1.5 px-3 rounded-full text-xs font-semibold text-gray-600 bg-white/70 border border-white/90 hover:border-[#FD8A6B] hover:text-[#FD8A6B] hover:bg-[rgba(253,138,107,0.08)] transition-all"
+                className="py-1.5 px-3 rounded-full text-xs font-semibold text-muted bg-surface-light border border-glass-border hover:border-accent-warm-2 hover:text-accent-warm-2 hover:bg-accent-warm-2/10 transition-all"
                 onClick={() => {
                   setInput(chip);
                   textareaRef.current?.focus();

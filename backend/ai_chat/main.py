@@ -165,26 +165,31 @@ def get_textbook_context(subject: str | None = None, max_chars: int = 2000) -> s
         return ""
 
 
-def get_retriever(subject: str | None = None) -> Any:
+def get_retriever(subject: str | None = None, textbook_id: str | None = None) -> Any:
     """
-    Get a retriever from the vector store with optional subject filtering.
+    Get a retriever from the vector store with optional subject or textbook filtering.
     
     Uses semantic search to find the most relevant chunks from embedded textbooks.
     
     Args:
         subject: Optional subject to filter by (applied as metadata filter)
+        textbook_id: Optional textbook filename to filter by (applied as source filter)
         
     Returns:
         A retriever object configured for optimal semantic search
     """
     _ensure_initialized()
+    k_val = 3 if textbook_id else 4
     search_kwargs: dict[str, Any] = {
-        "k": 4,
-        "fetch_k": 12,  # MMR fetches more candidates then diversifies
+        "k": k_val,
+        "fetch_k": 12 if not textbook_id else 8,
     }
     
-    # Add subject filter if specified
-    if subject:
+    # Build filter: textbook_id takes precedence (search within one book only)
+    if textbook_id:
+        search_kwargs["filter"] = {"source": textbook_id}
+        print(f"[debug] Retriever filtering by textbook: {textbook_id}")
+    elif subject:
         search_kwargs["filter"] = {"subject": subject.lower()}
         print(f"[debug] Retriever filtering by subject: {subject}")
     

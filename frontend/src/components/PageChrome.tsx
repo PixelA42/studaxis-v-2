@@ -21,7 +21,7 @@ export function PageChrome({
         <div className="mb-4">
           <Link
             to={backTo}
-            className="inline-flex items-center gap-2 text-sm font-medium text-primary/80 hover:text-accent-blue transition-colors"
+            className="chrome-back-btn"
           >
             {backLabel}
           </Link>

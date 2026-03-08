@@ -237,12 +237,13 @@ export function DashboardPage() {
           meta="Powered by Llama 3.2 - RAG-grounded"
           variant="ai"
           pastelBg="blue"
+          iconOnDark
         >
           <Link
             to="/chat"
-            className="inline-block mt-2 px-4 py-2 rounded-xl bg-accent-blue/20 text-accent-blue font-medium text-sm hover:bg-accent-blue/30 transition-colors"
+            className="inline-block mt-2 px-4 py-2.5 rounded-xl bg-white text-[#0d1b2a] font-semibold text-sm hover:bg-white/90 transition-colors shadow-md border border-white/20"
           >
-            Open Chat
+            AI Chat
           </Link>
         </FeatureCard>
         <FeatureCard
@@ -255,7 +256,7 @@ export function DashboardPage() {
         >
           <Link
             to="/quiz"
-            className="inline-block mt-2 px-4 py-2 rounded-xl bg-accent-blue/20 text-accent-blue font-medium text-sm hover:bg-accent-blue/30 transition-colors"
+            className="inline-block mt-2 px-4 py-2.5 rounded-xl bg-white text-[#0d1b2a] font-semibold text-sm hover:bg-white/90 transition-colors shadow-md border border-white/20"
           >
             Start Quiz
           </Link>
@@ -267,27 +268,28 @@ export function DashboardPage() {
           description="Spaced-repetition review. Mark cards Easy or Hard to schedule the next review."
           meta={`${flashcardsDue > 0 ? flashcardsDue + " due" : "All caught up"} - AI-generated`}
           variant="flashcards"
-          pastelBg="pink"
+          pastelBg="coral"
         >
           <Link
             to="/flashcards"
-            className="inline-block mt-2 px-4 py-2 rounded-xl bg-accent-blue/20 text-accent-blue font-medium text-sm hover:bg-accent-blue/30 transition-colors"
+            className="inline-block mt-2 px-4 py-2.5 rounded-xl bg-white text-[#0d1b2a] font-semibold text-sm hover:bg-white/90 transition-colors shadow-md border border-white/20"
           >
             Review
           </Link>
         </FeatureCard>
         <FeatureCard
           icon={Icons.panic}
-          iconColor="red"
+          iconColor="blue"
           title="Panic Mode"
           description="Distraction-free exam simulator with a timer. AI assistance hidden until submission."
           meta="Timed - AI auto-graded - Full-screen"
           variant="panic"
-          pastelBg="pink"
+          pastelBg="blue"
+          iconOnDark
         >
           <Link
             to="/panic-mode"
-            className="inline-block mt-2 px-4 py-2 rounded-xl bg-red-500/20 text-red-400 font-medium text-sm hover:bg-red-500/30 transition-colors"
+            className="inline-block mt-2 px-4 py-2.5 rounded-xl bg-white text-[#0d1b2a] font-semibold text-sm hover:bg-white/90 transition-colors shadow-md border border-white/20"
           >
             Enter Panic Mode
           </Link>
