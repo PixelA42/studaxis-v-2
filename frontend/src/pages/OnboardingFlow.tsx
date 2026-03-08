@@ -107,6 +107,14 @@ const AppleIcon = () => (
   </svg>
 );
 
+const PASSWORD_RULES = [
+  { id: "length", label: "At least 8 characters", test: (p: string) => p.length >= 8 },
+  { id: "upper", label: "One uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
+  { id: "lower", label: "One lowercase letter", test: (p: string) => /[a-z]/.test(p) },
+  { id: "number", label: "One number", test: (p: string) => /\d/.test(p) },
+  { id: "special", label: "One special (@$!%*?&)", test: (p: string) => /[@$!%*?&]/.test(p) },
+] as const;
+
 /* ── OTP 6-box input ── */
 function OTPInput({
   value,
@@ -230,7 +238,14 @@ export function OnboardingFlow({
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [signupSubStep, setSignupSubStep] = useState<"email" | "details">("email");
   const [showPass, setShowPass] = useState(false);
+  const [passwordVal, setPasswordVal] = useState("");
   const [remember, setRemember] = useState(false);
+
+  useEffect(() => {
+    if (tab === "signup" && signupSubStep === "details") {
+      setPasswordVal(formRef.current.password);
+    }
+  }, [tab, signupSubStep]);
   const [error, setError] = useState("");
   const [subjectTick, setSubjectTick] = useState(0);
   const [gradeTick, setGradeTick] = useState(0);
@@ -381,13 +396,15 @@ export function OnboardingFlow({
     placeholder,
     type = "text",
     defaultValue,
+    value,
     onChange,
     right,
   }: {
     icon: React.ReactNode;
     placeholder: string;
     type?: string;
-    defaultValue: string;
+    defaultValue?: string;
+    value?: string;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     right?: React.ReactNode;
   }) => (
@@ -410,7 +427,7 @@ export function OnboardingFlow({
       <input
         type={type}
         placeholder={placeholder}
-        defaultValue={defaultValue}
+        {...(value !== undefined ? { value } : { defaultValue: defaultValue ?? "" })}
         onChange={onChange}
         style={{
           flex: 1,
@@ -691,6 +708,11 @@ export function OnboardingFlow({
         setError("Please fill all fields.");
         return;
       }
+      const passwordChecks = PASSWORD_RULES.map((r) => r.test(p));
+      if (!passwordChecks.every(Boolean)) {
+        setError("Password must have 8+ chars, 1 upper, 1 lower, 1 number, 1 special (@$!%*?&).");
+        return;
+      }
       setRequestingOtp(true);
       try {
         await postSignup({
@@ -854,9 +876,13 @@ export function OnboardingFlow({
               <Input
                 icon={<LockIcon />}
                 type={showPass ? "text" : "password"}
-                placeholder="Enter your password"
-                defaultValue={formRef.current.password}
-                onChange={(e) => { formRef.current.password = e.target.value; }}
+                placeholder={tab === "signup" ? "8+ chars, 1 upper, 1 lower, 1 number, 1 special (@$!%*?&)" : "Enter your password"}
+                value={passwordVal}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  formRef.current.password = v;
+                  setPasswordVal(v);
+                }}
                 right={
                   <button
                     type="button"
@@ -869,11 +895,29 @@ export function OnboardingFlow({
                       padding: 0,
                       display: "flex",
                     }}
+                    aria-label={showPass ? "Hide password" : "Show password"}
                   >
                     <EyeIcon open={showPass} />
                   </button>
                 }
               />
+              {tab === "signup" && signupSubStep === "details" && (
+                <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                  {PASSWORD_RULES.map((r) => (
+                    <div key={r.id} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
+                      <span style={{
+                        width: 14, height: 14, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+                        background: r.test(passwordVal) ? "var(--accent-pink, #fa5c5c)" : "var(--glass-border, #e5e7eb)",
+                        color: r.test(passwordVal) ? "#fff" : "transparent",
+                        fontSize: 10, fontWeight: 700,
+                      }}>
+                        {r.test(passwordVal) ? "✓" : ""}
+                      </span>
+                      <span style={{ color: r.test(passwordVal) ? "var(--text-primary)" : "var(--text-muted, #6b7280)" }}>{r.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             )}
 

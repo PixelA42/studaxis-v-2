@@ -35,8 +35,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const raw = await res.text();
     let message = raw || `API error ${res.status}`;
     try {
-      const json = JSON.parse(raw) as { detail?: string };
-      if (typeof json.detail === "string") message = json.detail;
+      const json = JSON.parse(raw) as { detail?: string | Array<{ loc?: (string | number)[]; msg?: string }> };
+      if (typeof json.detail === "string") {
+        message = json.detail;
+      } else if (Array.isArray(json.detail) && json.detail.length > 0) {
+        const first = json.detail[0];
+        const msg = first?.msg ?? first?.loc?.join(" ") ?? JSON.stringify(json.detail);
+        message = typeof msg === "string" ? msg : JSON.stringify(msg);
+      }
     } catch {
       // keep raw message
     }

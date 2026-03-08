@@ -49,7 +49,7 @@ BASE_PATH = Path(os.environ.get("STUDAXIS_BASE_PATH", str(_APP_DIR)))
 DATA_DIR = BASE_PATH / "data"
 STATS_FILE = DATA_DIR / "user_stats.json"
 FLASHCARDS_FILE = DATA_DIR / "flashcards.json"
-SAMPLE_TEXTBOOKS_DIR = DATA_DIR / "sample_textbooks""
+SAMPLE_TEXTBOOKS_DIR = DATA_DIR / "sample_textbooks"
 
 
 def _user_dir(user_id: str) -> Path:
@@ -129,14 +129,16 @@ def _enqueue_panic_quiz_for_sync(
     avg_score: float,
     total_questions: int,
 ) -> None:
-    """Queue panic mode quiz attempt for AWS AppSync sync when sync_enabled."""
+    """Legacy 2-arg form (unused). Kept for any external refs."""
     try:
-        stats = _load_user_stats()
+        profile = load_profile()
+        user_id = (profile.profile_name if profile else None) or "anonymous"
+        if user_id == "anonymous":
+            return
+        stats = _load_user_stats(user_id)
         prefs = stats.get("preferences") or {}
         if not prefs.get("sync_enabled", True):
             return
-        profile = load_profile()
-        user_id = (profile.profile_name if profile else None) or "anonymous"
         # Score 0-100 for AWS recordQuizAttempt
         score_pct = min(100, max(0, int(round(avg_score * 10))))
         from sync_manager import SyncManager
@@ -156,6 +158,8 @@ def _enqueue_panic_quiz_for_sync(
 # ---------------------------------------------------------------------------
 # User stats persistence (same schema as preferences.py / Streamlit)
 # ---------------------------------------------------------------------------
+
+_DEFAULT_USER_ID = "student_001"
 
 _DEFAULT_STATS: dict[str, Any] = {
     "user_id": "student_001",
@@ -180,11 +184,12 @@ _DEFAULT_STATS: dict[str, Any] = {
 }
 
 
-def _load_user_stats() -> dict[str, Any]:
-    """Load user_stats.json from DATA_DIR; return defaults on missing/error."""
+def _load_user_stats(user_id: str) -> dict[str, Any]:
+    """Load user_stats.json from per-user directory; return defaults on missing/error."""
     try:
-        if STATS_FILE.exists():
-            raw = STATS_FILE.read_text(encoding="utf-8")
+        f = _stats_file(user_id)
+        if f.exists():
+            raw = f.read_text(encoding="utf-8")
             data = json.loads(raw)
             if isinstance(data, dict):
                 return data
@@ -201,7 +206,7 @@ def _load_user_stats() -> dict[str, Any]:
 
 
 
-def _save_user_stats(stats: dict[str, Any], user_id: str = _DEFAULT_USER_ID) -> None:
+def _save_user_stats(stats: dict[str, Any], user_id: str) -> None:
     """Persist user stats to per-user directory (atomic write)."""
     try:
         f = _stats_file(user_id)
@@ -486,7 +491,7 @@ def hardware():
 # Diagnostics (Settings: Deployment Readiness)
 # ---------------------------------------------------------------------------
 
-def _get_sync_readiness(user_id: str = _DEFAULT_USER_ID) -> tuple[str, str]:
+def _get_sync_readiness(user_id: str) -> tuple[str, str]:
     """Return (sync_state, sync_readiness) from user stats and SyncManager."""
     stats = _load_user_stats(user_id)
     prefs = stats.get("preferences") or {}
@@ -551,7 +556,7 @@ def _format_size(n: int) -> str:
     return f"{n / (1024 * 1024):.1f} MB"
 
 
-def _get_storage_files(user_id: str = _DEFAULT_USER_ID) -> list[dict[str, Any]]:
+def _get_storage_files(user_id: str) -> list[dict[str, Any]]:
     """List storage files for a user (per-user dir) plus shared files."""
     files: list[dict[str, Any]] = []
     user_dir = _user_dir(user_id)
@@ -576,7 +581,7 @@ def _get_storage_files(user_id: str = _DEFAULT_USER_ID) -> list[dict[str, Any]]:
                 cards = _load_flashcards(user_id)
                 extra = f" — {len(cards)} cards" if cards else ""
             elif name == "user_stats.json":
-                stats = _load_user_stats()
+                stats = _load_user_stats(user_id)
                 chat_len = len(stats.get("chat_history") or [])
                 if chat_len:
                     extra = f" — {chat_len} chat messages"
@@ -1154,56 +1159,6 @@ def grade(req: GradeRequest):
 
 
 # ---------------------------------------------------------------------------
-# Grade
-# ---------------------------------------------------------------------------
-
-
-@app.post("/api/grade", response_model=GradeResponse)
-for name, desc in known.items():
-        path = DATA_DIR / name
-        if path.exists():
-            try:
-                size = path.stat().st_size
-            except OSError:
-                size = 0
-            extra = ""
-            if name == "flashcards.json":
-                cards = _load_flashcards()
-                extra = f" — {len(cards)} cards" if cards else ""
-            elif name == "user_stats.json":
-                stats = _load_user_stats()
-                chat_len = len(stats.get("chat_history") or [])
-                if chat_len:
-                    extra = f" — {chat_len} chat messages"
-            files.append({
-                "name": name,
-                "size_bytes": size,
-                "size_human": _format_size(size),
-                "description": desc + extra,
-            })
-        elif name == "sync_queue.json":
-            files.append({
-                "name": name,
-                "size_bytes": 0,
-                "size_human": "0 B",
-                "description": desc + " — not created yet",
-            })
-
-    feedback_text = RedPenFeedback().generate(
-        question=req.question,
-        answer=req.answer,
-        grading=result,
-    )
-    return GradeResponse(
-        text=feedback_text,
-        score=result.get("score"),
-        errors=result.get("errors", []),
-        strengths=result.get("strengths", []),
-        remarks=result.get("remarks", ""),
-    )
-
-
-# ---------------------------------------------------------------------------
 # Quiz
 # ---------------------------------------------------------------------------
 
@@ -1366,10 +1321,10 @@ def panic_generate_files(
 
 
 @app.post("/api/quiz/{quiz_id}/submit", response_model=QuizSubmitResponse)
-def quiz_submit(quiz_id: str, req: QuizSubmitRequest):
+def quiz_submit(quiz_id: str, req: QuizSubmitRequest, user_id: str = Depends(get_user_id)):
     """Submit quiz answers; grade via AI and update user stats."""
     engine = get_ai_engine()
-    stats = _load_user_stats()
+    stats = _load_user_stats(user_id)
     quiz_stats = stats.setdefault("quiz_stats", {})
     topic_scores: dict[str, list[float]] = {}
     for r in req.results:
@@ -1386,7 +1341,7 @@ def quiz_submit(quiz_id: str, req: QuizSubmitRequest):
         te = by_topic.setdefault(topic, {"attempts": 0, "avg_score": 0.0})
         te["attempts"] = int(te.get("attempts", 0)) + 1
         te["avg_score"] = round(((float(te.get("avg_score", 0)) * (te["attempts"] - 1)) + score) / te["attempts"], 2)
-    _save_user_stats(stats)
+    _save_user_stats(stats, user_id)
 
     weak_topics_text: Optional[str] = None
     recommendation_text: Optional[str] = None
@@ -1433,20 +1388,18 @@ def quiz_submit(quiz_id: str, req: QuizSubmitRequest):
 
     # Enqueue for AWS sync (AppSync recordQuizAttempt) when sync enabled
     if req.results:
-        _enqueue_panic_quiz_for_sync(req.results, len(req.items))
+        _enqueue_panic_quiz_for_sync(req.results, len(req.items), user_id)
 
     return {"weak_topics_text": weak_topics_text, "recommendation_text": recommendation_text}
 
 
-def _enqueue_panic_quiz_for_sync(results: list[dict[str, Any]], total_questions: int) -> None:
-    """Queue panic mode quiz attempt for AWS AppSync sync. No-op if sync disabled or no profile."""
+def _enqueue_panic_quiz_for_sync(results: list[dict[str, Any]], total_questions: int, user_id: str) -> None:
+    """Queue panic mode quiz attempt for AWS AppSync sync. No-op if sync disabled or anonymous."""
     try:
-        prefs = _load_user_stats().get("preferences") or {}
-        if not prefs.get("sync_enabled", True):
+        if not user_id or user_id == "anonymous":
             return
-        profile = load_profile()
-        user_id = (profile and profile.profile_name) or "anonymous"
-        if user_id == "anonymous":
+        prefs = _load_user_stats(user_id).get("preferences") or {}
+        if not prefs.get("sync_enabled", True):
             return
         avg = sum(float(r.get("score", 0)) for r in results) / len(results) if results else 0.0
         score_pct = int(round(avg * 10))  # 0–10 scale → 0–100 for AWS
@@ -1513,9 +1466,9 @@ def panic_grade_one(req: PanicGradeOneRequest):
 
 
 @app.post("/api/quiz/panic/finalize")
-def panic_finalize(req: PanicFinalizeRequest):
+def panic_finalize(req: PanicFinalizeRequest, user_id: str = Depends(get_user_id)):
     """Update stats from pre-graded results and return weak topics + recommendation. Falls back on timeout."""
-    stats = _load_user_stats()
+    stats = _load_user_stats(user_id)
     quiz_stats = stats.setdefault("quiz_stats", {})
     topic_scores: dict[str, list[float]] = {}
     for r in req.results:
@@ -1532,7 +1485,7 @@ def panic_finalize(req: PanicFinalizeRequest):
         te = by_topic.setdefault(topic, {"attempts": 0, "avg_score": 0.0})
         te["attempts"] = int(te.get("attempts", 0)) + 1
         te["avg_score"] = round(((float(te.get("avg_score", 0)) * (te["attempts"] - 1)) + score) / te["attempts"], 2)
-    _save_user_stats(stats)
+    _save_user_stats(stats, user_id)
 
     weak_topics_text: Optional[str] = None
     recommendation_text: Optional[str] = None
@@ -1579,20 +1532,18 @@ def panic_finalize(req: PanicFinalizeRequest):
 
     # Enqueue for AWS sync (AppSync recordQuizAttempt) when sync enabled
     if req.results:
-        _enqueue_panic_quiz_for_sync(req.results, len(req.items))
+        _enqueue_panic_quiz_for_sync(req.results, len(req.items), user_id)
 
     return {"weak_topics_text": weak_topics_text, "recommendation_text": recommendation_text}
 
 
-def _enqueue_panic_quiz_for_sync(results: list[dict[str, Any]], total_questions: int) -> None:
-    """Queue panic mode quiz attempt for AWS AppSync sync. No-op if sync disabled or no profile."""
+def _enqueue_panic_quiz_for_sync(results: list[dict[str, Any]], total_questions: int, user_id: str) -> None:
+    """Queue panic mode quiz attempt for AWS AppSync sync. No-op if sync disabled or anonymous."""
     try:
-        prefs = _load_user_stats().get("preferences") or {}
-        if not prefs.get("sync_enabled", True):
+        if not user_id or user_id == "anonymous":
             return
-        profile = load_profile()
-        user_id = (profile and profile.profile_name) or "anonymous"
-        if user_id == "anonymous":
+        prefs = _load_user_stats(user_id).get("preferences") or {}
+        if not prefs.get("sync_enabled", True):
             return
         avg = sum(float(r.get("score", 0)) for r in results) / len(results) if results else 0.0
         score_pct = int(round(avg * 10))  # 0–10 scale → 0–100 for AWS
@@ -1807,7 +1758,7 @@ def _get_orchestrator():
     return _orchestrator
 
 
-def _persist_resolved_entity(entity_type: str, entity_id: str, resolved_data: dict, user_id: str = _DEFAULT_USER_ID) -> None:
+def _persist_resolved_entity(entity_type: str, entity_id: str, resolved_data: dict, user_id: str) -> None:
     """Persist resolved conflict data to local store based on entity type."""
     stats = _load_user_stats(user_id)
     et = (entity_type or "").lower()

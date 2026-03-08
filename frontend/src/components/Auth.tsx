@@ -49,6 +49,8 @@ export function Auth() {
   const [loginPassword, setLoginPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showSignupPass, setShowSignupPass] = useState(false);
+  const [showLoginPass, setShowLoginPass] = useState(false);
   const { isAuthenticated, profile, afterSignupStarted, loginWithCredentials } = useAuth();
   const navigate = useNavigate();
 
@@ -288,14 +290,24 @@ export function Auth() {
                     <label className="block text-sm font-medium text-primary mb-1">
                       Password
                     </label>
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Min 8 chars, 1 upper, 1 lower, 1 number, 1 special"
-                      className="w-full px-4 py-2.5 rounded-xl border border-accent-warm-3/40 text-primary placeholder:text-subtle bg-deep/30"
-                      autoComplete="new-password"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showSignupPass ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Min 8 chars, 1 upper, 1 lower, 1 number, 1 special (@$!%*?&)"
+                        className="w-full px-4 py-2.5 pr-11 rounded-xl border border-accent-warm-3/40 text-primary placeholder:text-subtle bg-deep/30"
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSignupPass(!showSignupPass)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-subtle hover:text-primary"
+                        aria-label={showSignupPass ? "Hide password" : "Show password"}
+                      >
+                        {showSignupPass ? "🙈" : "👁"}
+                      </button>
+                    </div>
                     <div className="mt-2 space-y-1.5">
                       {passwordChecks.map((c) => (
                         <CheckItem key={c.id} met={c.met} label={c.label} />
@@ -361,14 +373,24 @@ export function Auth() {
                   <label className="block text-sm font-medium text-primary mb-1">
                     Password
                   </label>
-                  <input
-                    type="password"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    className="w-full px-4 py-2.5 rounded-xl border border-accent-warm-3/40 text-primary placeholder:text-subtle bg-deep/30"
-                    autoComplete="current-password"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showLoginPass ? "text" : "password"}
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      className="w-full px-4 py-2.5 pr-11 rounded-xl border border-accent-warm-3/40 text-primary placeholder:text-subtle bg-deep/30"
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPass(!showLoginPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-subtle hover:text-primary"
+                      aria-label={showLoginPass ? "Hide password" : "Show password"}
+                    >
+                      {showLoginPass ? "🙈" : "👁"}
+                    </button>
+                  </div>
                 </div>
                 {error && (
                   <p className="text-sm text-error" role="alert">
