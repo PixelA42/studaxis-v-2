@@ -644,7 +644,7 @@ def ollama_ping():
 def _get_hardware_result() -> dict[str, Any]:
     """Run HardwareValidator and return status, message, specs, tips. Safe if psutil missing or validator fails."""
     try:
-        from pages.hardware_validator import HardwareValidator
+        from hardware_validator import HardwareValidator
         v = HardwareValidator()
         is_valid, message, specs = v.validate()
         tips = v.get_optimization_tips()

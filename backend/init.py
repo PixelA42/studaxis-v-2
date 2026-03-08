@@ -45,7 +45,7 @@ def check_ollama():
 
 def check_dependencies():
     """Check if required packages are installed"""
-    required: List[str] = ['streamlit', 'chromadb', 'ollama', 'boto3', 'psutil']
+    required: List[str] = ['chromadb', 'ollama', 'boto3', 'psutil']
     missing: List[str] = []
     
     for package in required:
@@ -95,7 +95,7 @@ def create_data_directories():
 def test_hardware():
     """Run hardware validation"""
     try:
-        from pages.hardware_validator import HardwareValidator
+        from hardware_validator import HardwareValidator
 
         validator = HardwareValidator()
         is_valid, message, specs = validator.validate()
@@ -148,7 +148,7 @@ def main():
         print("="*50)
         print("\nNext steps:")
         print("1. Update .env with your configuration")
-        print("2. Run: streamlit run backend/streamlit_app.py")
+        print("2. Run: uvicorn main:app --reload (from backend/)")
     else:
         print("⚠️  INITIALIZATION INCOMPLETE")
         print("="*50)

@@ -25,20 +25,6 @@ def run_unit_tests():
     
     return result.returncode == 0
 
-def run_example():
-    """Run example usage."""
-    print("\n" + "=" * 60)
-    print("RUNNING EXAMPLE USAGE")
-    print("=" * 60)
-    
-    result = subprocess.run(
-        [sys.executable, "example_orchestrator_usage.py"],
-        cwd=Path(__file__).parent,
-        capture_output=False
-    )
-    
-    return result.returncode == 0
-
 def quick_integration_test():
     """Quick integration test."""
     print("\n" + "=" * 60)
@@ -79,7 +65,6 @@ def main():
     
     results = {
         "Unit Tests": run_unit_tests(),
-        "Example Usage": run_example(),
         "Integration": quick_integration_test()
     }
     

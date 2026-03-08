@@ -116,8 +116,5 @@ class HardwareValidator:
 
 # Standalone test
 if __name__ == "__main__":
-    # Standalone invocation is kept for future CLI tools but avoids
-    # printing detailed hardware results to the terminal to keep
-    # Streamlit boot flow as the primary UX surface.
     validator = HardwareValidator()
     validator.validate()
