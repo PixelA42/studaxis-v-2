@@ -13,7 +13,9 @@ from pathlib import Path
 from datetime import datetime, timezone
 from typing import Optional
 
-DEVICE_ID_FILE = Path(__file__).parent / "data" / "device_id.json"
+from path_config import get_data_dir
+
+DEVICE_ID_FILE = get_data_dir() / "device_id.json"
 
 
 def get_or_generate_device_id() -> str:

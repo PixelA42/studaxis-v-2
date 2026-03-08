@@ -5,8 +5,9 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Optional
 
+from path_config import get_data_dir
 
-PROFILE_FILE = Path(__file__).parent / "data" / "profile.json"
+PROFILE_FILE = get_data_dir() / "profile.json"
 
 
 @dataclass

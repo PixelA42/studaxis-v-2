@@ -11,7 +11,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-_STATS_FILE = Path(__file__).parent / "data" / "user_stats.json"
+from path_config import get_data_dir
+
+_STATS_FILE = get_data_dir() / "user_stats.json"
 
 _DEFAULT_STATS: dict[str, Any] = {
     "user_id": "student_001",

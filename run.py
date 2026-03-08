@@ -8,12 +8,15 @@ Ensure Ollama is running locally for AI features (chat, grading, flashcards).
   python run.py --no-browser
   python run.py --port 8001   # If default port is in use (WinError 10013)
 
+When packaged as .exe (PyInstaller frozen): data lives in %APPDATA%/Studaxis/.
 Architecture: .kiro/DOCS_NEW/ARCHITECTURE_NEW.md
 """
 
 from __future__ import annotations
 
 import argparse
+import os
+import shutil
 import sys
 import threading
 import time
@@ -27,10 +30,28 @@ except ImportError:
     urlopen = None
     URLError = Exception
 
-ROOT = Path(__file__).resolve().parent
+IS_FROZEN = getattr(sys, "frozen", False)
+_MEIPASS = getattr(sys, "_MEIPASS", None)
+
+if IS_FROZEN and _MEIPASS:
+    ROOT = Path(_MEIPASS)
+else:
+    ROOT = Path(__file__).resolve().parent
+
 DIST = ROOT / "frontend" / "dist"
-CHROMA_DIR = ROOT / "backend" / "data" / "chromadb"
 OLLAMA_TIMEOUT = 2
+
+
+def _get_chroma_dir() -> Path:
+    """ChromaDB dir: APPDATA when frozen, else backend/data/chromadb."""
+    if IS_FROZEN:
+        appdata = os.environ.get("APPDATA", "")
+        if appdata:
+            return Path(appdata) / "Studaxis" / "data" / "chromadb"
+    return ROOT / "backend" / "data" / "chromadb"
+
+
+CHROMA_DIR = _get_chroma_dir()
 
 
 def _check_ollama() -> bool:
@@ -76,6 +97,38 @@ def _run_preflight_checks() -> None:
         print("⚠ ChromaDB not ready — Run: python backend/build_vectorstore.py")
 
 
+def _bootstrap_appdata() -> None:
+    """
+    When frozen: set STUDAXIS_BASE_PATH to %APPDATA%/Studaxis, create dirs,
+    and copy seed textbooks if data dir is new/empty.
+    """
+    if not IS_FROZEN or not _MEIPASS:
+        return
+    appdata = os.environ.get("APPDATA", "")
+    if not appdata:
+        return
+    base = Path(appdata) / "Studaxis"
+    data_dir = base / "data"
+    sample_dir = data_dir / "sample_textbooks"
+    chroma_dir = data_dir / "chromadb"
+    backups_dir = data_dir / "backups"
+
+    os.environ["STUDAXIS_BASE_PATH"] = str(base)
+
+    for d in (data_dir, sample_dir, chroma_dir, backups_dir):
+        d.mkdir(parents=True, exist_ok=True)
+
+    seed_src = Path(_MEIPASS) / "sample_textbooks"
+    if seed_src.is_dir():
+        existing = set(f.name for f in sample_dir.iterdir() if f.is_file())
+        for f in seed_src.iterdir():
+            if f.is_file() and f.name not in existing:
+                try:
+                    shutil.copy2(f, sample_dir / f.name)
+                except OSError:
+                    pass
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Studaxis bootstrapper")
     parser.add_argument(
@@ -91,16 +144,21 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    # Bootstrap %APPDATA%/Studaxis before any backend imports
+    _bootstrap_appdata()
+
     if not DIST.is_dir():
-        print("Note: frontend/dist not found. Build the React app for SPA serving:")
-        print("  cd frontend && npm install && npm run build")
-        print("  Then run this script again. API will still be available at /api/*.")
-        print()
+        if not IS_FROZEN:
+            print("Note: frontend/dist not found. Build the React app for SPA serving:")
+            print("  cd frontend && npm install && npm run build")
+            print("  Then run this script again. API will still be available at /api/*.")
+            print()
 
     def open_browser() -> None:
         time.sleep(2.0)
         webbrowser.open(f"http://localhost:{args.port}")
-        print(f"[Studaxis] Opened http://localhost:{args.port} in browser")
+        if not IS_FROZEN:
+            print(f"[Studaxis] Opened http://localhost:{args.port} in browser")
 
     if not args.no_browser:
         threading.Thread(target=open_browser, daemon=True).start()
@@ -114,13 +172,14 @@ def main() -> None:
     _run_preflight_checks()
 
     import uvicorn
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=args.port,
-        reload=True,
-        reload_dirs=[str(ROOT / "backend"), str(ROOT)],
-    )
+    kwargs = {
+        "host": "0.0.0.0",
+        "port": args.port,
+    }
+    if not IS_FROZEN:
+        kwargs["reload"] = True
+        kwargs["reload_dirs"] = [str(ROOT / "backend"), str(ROOT)]
+    uvicorn.run("main:app", **kwargs)
 
 
 if __name__ == "__main__":

@@ -46,11 +46,14 @@ try:
 except ImportError:
     YoutubeLoader = None
 
-# Root directory: backend when running from backend (backend/data); use parent.parent for repo root if you want shared data
-# Here we use backend so DATA_DIR = backend/data; set ROOT_DIR = _here.parent.parent.parent for repo root data
+# Data dir: uses STUDAXIS_BASE_PATH when set (frozen exe -> %APPDATA%/Studaxis)
 _here: Path = Path(__file__).resolve().parent
-ROOT_DIR: Path = _here.parent
-DATA_DIR: Path = ROOT_DIR / "data"
+try:
+    from path_config import get_data_dir
+    DATA_DIR: Path = get_data_dir()
+except ImportError:
+    DATA_DIR: Path = _here.parent / "data"
+
 TEXTBOOK_DIR: Path = DATA_DIR / "sample_textbooks"
 CHROMA_DIR: Path = DATA_DIR / "chromadb"
 
