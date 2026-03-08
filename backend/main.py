@@ -50,6 +50,7 @@ DATA_DIR = BASE_PATH / "data"
 STATS_FILE = DATA_DIR / "user_stats.json"
 FLASHCARDS_FILE = DATA_DIR / "flashcards.json"
 SAMPLE_TEXTBOOKS_DIR = DATA_DIR / "sample_textbooks"
+_DEFAULT_USER_ID = "student_001"
 
 
 def _user_dir(user_id: str) -> Path:
@@ -125,35 +126,6 @@ def get_ai_engine() -> AIEngine:
     return _ai_engine
 
 
-def _enqueue_panic_quiz_for_sync(
-    avg_score: float,
-    total_questions: int,
-) -> None:
-    """Legacy 2-arg form (unused). Kept for any external refs."""
-    try:
-        profile = load_profile()
-        user_id = (profile.profile_name if profile else None) or "anonymous"
-        if user_id == "anonymous":
-            return
-        stats = _load_user_stats(user_id)
-        prefs = stats.get("preferences") or {}
-        if not prefs.get("sync_enabled", True):
-            return
-        # Score 0-100 for AWS recordQuizAttempt
-        score_pct = min(100, max(0, int(round(avg_score * 10))))
-        from sync_manager import SyncManager
-        sm = SyncManager(base_path=str(BASE_PATH))
-        sm.enqueue_quiz_sync(
-            user_id=user_id,
-            quiz_id="panic",
-            score=score_pct,
-            total_questions=total_questions,
-            subject="Panic Mode",
-            difficulty="Medium",
-        )
-    except Exception:
-        pass  # Sync is best-effort; do not fail the request
-
 
 # ---------------------------------------------------------------------------
 # User stats persistence (same schema as preferences.py / Streamlit)
@@ -184,8 +156,8 @@ _DEFAULT_STATS: dict[str, Any] = {
 }
 
 
-def _load_user_stats(user_id: str) -> dict[str, Any]:
-    """Load user_stats.json from per-user directory; return defaults on missing/error."""
+def _load_user_stats(user_id: str = _DEFAULT_USER_ID) -> dict[str, Any]:
+    """Load user_stats.json for given user; return defaults on missing/error."""
     try:
         f = _stats_file(user_id)
         if f.exists():
@@ -1189,45 +1161,6 @@ def _local_score(answer: str, expected: str) -> float:
     return round(min(10.0, max(0.0, overlap * 10)), 1)
 
 
-def _generate_quiz_from_content(content: str, subject: str, count: int = 5) -> list[dict[str, Any]]:
-    """Generate panic-mode quiz items from extracted text via AI."""
-    if not content or not content.strip():
-        raise HTTPException(status_code=422, detail="No extractable text from source")
-    engine = get_ai_engine()
-    truncated = content[:12000] if len(content) > 12000 else content
-    try:
-        response = engine.request(
-            task_type=AITaskType.QUIZ_GENERATION,
-            user_input=f"Generate {count} open-ended exam questions for {subject}.",
-            context_data={
-                "subject": subject,
-                "count": count,
-                "source_content": truncated,
-            },
-            offline_mode=True,
-            privacy_sensitive=True,
-            user_id=None,
-        )
-    except (ConnectionError, TimeoutError) as e:
-        raise HTTPException(status_code=503, detail=str(e))
-    if response.state in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
-        raise HTTPException(status_code=503, detail=response.error_message or response.text or "AI unavailable.")
-    raw_text = _extract_json_array(response.text)
-    try:
-        parsed = _parse_ai_json(raw_text)
-    except (ValueError, json.JSONDecodeError):
-        raise HTTPException(
-            status_code=422,
-            detail="AI could not generate valid questions from this material. Try a shorter PDF or use default questions.",
-        )
-    if not isinstance(parsed, list):
-        raise HTTPException(
-            status_code=422,
-            detail="AI could not generate valid questions from this material. Try a shorter PDF or use default questions.",
-        )
-    return _normalize_quiz_items(parsed, subject)
-
-
 class PanicGenerateTextbookRequest(BaseModel):
     subject: str = Field(..., min_length=1)
     textbook_id: str = Field(...)
@@ -1327,7 +1260,8 @@ def quiz_submit(quiz_id: str, req: QuizSubmitRequest, user_id: str = Depends(get
     stats = _load_user_stats(user_id)
     quiz_stats = stats.setdefault("quiz_stats", {})
     topic_scores: dict[str, list[float]] = {}
-    for r in req.results:
+    items_list = req.items or []
+    for r in req.answers:
         topic = r.get("topic", "General")
         score = float(r.get("score", 0))
         topic_scores.setdefault(topic, []).append(score)
@@ -1357,7 +1291,7 @@ def quiz_submit(quiz_id: str, req: QuizSubmitRequest, user_id: str = Depends(get
                 context_data={
                     "exam_mode": "panic_mode",
                     "topic_scores": weak_topics_payload,
-                    "total_questions": len(req.items),
+                    "total_questions": len(items_list),
                 },
                 offline_mode=True,
                 privacy_sensitive=True,
@@ -1387,8 +1321,8 @@ def quiz_submit(quiz_id: str, req: QuizSubmitRequest, user_id: str = Depends(get
             recommendation_text = "Complete more quizzes and review weak areas from your stats."
 
     # Enqueue for AWS sync (AppSync recordQuizAttempt) when sync enabled
-    if req.results:
-        _enqueue_panic_quiz_for_sync(req.results, len(req.items), user_id)
+    if req.answers:
+        _enqueue_panic_quiz_for_sync(req.answers, len(items_list), user_id)
 
     return {"weak_topics_text": weak_topics_text, "recommendation_text": recommendation_text}
 
@@ -1535,82 +1469,6 @@ def panic_finalize(req: PanicFinalizeRequest, user_id: str = Depends(get_user_id
         _enqueue_panic_quiz_for_sync(req.results, len(req.items), user_id)
 
     return {"weak_topics_text": weak_topics_text, "recommendation_text": recommendation_text}
-
-
-def _enqueue_panic_quiz_for_sync(results: list[dict[str, Any]], total_questions: int, user_id: str) -> None:
-    """Queue panic mode quiz attempt for AWS AppSync sync. No-op if sync disabled or anonymous."""
-    try:
-        if not user_id or user_id == "anonymous":
-            return
-        prefs = _load_user_stats(user_id).get("preferences") or {}
-        if not prefs.get("sync_enabled", True):
-            return
-        avg = sum(float(r.get("score", 0)) for r in results) / len(results) if results else 0.0
-        score_pct = int(round(avg * 10))  # 0–10 scale → 0–100 for AWS
-        from sync_manager import SyncManager
-        sm = SyncManager(base_path=str(BASE_PATH))
-        sm.enqueue_quiz_sync(
-            user_id=user_id,
-            quiz_id="panic",
-            score=min(100, max(0, score_pct)),
-            total_questions=total_questions,
-            subject="Panic Mode",
-            difficulty="Medium",
-        )
-    except Exception:
-        pass  # Sync is best-effort; do not fail the request
-
-
-@app.post("/api/grade", response_model=GradeResponse)
-def grade(req: GradeRequest):
-    """Grade subjective/objective answers using AI engine with Red Pen–style feedback."""
-    engine = get_ai_engine()
-    try:
-        response = engine.request(
-            task_type=AITaskType.GRADING,
-            user_input=req.answer,
-            context_data={
-                "question_id": req.question_id,
-                "question": req.question,
-                "expected_answer": req.expected_answer,
-                "topic": req.topic,
-                "difficulty": req.difficulty,
-                "rubric": req.rubric or "[GRADING_RUBRIC_PLACEHOLDER]",
-            },
-            offline_mode=req.offline_mode,
-            privacy_sensitive=True,
-            user_id=req.user_id,
-        )
-    except (ConnectionError, TimeoutError) as e:
-        raise HTTPException(status_code=503, detail=str(e))
-
-    # Parse "Score: X/10" from AI response for structured output
-    score = None
-    import re
-    match = re.search(r"Score:\s*(\d+(?:\.\d+)?)\s*/\s*10", response.text, re.IGNORECASE)
-    if match:
-        score = float(match.group(1))
-
-    return GradeResponse(
-        text=response.text,
-        confidence_score=response.confidence_score,
-        score=score,
-        errors=[],  # AI engine returns freeform; optional: parse if needed
-        strengths=[],
-        remarks="",
-        metadata=response.metadata,
-    )
-
-    # Enqueue panic mode for AWS sync when applicable
-    if quiz_id == "panic" and results:
-        _enqueue_panic_quiz_for_sync(results, len(items_list))
-
-    return QuizSubmitResponse(
-        results=results,
-        quiz_stats_updated=True,
-        weak_topics_text=weak_topics_text,
-        recommendation_text=recommendation_text,
-    )
 
 
 # ---------------------------------------------------------------------------
