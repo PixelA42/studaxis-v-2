@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 
 from auth_utils import hash_password, verify_password
 from database import User, get_db, init_db
-from email_service import send_verification_email
+from email_service import send_otp_email, send_verification_email
 from profile_store import UserProfile, load_profile, save_profile, load_profile_for_user, save_profile_for_user
 
 # JWT config (must be before dependencies import to avoid circular import)
@@ -31,7 +31,7 @@ VERIFICATION_EXPIRY_HOURS = 24  # Email verification token
 
 # OTP storage: email -> { code, expires_at }
 _otp_store: dict = {}
-OTP_EXPIRY_MINUTES = 10
+OTP_EXPIRY_MINUTES = 5
 
 # Validation patterns
 USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9_]{3,20}$")
@@ -148,12 +148,15 @@ def _create_verification_token(email: str) -> str:
 
 
 def _send_otp_email(email: str, code: str) -> None:
-    """Send OTP to user. Local dev: print only, no SMTP."""
-    print(f"\n[OTP] {email} → {code}\n")
+    """Send OTP via SMTP. Falls back to console log if SMTP not configured."""
+    import logging
+    if send_otp_email(email, code):
+        return
+    logging.getLogger(__name__).info("[OTP dev fallback] %s → %s", email, code)
 
 
 def _generate_and_send_otp(email: str) -> None:
-    """Generate 6-digit OTP, store with 10 min expiry, call _send_otp_email."""
+    """Generate secure 6-digit OTP, store with 5 min expiry, send via email."""
     code = str(secrets.randbelow(900000) + 100000)
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRY_MINUTES)
     _otp_store[email.strip().lower()] = {"code": code, "expires_at": expires_at}
@@ -267,11 +270,12 @@ def check_email(
 
 
 @router.post("/request-otp")
+@router.post("/send-otp")
 def request_otp(
     body: RequestOTPRequest,
     db: Annotated[Session, Depends(get_db)],
 ):
-    """Request OTP for existing user. Checks email exists, generates and sends OTP."""
+    """Request OTP for existing user. Checks email exists, generates and sends OTP via email."""
     email = body.email.strip().lower()
     user = db.query(User).filter(User.email == email).first()
     if not user:

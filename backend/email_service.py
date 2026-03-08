@@ -1,30 +1,109 @@
 """
-Email service for Studaxis — verification emails via SMTP.
-Uses smtplib (stdlib). Configure via env: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, etc.
+Email service for Studaxis — verification emails and OTP via SMTP.
+
+Uses smtplib (stdlib). Configure via env:
+  STUDAXIS_SMTP_HOST, STUDAXIS_SMTP_PORT, STUDAXIS_SMTP_USER, STUDAXIS_SMTP_PASSWORD
+  Or: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS
 """
 
 from __future__ import annotations
 
+import logging
 import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-# Config from env (optional — if not set, send_verification_email logs and skips)
-SMTP_HOST = os.environ.get("STUDAXIS_SMTP_HOST", "localhost")
-SMTP_PORT = int(os.environ.get("STUDAXIS_SMTP_PORT", "1025"))
-SMTP_USER = os.environ.get("STUDAXIS_SMTP_USER", "")
-SMTP_PASSWORD = os.environ.get("STUDAXIS_SMTP_PASSWORD", "")
-SMTP_FROM = os.environ.get("STUDAXIS_SMTP_FROM", "noreply@studaxis.local")
-# Frontend base URL for verification link
+logger = logging.getLogger(__name__)
+
+# Config from env — support both STUDAXIS_* and plain SMTP_* names
+SMTP_HOST = os.environ.get("STUDAXIS_SMTP_HOST") or os.environ.get("SMTP_HOST", "localhost")
+SMTP_PORT = int(os.environ.get("STUDAXIS_SMTP_PORT") or os.environ.get("SMTP_PORT", "587"))
+SMTP_USER = os.environ.get("STUDAXIS_SMTP_USER") or os.environ.get("SMTP_USER", "")
+# Gmail app passwords may be copied with spaces; strip for login
+_raw = os.environ.get("STUDAXIS_SMTP_PASSWORD") or os.environ.get("SMTP_PASS", "")
+SMTP_PASSWORD = _raw.replace(" ", "") if _raw else ""
+SMTP_FROM = os.environ.get("STUDAXIS_SMTP_FROM", SMTP_USER or "noreply@studaxis.local")
+SMTP_TIMEOUT = int(os.environ.get("STUDAXIS_SMTP_TIMEOUT", "15"))
 VERIFY_BASE_URL = os.environ.get("STUDAXIS_VERIFY_BASE_URL", "http://localhost:5173")
+
+
+def _is_smtp_configured() -> bool:
+    """Check if SMTP credentials are set (required for Gmail)."""
+    return bool(SMTP_USER and SMTP_PASSWORD)
+
+
+def send_email(to_email: str, subject: str, body: str) -> bool:
+    """
+    Send a plain-text email via SMTP.
+
+    Uses Gmail SMTP when configured:
+      - smtp.gmail.com:587
+      - TLS/STARTTLS enabled
+      - Authentication required
+
+    Returns True if sent, False on failure (logged).
+    """
+    if not _is_smtp_configured():
+        logger.warning("SMTP not configured (SMTP_USER/SMTP_PASSWORD missing). Email not sent to %s", to_email)
+        return False
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = SMTP_FROM
+    msg["To"] = to_email
+    msg.attach(MIMEText(body, "plain", "utf-8"))
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=SMTP_TIMEOUT) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(SMTP_FROM, to_email, msg.as_string())
+        logger.info("Email sent to %s: %s", to_email, subject[:50])
+        return True
+    except smtplib.SMTPAuthenticationError as e:
+        logger.error(
+            "SMTP authentication failed for %s. Check STUDAXIS_SMTP_USER and STUDAXIS_SMTP_PASSWORD (use Gmail App Password): %s",
+            SMTP_USER,
+            str(e),
+        )
+        return False
+    except smtplib.SMTPRecipientsRefused as e:
+        logger.error("SMTP recipient refused for %s: %s", to_email, e)
+        return False
+    except smtplib.SMTPException as e:
+        logger.error("SMTP error sending to %s: %s", to_email, e)
+        return False
+    except (ConnectionError, OSError) as e:
+        logger.error("SMTP connection error (host=%s port=%s): %s", SMTP_HOST, SMTP_PORT, e)
+        return False
+    except TimeoutError:
+        logger.error("SMTP timeout connecting to %s:%s", SMTP_HOST, SMTP_PORT)
+        return False
+    except Exception as e:
+        logger.exception("Unexpected error sending email to %s: %s", to_email, e)
+        return False
+
+
+def send_otp_email(to_email: str, otp: str) -> bool:
+    """
+    Send OTP verification email. Subject: Verify Your Account.
+    OTP expires in 5 minutes.
+    """
+    subject = "Verify Your Account"
+    body = f"""Your verification OTP is: {otp}
+
+This OTP will expire in 5 minutes."""
+    return send_email(to_email, subject, body)
 
 
 def send_verification_email(to_email: str, token: str) -> bool:
     """
     Send email verification link to the user.
     Link format: {VERIFY_BASE_URL}/verify-email?token={token}
-    Returns True if sent, False if skipped (e.g. SMTP not configured).
+    Returns True if sent, False if skipped or failed.
     """
     verify_url = f"{VERIFY_BASE_URL.rstrip('/')}/verify-email?token={token}"
 
@@ -44,21 +123,7 @@ def send_verification_email(to_email: str, token: str) -> bool:
     </html>
     """
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = "Verify your Studaxis email"
-    msg["From"] = SMTP_FROM
-    msg["To"] = to_email
-    msg.attach(MIMEText(html_body, "html"))
-
-    try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
-            if SMTP_USER and SMTP_PASSWORD:
-                server.starttls()
-                server.login(SMTP_USER, SMTP_PASSWORD)
-            server.sendmail(SMTP_FROM, to_email, msg.as_string())
-        return True
-    except Exception as e:
-        # Log but don't fail signup — user can request resend later
-        import logging
-        logging.getLogger(__name__).warning("Verification email failed: %s", e)
-        return False
+    # Use send_email for link emails (plain text fallback)
+    subject = "Verify your Studaxis email"
+    plain_body = f"Verify your Studaxis account by visiting: {verify_url}\n\nThis link expires in 24 hours."
+    return send_email(to_email, subject, plain_body)
