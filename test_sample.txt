@@ -1,0 +1,7 @@
+This is a sample PDF for Panic Mode testing.
+
+Mathematics is the study of numbers, shapes, and patterns.
+
+Sample question: What is 2 + 2?
+
+Sample question: What is the area of a circle with radius 3?

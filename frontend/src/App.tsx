@@ -25,6 +25,7 @@ const DashboardPage = lazy(() => import("./pages/Dashboard").then((m) => ({ defa
 const ChatPage = lazy(() => import("./pages/Chat").then((m) => ({ default: m.ChatPage })));
 const FlashcardsPage = lazy(() => import("./pages/Flashcards").then((m) => ({ default: m.FlashcardsPage })));
 const QuizPage = lazy(() => import("./pages/Quiz").then((m) => ({ default: m.QuizPage })));
+const TextbooksPage = lazy(() => import("./pages/Textbooks").then((m) => ({ default: m.TextbooksPage })));
 const SettingsPage = lazy(() => import("./pages/Settings").then((m) => ({ default: m.SettingsPage })));
 const PanicModePage = lazy(() => import("./pages/PanicMode").then((m) => ({ default: m.PanicModePage })));
 const InsightsPage = lazy(() => import("./pages/Insights").then((m) => ({ default: m.InsightsPage })));
@@ -91,6 +92,7 @@ function AppRoutes() {
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/flashcards" element={<FlashcardsPage />} />
           <Route path="/quiz" element={<QuizPage />} />
+          <Route path="/textbooks" element={<TextbooksPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/panic-mode" element={<PanicModePage />} />
           <Route path="/insights" element={<InsightsPage />} />

@@ -620,12 +620,12 @@ def storage_files(user_id: str = Depends(get_user_id)):
 
 
 def _list_textbooks() -> list[dict[str, str]]:
-    """List *.pdf and *.txt files in sample_textbooks."""
+    """List *.pdf, *.txt, and *.pptx files in sample_textbooks."""
     out: list[dict[str, str]] = []
     if not SAMPLE_TEXTBOOKS_DIR.is_dir():
         return out
     for p in sorted(SAMPLE_TEXTBOOKS_DIR.iterdir()):
-        if p.is_file() and p.suffix.lower() in (".pdf", ".txt"):
+        if p.is_file() and p.suffix.lower() in (".pdf", ".txt", ".pptx"):
             out.append({"id": p.name, "name": p.stem})
     return out
 
@@ -638,9 +638,12 @@ def textbooks_list():
 
 @app.post("/api/textbooks/upload")
 def textbooks_upload(file: UploadFile = File(...)):
-    """Multipart file upload; save PDF to sample_textbooks."""
-    if not file.filename or not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are accepted")
+    """Multipart file upload; save PDF or PPTX to sample_textbooks (shared with Flashcards and AI Chat)."""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename provided")
+    suf = Path(file.filename).suffix.lower()
+    if suf not in (".pdf", ".pptx"):
+        raise HTTPException(status_code=400, detail="Only PDF and PPTX files are accepted")
     SAMPLE_TEXTBOOKS_DIR.mkdir(parents=True, exist_ok=True)
     dest = SAMPLE_TEXTBOOKS_DIR / file.filename
     try:

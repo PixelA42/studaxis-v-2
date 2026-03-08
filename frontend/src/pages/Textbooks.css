@@ -1,0 +1,362 @@
+/* Textbook Archive — light theme using project color scheme (Thermal Vitreous) */
+.textbooks-archive {
+  --tb-bg: #F1F5F9;
+  --tb-surface: #ffffff;
+  --tb-border: rgba(15, 23, 42, 0.12);
+  --tb-accent: #00A8E8;
+  --tb-accent-warm: #FD8A6B;
+  --tb-accent-peach: #FEC288;
+  --tb-accent-yellow: #FBEF76;
+  --tb-text: #000000;
+  --tb-muted: rgba(0, 0, 0, 0.6);
+  --tb-subtle: rgba(0, 0, 0, 0.45);
+  --tb-font-main: "Inter", sans-serif;
+  --tb-font-mono: "JetBrains Mono", monospace;
+}
+
+.textbooks-archive * {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+.textbooks-archive {
+  background-color: var(--tb-bg);
+  color: var(--tb-text);
+  font-family: var(--tb-font-main);
+  min-height: 100%;
+  padding: 0;
+  overflow: auto;
+  border-radius: 1rem;
+}
+
+/* Light leaks — project palette (accent-blue, coral, peach, yellow) */
+.textbooks-archive .tb-prism-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.textbooks-archive .tb-light-leak {
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  filter: blur(120px);
+  opacity: 0.25;
+  animation: tb-drift 20s infinite alternate ease-in-out;
+}
+
+.textbooks-archive .tb-leak-1 {
+  background: radial-gradient(circle, rgba(0, 168, 232, 0.35) 0%, transparent 70%);
+  top: -10%;
+  left: -10%;
+}
+.textbooks-archive .tb-leak-2 {
+  background: radial-gradient(circle, rgba(253, 138, 107, 0.3) 0%, transparent 70%);
+  bottom: -10%;
+  right: -10%;
+  animation-delay: -5s;
+}
+.textbooks-archive .tb-leak-3 {
+  background: radial-gradient(circle, rgba(251, 239, 118, 0.2) 0%, transparent 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.15;
+}
+
+@keyframes tb-drift {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(10%, 10%) scale(1.1) rotate(15deg);
+  }
+}
+
+.textbooks-archive .tb-app-container {
+  width: 90%;
+  max-width: 1100px;
+  min-height: 700px;
+  margin: 40px auto;
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 2px;
+  background: var(--tb-surface);
+  border: 1px solid var(--tb-border);
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+  animation: tb-reveal 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes tb-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.textbooks-archive .tb-drop-zone {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 60px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.textbooks-archive .tb-dichroic-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    rgba(0, 168, 232, 0.04) 25%,
+    rgba(253, 138, 107, 0.04) 50%,
+    rgba(251, 239, 118, 0.04) 75%,
+    transparent 100%
+  );
+  background-size: 400% 400%;
+  pointer-events: none;
+  transition: 0.6s ease;
+}
+
+.textbooks-archive .tb-drop-zone:hover .tb-dichroic-overlay {
+  background-position: 100% 100%;
+}
+
+.textbooks-archive .tb-header-meta {
+  font-family: var(--tb-font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: var(--tb-subtle);
+  margin-bottom: 20px;
+}
+
+.textbooks-archive .tb-h1 {
+  font-size: 64px;
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  margin-bottom: 40px;
+  color: var(--tb-text);
+}
+
+.textbooks-archive .tb-prism-intersection {
+  position: absolute;
+  bottom: -50px;
+  right: -50px;
+  width: 300px;
+  height: 300px;
+  background: conic-gradient(
+    from 180deg at 50% 50%,
+    rgba(0, 168, 232, 0.15),
+    rgba(253, 138, 107, 0.12),
+    rgba(251, 239, 118, 0.1),
+    rgba(0, 168, 232, 0.15)
+  );
+  filter: blur(80px);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.textbooks-archive .tb-upload-prompt {
+  margin-top: auto;
+  border-left: 3px solid var(--tb-accent);
+  padding-left: 24px;
+}
+
+.textbooks-archive .tb-upload-prompt p {
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--tb-muted);
+  max-width: 300px;
+  line-height: 1.6;
+}
+
+.textbooks-archive .tb-file-types {
+  display: flex;
+  gap: 15px;
+  margin-top: 24px;
+}
+
+.textbooks-archive .tb-type-tag {
+  font-family: var(--tb-font-mono);
+  font-size: 12px;
+  padding: 6px 12px;
+  border: 1px solid var(--tb-border);
+  border-radius: 8px;
+  background: rgba(0, 168, 232, 0.06);
+  color: var(--tb-text);
+}
+
+.textbooks-archive .tb-queue-panel {
+  background: #ffffff;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--tb-border);
+}
+
+.textbooks-archive .tb-queue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 40px;
+}
+
+.textbooks-archive .tb-queue-header span:last-child {
+  font-family: var(--tb-font-mono);
+  color: var(--tb-accent);
+}
+
+.textbooks-archive .tb-file-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 200px;
+}
+
+.textbooks-archive .tb-file-item {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--tb-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: 0.3s;
+}
+
+.textbooks-archive .tb-file-item:hover {
+  transform: translateX(5px);
+}
+
+.textbooks-archive .tb-file-name {
+  font-family: var(--tb-font-mono);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--tb-text);
+}
+
+.textbooks-archive .tb-file-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--tb-subtle);
+  text-transform: uppercase;
+}
+
+.textbooks-archive .tb-progress-bar {
+  width: 100%;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+.textbooks-archive .tb-progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--tb-accent), var(--tb-accent-warm));
+  transition: width 0.15s ease-out;
+  border-radius: 2px;
+}
+
+.textbooks-archive .tb-progress-fill.tb-complete {
+  background: var(--tb-accent);
+}
+
+.textbooks-archive .tb-submit-btn {
+  margin-top: 30px;
+  background: var(--tb-accent);
+  color: white;
+  border: none;
+  padding: 20px;
+  font-family: var(--tb-font-mono);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.textbooks-archive .tb-submit-btn:hover:not(:disabled) {
+  background: #008ec7;
+  letter-spacing: 0.2em;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -6px rgba(0, 168, 232, 0.4);
+}
+
+.textbooks-archive .tb-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.textbooks-archive .tb-submit-btn::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(255, 255, 255, 0.25),
+    transparent
+  );
+  transform: rotate(45deg);
+  transition: 0.6s;
+}
+
+.textbooks-archive .tb-submit-btn:hover:not(:disabled)::after {
+  left: 100%;
+}
+
+.textbooks-archive .tb-glass-refraction {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    105deg,
+    rgba(255, 255, 255, 0.6) 0%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.2) 100%
+  );
+  pointer-events: none;
+}
+
+.textbooks-archive .tb-intersection-node {
+  position: absolute;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--tb-accent),
+    transparent
+  );
+  left: -1px;
+  top: 0;
+  opacity: 0.6;
+}
