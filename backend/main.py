@@ -1089,6 +1089,31 @@ def study_recommendation(req: StudyRecommendationRequest):
 # ---------------------------------------------------------------------------
 
 
+@app.post("/api/chat", response_model=ChatResponse)
+def chat(req: ChatRequest):
+    """Turn-based chat with local LLM. Supports clarification follow-ups and RAG context."""
+    engine = get_ai_engine()
+    ctx: dict[str, Any] = dict(req.context) if req.context else {}
+    ctx["is_clarification"] = req.is_clarification
+    try:
+        response = engine.request(
+            task_type=AITaskType.CHAT,
+            user_input=req.message,
+            context_data=ctx,
+            offline_mode=True,
+            privacy_sensitive=True,
+            user_id=ctx.get("user_id"),
+        )
+    except (ConnectionError, TimeoutError) as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    return ChatResponse(
+        text=response.text,
+        confidence_score=response.confidence_score,
+        metadata=response.metadata,
+    )
+
+
 @app.post("/api/grade", response_model=GradeResponse)
 def grade(req: GradeRequest):
     """Grade subjective/objective answers using AI engine with Red Pen–style feedback."""
