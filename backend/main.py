@@ -94,6 +94,34 @@ def get_ai_engine() -> AIEngine:
     return _ai_engine
 
 
+def _enqueue_panic_quiz_for_sync(
+    avg_score: float,
+    total_questions: int,
+) -> None:
+    """Queue panic mode quiz attempt for AWS AppSync sync when sync_enabled."""
+    try:
+        stats = _load_user_stats()
+        prefs = stats.get("preferences") or {}
+        if not prefs.get("sync_enabled", True):
+            return
+        profile = load_profile()
+        user_id = (profile.profile_name if profile else None) or "anonymous"
+        # Score 0-100 for AWS recordQuizAttempt
+        score_pct = min(100, max(0, int(round(avg_score * 10))))
+        from sync_manager import SyncManager
+        sm = SyncManager(base_path=str(BASE_PATH))
+        sm.enqueue_quiz_sync(
+            user_id=user_id,
+            quiz_id="panic",
+            score=score_pct,
+            total_questions=total_questions,
+            subject="Panic Mode",
+            difficulty="Medium",
+        )
+    except Exception:
+        pass  # Sync is best-effort; do not fail the request
+
+
 # ---------------------------------------------------------------------------
 # User stats persistence (same schema as preferences.py / Streamlit)
 # ---------------------------------------------------------------------------
@@ -292,6 +320,19 @@ def _extract_json_array(text: str) -> str:
         text = re.sub(r"^```\w*\n?", "", text)
         text = re.sub(r"\n?```\s*$", "", text)
     return text.strip()
+
+
+def _parse_ai_json(raw: str) -> list:
+    """Robustly parse AI response as JSON array. Handles markdown, trailing commas."""
+    cleaned = re.sub(r"```json|```", "", raw).strip()
+    match = re.search(r"\[.*\]", cleaned, re.DOTALL)
+    if not match:
+        raise ValueError("No JSON array found in AI response")
+    try:
+        return json.loads(match.group())
+    except json.JSONDecodeError:
+        fixed = re.sub(r",\s*([}\]])", r"\1", match.group())
+        return json.loads(fixed)
 
 
 def _normalize_cards(raw: list[Any]) -> list[dict[str, Any]]:
@@ -668,13 +709,18 @@ def _generate_quiz_from_content(content: str, subject: str, count: int = 5) -> l
         raise HTTPException(status_code=503, detail=str(e))
     if response.state in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
         raise HTTPException(status_code=503, detail=response.error_message or response.text or "AI unavailable.")
-    raw_text = _extract_json_array(response.text)
     try:
-        parsed = json.loads(raw_text)
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=422, detail=f"AI returned invalid JSON: {e}")
+        parsed = _parse_ai_json(response.text)
+    except (ValueError, json.JSONDecodeError):
+        raise HTTPException(
+            status_code=422,
+            detail="AI could not generate valid questions from this material. Try a shorter PDF or use default questions.",
+        )
     if not isinstance(parsed, list):
-        raise HTTPException(status_code=422, detail="AI response was not a JSON array")
+        raise HTTPException(
+            status_code=422,
+            detail="AI could not generate valid questions from this material. Try a shorter PDF or use default questions.",
+        )
     return _normalize_quiz_items(parsed, subject)
 
 
@@ -1125,11 +1171,17 @@ def _generate_quiz_from_content(content: str, subject: str, count: int = 5) -> l
         raise HTTPException(status_code=503, detail=response.error_message or response.text or "AI unavailable.")
     raw_text = _extract_json_array(response.text)
     try:
-        parsed = json.loads(raw_text)
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=422, detail=f"AI returned invalid JSON: {e}")
+        parsed = _parse_ai_json(raw_text)
+    except (ValueError, json.JSONDecodeError):
+        raise HTTPException(
+            status_code=422,
+            detail="AI could not generate valid questions from this material. Try a shorter PDF or use default questions.",
+        )
     if not isinstance(parsed, list):
-        raise HTTPException(status_code=422, detail="AI response was not a JSON array")
+        raise HTTPException(
+            status_code=422,
+            detail="AI could not generate valid questions from this material. Try a shorter PDF or use default questions.",
+        )
     return _normalize_quiz_items(parsed, subject)
 
 
@@ -1225,6 +1277,152 @@ def panic_generate_files(
     return {"id": "panic", "title": f"Panic Mode — {subject}", "items": items}
 
 
+class PanicGradeOneRequest(BaseModel):
+    question_id: str = Field(...)
+    answer: str = Field(default="")
+    question: str = Field(...)
+    topic: str = Field(default="General")
+    expected_answer: str = Field(default="")
+
+
+class PanicFinalizeRequest(BaseModel):
+    results: list[dict[str, Any]] = Field(..., description="Per-question results from grade-one")
+    items: list[dict[str, Any]] = Field(..., description="Quiz items for stats")
+
+
+@app.post("/api/quiz/panic/grade-one")
+def panic_grade_one(req: PanicGradeOneRequest):
+    """Grade a single panic-mode question. 30s timeout; falls back to local scoring on timeout/error."""
+    engine = get_ai_engine()
+    score = _local_score(req.answer, req.expected_answer)
+    feedback_text = "Grading unavailable."
+    try:
+        grading = engine.request(
+            task_type=AITaskType.GRADING,
+            user_input=req.answer,
+            context_data={
+                "question_id": req.question_id,
+                "question": req.question,
+                "topic": req.topic,
+                "expected_answer": req.expected_answer,
+                "difficulty": "Beginner",
+                "rubric": "[GRADING_RUBRIC_PLACEHOLDER]",
+            },
+            offline_mode=True,
+            privacy_sensitive=True,
+        )
+        if grading.state in (AIState.TIMEOUT, AIState.ERROR, AIState.FALLBACK_RESPONSE):
+            feedback_text = "AI grading timed out; scored locally."
+        else:
+            feedback_text = grading.text or "No feedback."
+    except (ConnectionError, TimeoutError):
+        feedback_text = "AI grading timed out; scored locally."
+    return {
+        "question_id": req.question_id,
+        "score": score,
+        "feedback": feedback_text,
+        "topic": req.topic,
+    }
+
+
+@app.post("/api/quiz/panic/finalize")
+def panic_finalize(req: PanicFinalizeRequest):
+    """Update stats from pre-graded results and return weak topics + recommendation. Falls back on timeout."""
+    stats = _load_user_stats()
+    quiz_stats = stats.setdefault("quiz_stats", {})
+    topic_scores: dict[str, list[float]] = {}
+    for r in req.results:
+        topic = r.get("topic", "General")
+        score = float(r.get("score", 0))
+        topic_scores.setdefault(topic, []).append(score)
+        total_attempted = int(quiz_stats.get("total_attempted", 0)) + 1
+        total_correct = int(quiz_stats.get("total_correct", 0)) + (1 if score >= 6.0 else 0)
+        prev_avg = float(quiz_stats.get("average_score", 0.0))
+        quiz_stats["total_attempted"] = total_attempted
+        quiz_stats["total_correct"] = total_correct
+        quiz_stats["average_score"] = round(((prev_avg * (total_attempted - 1)) + score) / total_attempted, 2)
+        by_topic = quiz_stats.setdefault("by_topic", {})
+        te = by_topic.setdefault(topic, {"attempts": 0, "avg_score": 0.0})
+        te["attempts"] = int(te.get("attempts", 0)) + 1
+        te["avg_score"] = round(((float(te.get("avg_score", 0)) * (te["attempts"] - 1)) + score) / te["attempts"], 2)
+    _save_user_stats(stats)
+
+    weak_topics_text: Optional[str] = None
+    recommendation_text: Optional[str] = None
+    if topic_scores:
+        weak_topics_payload = {
+            topic: round(sum(vals) / len(vals), 2) for topic, vals in topic_scores.items()
+        }
+        engine = get_ai_engine()
+        try:
+            weak_topic_response = engine.request(
+                task_type=AITaskType.WEAK_TOPIC_DETECTION,
+                user_input="Identify weak topics from this exam result.",
+                context_data={
+                    "exam_mode": "panic_mode",
+                    "topic_scores": weak_topics_payload,
+                    "total_questions": len(req.items),
+                },
+                offline_mode=True,
+                privacy_sensitive=True,
+                user_id=None,
+            )
+            weak_topics_text = weak_topic_response.text
+            if weak_topics_text and weak_topics_text.strip():
+                rec_response = engine.request(
+                    task_type=AITaskType.STUDY_RECOMMENDATION,
+                    user_input="Create a post-exam improvement plan.",
+                    context_data={
+                        "exam_mode": "panic_mode",
+                        "topic_scores": weak_topics_payload,
+                        "weak_topics_summary": weak_topics_text,
+                        "study_time_minutes": 20,
+                    },
+                    offline_mode=True,
+                    privacy_sensitive=True,
+                    user_id=None,
+                )
+                recommendation_text = rec_response.text
+        except (ConnectionError, TimeoutError):
+            pass
+        if not weak_topics_text:
+            weak_topics_text = "AI unavailable for weak-topic analysis."
+        if not recommendation_text:
+            recommendation_text = "Complete more quizzes and review weak areas from your stats."
+
+    # Enqueue for AWS sync (AppSync recordQuizAttempt) when sync enabled
+    if req.results:
+        _enqueue_panic_quiz_for_sync(req.results, len(req.items))
+
+    return {"weak_topics_text": weak_topics_text, "recommendation_text": recommendation_text}
+
+
+def _enqueue_panic_quiz_for_sync(results: list[dict[str, Any]], total_questions: int) -> None:
+    """Queue panic mode quiz attempt for AWS AppSync sync. No-op if sync disabled or no profile."""
+    try:
+        prefs = _load_user_stats().get("preferences") or {}
+        if not prefs.get("sync_enabled", True):
+            return
+        profile = load_profile()
+        user_id = (profile and profile.profile_name) or "anonymous"
+        if user_id == "anonymous":
+            return
+        avg = sum(float(r.get("score", 0)) for r in results) / len(results) if results else 0.0
+        score_pct = int(round(avg * 10))  # 0–10 scale → 0–100 for AWS
+        from sync_manager import SyncManager
+        sm = SyncManager(base_path=str(BASE_PATH))
+        sm.enqueue_quiz_sync(
+            user_id=user_id,
+            quiz_id="panic",
+            score=min(100, max(0, score_pct)),
+            total_questions=total_questions,
+            subject="Panic Mode",
+            difficulty="Medium",
+        )
+    except Exception:
+        pass  # Sync is best-effort; do not fail the request
+
+
 @app.post("/api/quiz/{quiz_id}/submit", response_model=QuizSubmitResponse)
 def quiz_submit(quiz_id: str, req: QuizSubmitRequest):
     """Submit quiz answers; grade via AI and update user stats."""
@@ -1318,6 +1516,10 @@ def quiz_submit(quiz_id: str, req: QuizSubmitRequest):
         except (ConnectionError, TimeoutError):
             weak_topics_text = "AI unavailable for weak-topic analysis."
             recommendation_text = "Complete more quizzes and review weak areas from your stats."
+
+    # Enqueue panic mode for AWS sync when applicable
+    if quiz_id == "panic" and results:
+        _enqueue_panic_quiz_for_sync(results, len(items_list))
 
     return QuizSubmitResponse(
         results=results,

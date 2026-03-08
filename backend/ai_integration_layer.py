@@ -458,7 +458,10 @@ class AIEngine:
             return (
                 f"Generate {count} open-ended exam questions for the subject: {subject}. "
                 "Base questions on the provided content. "
-                "You MUST respond ONLY with a raw JSON array of objects. Do not include markdown or explanations. "
+                "Return ONLY a valid JSON array. No markdown. No code blocks. No backticks. No explanation text before or after. "
+                "No trailing commas. The response must start with [ and end with ]. "
+                "Each question must follow this exact schema: "
+                "{'id': string, 'topic': string, 'question': string, 'expected_answer': string}. "
                 'Format: [{"id": "q1", "topic": "' + subject + '", "question": "...", "expected_answer": "..."}, ...]'
             )
         if task_type == AITaskType.STUDY_RECOMMENDATION:

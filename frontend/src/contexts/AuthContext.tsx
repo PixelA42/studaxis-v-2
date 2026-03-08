@@ -89,6 +89,10 @@ interface AuthContextValue {
   userLoggedIn: boolean; // alias for isAuthenticated (backward compat)
   profile: Profile;
   setProfile: (p: Partial<Profile>) => void;
+  pendingOTP: boolean;
+  pendingEmail: string;
+  afterSignupStarted: (email: string) => void;
+  afterOTPVerified: (token: string) => void;
   /** Accept JWT from backend, decode, save, update state */
   login: (token: string, userInfo?: { username?: string; email?: string }) => void;
   /** Convenience: authenticate with credentials, then call login with token */
@@ -105,6 +109,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingOTP, setPendingOTP] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
   const [profile, setProfileState] = useState<Profile>(loadStoredProfile);
   const [connectivityStatus, setConnectivityStatus] = useState<
     "online" | "offline" | "unknown"
@@ -276,6 +282,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [login]
   );
 
+  const afterSignupStarted = useCallback((email: string) => {
+    setPendingOTP(true);
+    setPendingEmail(email);
+    // do NOT set isAuthenticated here
+  }, []);
+
+  const afterOTPVerified = useCallback(
+    (token: string) => {
+      setPendingOTP(false);
+      setPendingEmail("");
+      login(token);
+    },
+    [login]
+  );
+
   const isAuthenticated = user !== null;
 
   const value = useMemo(
@@ -286,6 +307,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       userLoggedIn: isAuthenticated,
       profile,
       setProfile,
+      pendingOTP,
+      pendingEmail,
+      afterSignupStarted,
+      afterOTPVerified,
       login,
       loginWithCredentials,
       signup,
@@ -298,6 +323,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       profile,
       setProfile,
+      pendingOTP,
+      pendingEmail,
+      afterSignupStarted,
+      afterOTPVerified,
       login,
       loginWithCredentials,
       signup,

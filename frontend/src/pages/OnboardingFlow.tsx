@@ -5,6 +5,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { flushSync } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useAppState } from "../contexts/AppStateContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -700,7 +701,7 @@ export function OnboardingFlow({
         setStep("otp");
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Signup failed.";
-        if (msg === "EMAIL_EXISTS") {
+        if (msg === "Email Already Exists, Please Sign In") {
           setTab("signin");
           formRef.current.email = e.trim().toLowerCase();
           setError("Account already exists. Please sign in.");
@@ -713,6 +714,13 @@ export function OnboardingFlow({
     }
   };
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // FIX: flushSync forces login() + setProfile() state updates to commit to
+  // the React tree *synchronously* before navigate() runs. Without this,
+  // React 18 batches the setUser() call from login() with the navigate()
+  // transition, so ProtectedRoute on /onboarding sees isAuthenticated=false
+  // on its first render and bounces the user away.
+  // ─────────────────────────────────────────────────────────────────────────
   const handleOtpVerify = async () => {
     if (otp.replace(/\s/g, "").length < 6) {
       setOtpErr("Please enter all 6 digits.");
@@ -725,14 +733,20 @@ export function OnboardingFlow({
         email: formRef.current.email.trim(),
         otp: otp.replace(/\s/g, ""),
       });
-      login(res.access_token, { email: formRef.current.email.trim().toLowerCase() });
-      setProfile({ onboarding_complete: res.onboarding_complete ?? false });
-      if (tab === "signup") {
-        const { name: n, username: u } = formRef.current;
-        setProfile({ profile_name: n.trim() || u || undefined });
-      }
+
+      // Flush auth state synchronously so isAuthenticated is true
+      // by the time navigate("/onboarding") renders ProtectedRoute.
+      flushSync(() => {
+        login(res.access_token, { email: formRef.current.email.trim().toLowerCase() });
+        setProfile({ onboarding_complete: res.onboarding_complete ?? false });
+        if (tab === "signup") {
+          const { name: n, username: u } = formRef.current;
+          setProfile({ profile_name: n.trim() || u || undefined });
+        }
+      });
+
       setOtpOk(true);
-      setTimeout(() => setStep("role"), 900);
+      navigate("/onboarding", { replace: true });
     } catch (err) {
       setOtpErr(err instanceof Error ? err.message : "Verification failed.");
     } finally {

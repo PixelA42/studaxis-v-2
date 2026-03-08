@@ -190,7 +190,7 @@ def signup(
     # Check email already exists
     existing_email = db.query(User).filter(User.email == req.email.strip().lower()).first()
     if existing_email:
-        raise HTTPException(status_code=409, detail="EMAIL_EXISTS")
+        raise HTTPException(status_code=409, detail="Email Already Exists, Please Sign In")
 
     hashed = hash_password(req.password)
     user = User(

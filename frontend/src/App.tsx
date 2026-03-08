@@ -34,6 +34,7 @@ const SyncPage = lazy(() => import("./pages/Sync").then((m) => ({ default: m.Syn
 const TeacherInsightsPage = lazy(() => import("./pages/TeacherInsights").then((m) => ({ default: m.TeacherInsightsPage })));
 const ErrorDemoPage = lazy(() => import("./pages/ErrorDemo").then((m) => ({ default: m.ErrorDemoPage })));
 const VerifyEmailPage = lazy(() => import("./pages/VerifyEmail").then((m) => ({ default: m.VerifyEmailPage })));
+const VerifyOTP = lazy(() => import("./pages/VerifyOTP").then((m) => ({ default: m.VerifyOTP })));
 
 const PageFallback = () => (
   <div className="min-h-[40vh] flex items-center justify-center">
@@ -79,9 +80,8 @@ function AppRoutes() {
       <Route path="/auth/signup" element={<Auth />} />
       <Route path="/login" element={<OnboardingFlow onComplete={() => navigate("/dashboard", { replace: true })} />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
-      <Route element={<ProtectedRoute requireProfile={false} />}>
-        <Route path="/onboarding" element={<OnboardingFlow startFrom="role" onComplete={() => navigate("/dashboard", { replace: true })} />} />
-      </Route>
+      <Route path="/verify-otp" element={<VerifyOTP />} />
+      <Route path="/onboarding" element={<OnboardingFlow startFrom="role" onComplete={() => navigate("/dashboard", { replace: true })} />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/teacher-insights" element={<TeacherInsightsPage />} />
         <Route path="/error-demo" element={<ErrorDemoPage />} />

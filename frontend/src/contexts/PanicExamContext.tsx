@@ -7,10 +7,12 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
+import { useLocation } from "react-router-dom";
 
 interface PanicExamContextValue {
   /** True when user is in fullscreen exam (locks navbar) */
@@ -21,7 +23,15 @@ interface PanicExamContextValue {
 const PanicExamContext = createContext<PanicExamContextValue | null>(null);
 
 export function PanicExamProvider({ children }: { children: ReactNode }) {
+  const location = useLocation();
   const [examActive, setExamActiveState] = useState(false);
+
+  // FIX 3: Reset examActive when navigating away from panic mode
+  useEffect(() => {
+    if (!location.pathname.includes("/panic-mode")) {
+      setExamActiveState(false);
+    }
+  }, [location.pathname]);
 
   const setExamActive = useCallback((active: boolean) => {
     setExamActiveState(active);

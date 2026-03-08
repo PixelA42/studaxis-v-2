@@ -49,7 +49,7 @@ export function Auth() {
   const [loginPassword, setLoginPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { isAuthenticated, profile, signup, loginWithCredentials } = useAuth();
+  const { isAuthenticated, profile, afterSignupStarted, loginWithCredentials } = useAuth();
   const navigate = useNavigate();
 
   // Already registered/logged in → go to dashboard or onboarding based on completion
@@ -127,13 +127,16 @@ export function Auth() {
     if (!canSignupStep2) return;
     setLoading(true);
     try {
-      const res = await postSignup({
+      await postSignup({
         email: email.trim().toLowerCase(),
         username: username.trim(),
         password,
       });
-      signup(res);
-      navigate("/onboarding", { replace: true, state: { startFrom: "otp", email: email.trim().toLowerCase() } });
+      afterSignupStarted(email.trim().toLowerCase());
+      navigate("/verify-otp", {
+        replace: true,
+        state: { email: email.trim().toLowerCase() },
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Signup failed. Please try again.";
       setError(msg);
