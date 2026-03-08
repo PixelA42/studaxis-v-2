@@ -7,8 +7,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useAppState } from "../contexts/AppStateContext";
 import { useAuth, type Profile } from "../contexts/AuthContext";
 import { GlassCard } from "../components/GlassCard";
+import { HardwareCheckModal } from "../components/HardwareCheckModal";
 import { getHealth, getHardware } from "../services/api";
-import type { HardwareResponse } from "../services/api";
 
 type Phase =
   | "splash"
@@ -75,7 +75,7 @@ export function BootFlow({ onComplete }: { onComplete: () => void }) {
             <SplashScreen onNext={() => setPhase("hardware")} />
           )}
           {phase === "hardware" && (
-            <HardwareScreen onNext={() => setPhase("connectivity")} />
+            <HardwareCheckPhase onNext={() => setPhase("connectivity")} />
           )}
           {phase === "connectivity" && (
             <ConnectivityScreen
@@ -134,114 +134,18 @@ function SplashScreen({ onNext }: { onNext: () => void }) {
   );
 }
 
-function HardwareScreen({ onNext }: { onNext: () => void }) {
-  const [result, setResult] = useState<HardwareResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+function HardwareCheckPhase({ onNext }: { onNext: () => void }) {
+  const [specs, setSpecs] = useState<{ ram_gb?: number; cpu_count?: number; disk_free_gb?: number } | null>(null);
 
   useEffect(() => {
     getHardware()
-      .then(setResult)
-      .catch(() =>
-        setResult({
-          status: "ok",
-          message: "Hardware check unavailable.",
-          specs: {},
-          tips: [],
-        })
-      )
-      .finally(() => setLoading(false));
+      .then((r) => setSpecs(r.specs ?? null))
+      .catch(() => setSpecs(null));
   }, []);
 
-  if (loading) {
-    return (
-      <div className="text-center py-4">
-        <h1 className="text-xl font-semibold text-primary">Checking your laptop hardware</h1>
-        <p className="text-sm text-primary/70 mt-2">Checking RAM and disk space...</p>
-      </div>
-    );
-  }
-
-  const r = result!;
-  const isBlock = r.status === "block";
-  const isWarn = r.status === "warn";
-  const specs = r.specs || {};
-  const tips = r.tips || [];
-  const minRam = r.min_ram_gb ?? 4;
-  const minDisk = r.min_disk_gb ?? 2;
-
   return (
-    <div className="py-4">
-      <h1 className="text-xl font-semibold text-primary text-center">
-        {isBlock ? "Hardware below minimum" : "Your laptop and Studaxis"}
-      </h1>
-      <p className="text-sm text-primary/70 mt-2 text-center whitespace-pre-wrap">{r.message}</p>
-      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <div className="p-3 rounded-xl border border-glass-border bg-surface-light/50">
-          <span className="text-primary/60 block">RAM</span>
-          <span className={specs.ram_gb != null && specs.ram_gb < minRam ? "text-red-400 font-medium" : "text-primary"}>
-            {specs.ram_gb != null ? `${specs.ram_gb} GB` : "—"} / min {minRam} GB
-          </span>
-        </div>
-        <div className="p-3 rounded-xl border border-glass-border bg-surface-light/50">
-          <span className="text-primary/60 block">Disk (free)</span>
-          <span className={specs.disk_free_gb != null && specs.disk_free_gb < minDisk ? "text-red-400 font-medium" : "text-primary"}>
-            {specs.disk_free_gb != null ? `${specs.disk_free_gb} GB` : "—"} / min {minDisk} GB
-          </span>
-        </div>
-      </div>
-      {tips.length > 0 && (
-        <div className="mt-4">
-          <p className="text-xs font-medium text-primary/70 mb-2">Tips for this device</p>
-          <ul className="text-xs text-primary/80 space-y-1 list-disc list-inside">
-            {tips.map((t, i) => (
-              <li key={i}>{t}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-      <div className="mt-6 flex flex-col gap-2">
-        {isBlock && (
-          <p className="text-sm text-amber-400">
-            Studaxis may not run properly. You can still continue at your own risk or close other apps and retry.
-          </p>
-        )}
-        {r.status === "ok" && (
-          <button
-            type="button"
-            onClick={onNext}
-            className="w-full px-6 py-2.5 rounded-xl bg-accent-blue text-deep font-semibold hover:opacity-90 transition-opacity"
-          >
-            Continue
-          </button>
-        )}
-        {isWarn && (
-          <>
-            <button
-              type="button"
-              onClick={onNext}
-              className="w-full px-6 py-2.5 rounded-xl border border-glass-border text-primary font-medium hover:bg-surface-light"
-            >
-              Optimize later in Settings
-            </button>
-            <button
-              type="button"
-              onClick={onNext}
-              className="w-full px-6 py-2.5 rounded-xl bg-accent-blue text-deep font-semibold hover:opacity-90 transition-opacity"
-            >
-              Continue anyway
-            </button>
-          </>
-        )}
-        {isBlock && (
-          <button
-            type="button"
-            onClick={onNext}
-            className="w-full px-6 py-2.5 rounded-xl border border-amber-500/50 text-amber-400 font-medium hover:bg-amber-500/10"
-          >
-            Continue anyway
-          </button>
-        )}
-      </div>
+    <div className="py-2">
+      <HardwareCheckModal onContinue={onNext} specs={specs} />
     </div>
   );
 }

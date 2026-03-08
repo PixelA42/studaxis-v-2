@@ -1,29 +1,105 @@
-# Python cache and build artifacts
+# ─────────────────────────────────────────────────────────────────────────────
+# Environment / Secrets
+# ─────────────────────────────────────────────────────────────────────────────
+.env
+.env.*
+.env.example
+.env.aws.example
+**/.env.example
+**/.env.aws.example
+*.env
+backend/.env
+backend/.env.example
+aws-infra/teacher-dashboard-web/.env
+aws-infra/teacher-dashboard-web/.env.example
+frontend/.env
+frontend/.env.example
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Python
+# ─────────────────────────────────────────────────────────────────────────────
 __pycache__/
+**/__pycache__/
 *.py[cod]
-*$py.class
+*.pyo
+*.pyd
 *.so
 .Python
-venv/
-env/
-ENV/
-.venv
-studaxis-vtwo-env/
-local-app/__pycache__/
-local-app/pages/__pycache__/
-local-app/tests/__pycache__/
-local-app/utils/__pycache__/
-flashcards_system/__pycache__/
-ai_chat/__pycache__/
-aws-infra/lambda/__pycache__/
-aws-infra/lambda/quiz_generation/__pycache__/
-aws-infra/teacher-dashboard/__pycache__/
-aws-infra/teacher-dashboard/utils/__pycache__/
+*.log
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Virtual Environments
+# ─────────────────────────────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+ENV/
+studaxis-vtwo-env/
+env-studaxisvtwo/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Build Artifacts
+# ─────────────────────────────────────────────────────────────────────────────
+build/
+dist/
+*.egg-info/
+*.egg
+*.exe
+*.spec
+
+# ─────────────────────────────────────────────────────────────────────────────
+# IDE Files
+# ─────────────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Node / Frontend
+# ─────────────────────────────────────────────────────────────────────────────
+node_modules/
+dist/
+.cache/
+tsconfig.tsbuildinfo
+tsconfig.node.tsbuildinfo
+npm-debug.log
+yarn-error.log
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OS Files
+# ─────────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AWS / Cloud
+# ─────────────────────────────────────────────────────────────────────────────
+.aws-sam/
+samconfig.toml
+*.pem
+*.key
+*.crt
+*.secret
+*.aws
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Streamlit
+# ─────────────────────────────────────────────────────────────────────────────
 .streamlit/
 
-# Data (local user data should not be committed)
+# ─────────────────────────────────────────────────────────────────────────────
+# Data (local user data — do not commit)
+# ─────────────────────────────────────────────────────────────────────────────
+data/chromadb/
+data/backups/
+data/user_stats.json
+data/flashcards.json
+data/question_bank.json
 local-app/data/*.json
 local-app/data/backups/*.json
 local-app/data/conflict_log.jsonl
@@ -33,158 +109,32 @@ local-app/data/sync_queue.json
 local-app/data/sync_state.json
 local-app/data/user_stats.json
 local-app/data/quiz_cache/
-data/chromadb/*
-data/backups/
+local-app/data/ai_request_log.jsonl
 !local-app/data/.gitkeep
 !local-app/data/backups/.gitkeep
 !data/chromadb/.gitkeep
 
-# Environment and secrets
-.env
-.env.local
-local-app/.env
-local-app/.env.example
-aws-infra/teacher-dashboard-web/.env
-aws-infra/teacher-dashboard-web/.env.example
+# ─────────────────────────────────────────────────────────────────────────────
+# Testing
+# ─────────────────────────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
 
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# Node.js (Teacher Dashboard)
-node_modules/
-dist/
-.cache/
-aws-infra/teacher-dashboard-web/dist/
-aws-infra/teacher-dashboard-web/node_modules/
-aws-infra/teacher-dashboard-web/tsconfig.node.tsbuildinfo
-aws-infra/teacher-dashboard-web/tsconfig.tsbuildinfo
-
-# AWS
-.aws-sam/
-samconfig.toml
-
-# Build artifacts
-*.egg-info/
-build/
-dist/
-
-# Temporary files
-*.tmp
-*.temp
-
-# Stuadaxis-specific
-imported-ui/
-imported-ui-one/
-docs/
-.kiro/specs/aws-infrastructure-elevation/tasks.md
-local-app/data/
-
-# Setup-related markdown files 
-AWS_SETUP_GUIDE.md
-COMMIT_GUIDE.md
-GIT_SETUP.md
-LAMBDA_TESTING_COMPLETE.md
-NEXT_STEPS.md
-PROJECT_INIT.md
-QUICKSTART.md
-README_SYNC_UI.md
-STRUCTURE.md
-SYNC_IMPLEMENTATION_COMPLETE.md
-SYNC_UI_DEMO_GUIDE.md
-DAY1_PROGRESS.md
-
-# Additional markdown and env files for security/privacy
-DAY1_PROGRESS.md
-local-app/INTEGRATION_CHECKLIST.md
-local-app/README_SYNC_ORCHESTRATOR.md
-
-# Lambda and conflict resolution docs
-aws-infra/lambda/LAMBDA_TESTING_GUIDE.md
-aws-infra/lambda/QUICK_REFERENCE.md
-aws-infra/lambda/TESTING_COMPLETE.md
-local-app/CONFLICT_RESOLUTION_INTEGRATION.md
-local-app/README_CONFLICT_RESOLUTION.md
-
-# Kiro config (privacy/security)
-.kiro/specs/aws-infrastructure-elevation/.config
-
-# Python cache and build artifacts
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.egg
-*.egg-info/
-dist/
-build/
-*.log
-
-# Virtual environments
-env*/
-venv/
-.venv/
-env-studaxisvtwo/
-
-# Jupyter Notebook checkpoints
+# ─────────────────────────────────────────────────────────────────────────────
+# Jupyter
+# ─────────────────────────────────────────────────────────────────────────────
 .ipynb_checkpoints/
 
-# OS-specific files
-.DS_Store
-Thumbs.db
-
-# IDE-specific files
-.vscode/
-.idea/
-*.sublime-workspace
-*.sublime-project
-
-# Node.js dependencies and build outputs
-node_modules/
-npm-debug.log
-yarn-error.log
-package-lock.json
-yarn.lock
-
-# Frontend build artifacts
-teacher-dashboard-web/dist/
-teacher-dashboard-web/build/
-teacher-dashboard-web/.cache/
-teacher-dashboard-web/.next/
-teacher-dashboard-web/.nuxt/
-
-# AWS/Cloud/Secrets
-*.env
-.env.*
-*.aws
-*.pem
-*.key
-*.crt
-*.secret
-aws-infra/lambda/test_events.py  # If contains secrets, otherwise remove
-
-# Database and generated data
-data/chromadb/
-data/backups/
-data/user_stats.json
-data/flashcards.json
-data/question_bank.json
-local-app/data/ai_request_log.jsonl
-
-# Miscellaneous
+# ─────────────────────────────────────────────────────────────────────────────
+# Misc
+# ─────────────────────────────────────────────────────────────────────────────
 *.sqlite3
 *.bak
 *.tmp
-
-# Ignore sample textbooks if not needed
-data/sample_textbooks/Class_12_maths_unzipped/
+*.temp
+imported-ui/
+imported-ui-one/
+.kiro/specs/aws-infrastructure-elevation/.config
+docs/

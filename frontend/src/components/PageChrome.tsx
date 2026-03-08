@@ -22,6 +22,7 @@ export function PageChrome({
           <Link
             to={backTo}
             className="chrome-back-btn"
+            aria-label={`Back: ${backLabel.replace(/←\s*/g, "").trim()}`}
           >
             {backLabel}
           </Link>

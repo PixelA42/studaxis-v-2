@@ -55,7 +55,7 @@ QUIZ_INDEX_TABLE = os.getenv('QUIZ_INDEX_TABLE', 'studaxis-quiz-index')
 
 # AppSync + S3 Broker Configuration
 APPSYNC_ENDPOINT = os.getenv('APPSYNC_ENDPOINT', 'https://your-appsync-id.appsync-api.ap-south-1.amazonaws.com/graphql')
-APPSYNC_API_KEY = os.getenv('APPSYNC_API_KEY', 'your-api-key-here')
+APPSYNC_API_KEY = os.getenv('APPSYNC_API_KEY', '')
 S3_PAYLOADS_BUCKET = os.getenv('S3_PAYLOADS_BUCKET', 'studaxis-payloads')
 S3_REGION = os.getenv('S3_REGION', 'ap-south-1')
 

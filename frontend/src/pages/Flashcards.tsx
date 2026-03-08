@@ -30,7 +30,7 @@ import { applySrsRating } from "../utils/srs";
 import type { FlashcardItem, DashboardFlashcardItem } from "../services/api";
 import { useFlashcardDeck } from "../contexts/FlashcardDeckContext";
 import { useNotification } from "../contexts/NotificationContext";
-import { GlassCard, LoadingSpinner, HardwareStatus, PageChrome, AerogelDashboardCard } from "../components";
+import { GlassCard, LoadingSpinner, HardwareStatus, PageChrome, AerogelDashboardCard, EmptyState } from "../components";
 import { MarkdownWithMath } from "../components/MarkdownWithMath";
 import { FlashcardSourceSelector } from "../components/FlashcardSourceSelector";
 
@@ -53,9 +53,11 @@ function RecentDecksList({
   }, []);
   if (decks.length === 0) {
     return (
-      <p className="text-sm text-primary/60 py-4">
-        No recent decks yet. Generate flashcards above to get started.
-      </p>
+      <EmptyState
+        title="No flashcards yet"
+        description="Generate a quiz to unlock your first flashcards."
+        icon="🎴"
+      />
     );
   }
   return (

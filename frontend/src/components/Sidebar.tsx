@@ -150,7 +150,7 @@ export function Sidebar() {
                     to={item.to}
                     end={item.to === "/home" || item.to === "/dashboard"}
                     className={({ isActive: active }) =>
-                      `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                      `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-accent-blue focus:ring-offset-2 focus:ring-offset-transparent ${
                         collapsed ? "justify-center" : ""
                       } ${
                         active

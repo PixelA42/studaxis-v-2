@@ -7,8 +7,9 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
+import { useNotification } from "../contexts/NotificationContext";
 import { useEffect, useState } from "react";
-import { StatCard, FeatureCard, StatusIndicator } from "../components";
+import { StatCard, FeatureCard, StatusIndicator, SkeletonCard, Skeleton } from "../components";
 import { Icons } from "../components/icons";
 import type { UserStats, InsightItem } from "../services/api";
 import {
@@ -51,35 +52,66 @@ function formatLastSync(iso: string | null | undefined): string {
 export function DashboardPage() {
   const { profile, connectivityStatus, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { push } = useNotification();
   const navigate = useNavigate();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [syncPending, setSyncPending] = useState(false);
   const [flashcardsDueCount, setFlashcardsDueCount] = useState<number>(0);
   const [insights, setInsights] = useState<InsightItem[]>([]);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [loadingSync, setLoadingSync] = useState(true);
+  const [loadingFlashcards, setLoadingFlashcards] = useState(true);
+  const [loadingInsights, setLoadingInsights] = useState(true);
 
   useEffect(() => {
+    setLoadingStats(true);
     getUserStats()
       .then(setStats)
-      .catch(() => setStats(null));
-  }, []);
+      .catch((e) => {
+        setStats(null);
+        push({
+          type: "error",
+          title: "Failed to load stats",
+          message: connectivityStatus === "offline"
+            ? "You're offline. Stats will load when back online."
+            : (e instanceof Error ? e.message : "Please try again."),
+        });
+      })
+      .finally(() => setLoadingStats(false));
+  }, [connectivityStatus, push]);
 
   useEffect(() => {
+    setLoadingSync(true);
     getSyncStatus()
       .then((s) => setSyncPending((s.queue?.total ?? 0) > 0))
-      .catch(() => setSyncPending(false));
-  }, []);
+      .catch(() => {
+        setSyncPending(false);
+        push({
+          type: "warning",
+          title: "Sync status unavailable",
+          message: connectivityStatus === "offline" ? "Connect to check sync status." : "Could not check sync status.",
+        });
+      })
+      .finally(() => setLoadingSync(false));
+  }, [connectivityStatus, push]);
 
   useEffect(() => {
+    setLoadingFlashcards(true);
     getFlashcardsDue()
       .then((r) => setFlashcardsDueCount(r?.cards?.length ?? 0))
-      .catch(() => setFlashcardsDueCount(0));
+      .catch(() => setFlashcardsDueCount(0))
+      .finally(() => setLoadingFlashcards(false));
   }, []);
 
   useEffect(() => {
+    setLoadingInsights(true);
     getInsights()
       .then((r) => setInsights(r?.insights ?? []))
-      .catch(() => setInsights([]));
+      .catch(() => setInsights([]))
+      .finally(() => setLoadingInsights(false));
   }, []);
+
+  const statsLoading = loadingStats;
 
   if (!profile.profile_name) {
     navigate("/onboarding", { replace: true });
@@ -233,32 +265,42 @@ export function DashboardPage() {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard
-          icon={Icons.streak}
-          iconColor="orange"
-          value={String(streak)}
-          label="Day Streak"
-          sub={`Longest: ${streakLongest} days`}
-          progressPct={streakProgressPct}
-          progressLabel={streakMilestoneLabel}
-          emptyHint={streak === 0 && quizAttempted === 0 && flashcardsMastered === 0 ? "Complete your first session to start your streak" : undefined}
-        />
-        <StatCard
-          icon={Icons.chart}
-          iconColor="blue"
-          value={`${quizAvg}%`}
-          label="Quiz Average"
-          sub={`${quizAttempted} attempt${quizAttempted !== 1 ? "s" : ""} total`}
-          emptyHint={quizAttempted === 0 ? "Take your first quiz to see your score here" : undefined}
-        />
-        <StatCard
-          icon={Icons.cards}
-          iconColor="green"
-          value={String(flashcardsMastered)}
-          label="Cards Mastered"
-          sub={`${flashcardsDue} due for review`}
-          emptyHint={flashcardsMastered === 0 ? "Review flashcards to track mastery here" : undefined}
-        />
+        {statsLoading ? (
+          <>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </>
+        ) : (
+          <>
+            <StatCard
+              icon={Icons.streak}
+              iconColor="orange"
+              value={String(streak)}
+              label="Day Streak"
+              sub={`Longest: ${streakLongest} days`}
+              progressPct={streakProgressPct}
+              progressLabel={streakMilestoneLabel}
+              emptyHint={streak === 0 && quizAttempted === 0 && flashcardsMastered === 0 ? "Complete your first session to start your streak" : undefined}
+            />
+            <StatCard
+              icon={Icons.chart}
+              iconColor="blue"
+              value={`${quizAvg}%`}
+              label="Quiz Average"
+              sub={`${quizAttempted} attempt${quizAttempted !== 1 ? "s" : ""} total`}
+              emptyHint={quizAttempted === 0 ? "Take your first quiz to see your score here" : undefined}
+            />
+            <StatCard
+              icon={Icons.cards}
+              iconColor="green"
+              value={String(flashcardsMastered)}
+              label="Cards Mastered"
+              sub={`${flashcardsDue} due for review`}
+              emptyHint={flashcardsMastered === 0 ? "Review flashcards to track mastery here" : undefined}
+            />
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -368,7 +410,12 @@ export function DashboardPage() {
             <span aria-hidden>{Icons.cards}</span>
             Flashcards Due
           </h3>
-          {flashcardsDue > 0 ? (
+          {loadingFlashcards ? (
+            <>
+              <Skeleton width="40%" height={28} variant="text" className="mb-2" aria-label="Loading flashcards count" />
+              <Skeleton width="70%" height={12} variant="text" aria-label="Loading flashcards sub" />
+            </>
+          ) : flashcardsDue > 0 ? (
             <>
               <p className="text-2xl font-bold text-accent-blue">{flashcardsDue}</p>
               <p className="text-xs text-muted mt-1">cards ready for review</p>
@@ -393,7 +440,13 @@ export function DashboardPage() {
             <span aria-hidden>{Icons.insights}</span>
             Weak Topics
           </h3>
-          {insights.filter((i) => i.insight_type === "weak_topic_detection").length > 0 ? (
+          {loadingInsights ? (
+            <>
+              <Skeleton width="60%" height={14} variant="text" className="mb-2" aria-label="Loading weak topics" />
+              <Skeleton width="80%" height={14} variant="text" className="mb-1" aria-label="Loading weak topics" />
+              <Skeleton width="50%" height={14} variant="text" aria-label="Loading weak topics" />
+            </>
+          ) : insights.filter((i) => i.insight_type === "weak_topic_detection").length > 0 ? (
             <>
               <ul className="space-y-1.5 text-xs text-muted">
                 {insights

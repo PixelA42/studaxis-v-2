@@ -6,10 +6,13 @@ Used before chunking to identify dominant concepts for topic-aware RAG and flash
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import requests
 from typing import Any
+
+logger = logging.getLogger("studaxis.topic_extractor")
 
 _ollama_base = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
 OLLAMA_API_URL = f"{_ollama_base}/api/generate"
@@ -20,9 +23,16 @@ DEFAULT_TIMEOUT = 90
 def ollama_generate(prompt: str, model: str = DEFAULT_MODEL, timeout: int = DEFAULT_TIMEOUT) -> str:
     """Call Ollama API for completion. Returns raw response text."""
     payload = {"model": model, "prompt": prompt, "stream": False}
-    resp = requests.post(OLLAMA_API_URL, json=payload, timeout=timeout)
-    resp.raise_for_status()
-    return (resp.json().get("response") or "").strip()
+    try:
+        resp = requests.post(OLLAMA_API_URL, json=payload, timeout=timeout)
+        resp.raise_for_status()
+        return (resp.json().get("response") or "").strip()
+    except requests.exceptions.Timeout:
+        logger.warning("Ollama topic extraction timed out after %ds", timeout)
+        raise
+    except requests.exceptions.RequestException as e:
+        logger.warning("Ollama topic extraction request failed: %s", e)
+        raise
 
 
 def parse_ai_json(raw: str) -> list[str]:
@@ -85,7 +95,7 @@ No markdown. No backticks. Start with [ end with ]"""
         topics = parse_ai_json(raw)
         return topics[:num_topics] if topics else []
     except Exception as e:
-        print(f"[topic_extractor] Ollama extraction failed: {e}")
+        logger.warning("Ollama topic extraction failed: %s", e)
         return []
 
 
@@ -121,5 +131,5 @@ No markdown. No backticks. Start with [ end with ]'''
         raw = ollama_generate(prompt, model=model, timeout=timeout)
         return parse_ai_json(raw)[:3]
     except Exception as e:
-        print(f"[topic_extractor] map_question_to_topics failed: {e}")
+        logger.warning("map_question_to_topics failed: %s", e)
         return []

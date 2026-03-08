@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PageChrome } from "../components/PageChrome";
+import { PageChrome, Skeleton } from "../components";
 import {
   getTextbooks,
   uploadTextbookWithProgress,
@@ -36,16 +36,21 @@ export function TextbooksPage() {
   const [existingTextbooks, setExistingTextbooks] = useState<
     TextbooksResponse["textbooks"]
   >([]);
+  const [loadingTextbooks, setLoadingTextbooks] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refreshTextbooks = useCallback(async () => {
+    setLoadingTextbooks(true);
     try {
       const r = await getTextbooks();
       setExistingTextbooks(r.textbooks);
-    } catch {
+    } catch (e) {
       setExistingTextbooks([]);
+      push({ type: "error", title: "Failed to load textbooks", message: e instanceof Error ? e.message : "Please try again." });
+    } finally {
+      setLoadingTextbooks(false);
     }
-  }, []);
+  }, [push]);
 
   useEffect(() => {
     refreshTextbooks();
@@ -235,7 +240,13 @@ export function TextbooksPage() {
               <span>QUEUE</span>
               <span>{queue.length} ITEMS</span>
             </div>
-            {existingTextbooks.length > 0 && (
+            {loadingTextbooks ? (
+              <div className="tb-file-list" style={{ paddingBottom: 16 }}>
+                <Skeleton width="60%" height={14} variant="text" className="mb-3" aria-label="Loading textbooks" />
+                <Skeleton width="90%" height={12} variant="text" className="mb-2" aria-label="Loading textbooks" />
+                <Skeleton width="70%" height={12} variant="text" aria-label="Loading textbooks" />
+              </div>
+            ) : existingTextbooks.length > 0 ? (
               <div className="tb-file-list" style={{ borderBottom: "1px solid var(--tb-border)", paddingBottom: 16, marginBottom: 8 }}>
                 <div style={{ fontSize: 10, color: "var(--tb-subtle)", textTransform: "uppercase", marginBottom: 12 }}>
                   Library ({existingTextbooks.length})
@@ -251,12 +262,12 @@ export function TextbooksPage() {
                   </div>
                 )}
               </div>
-            )}
+            ) : null}
             <div className="tb-file-list">
               {queue.length === 0 ? (
                 <p style={{ color: "var(--tb-subtle)", fontSize: 13 }}>
                   {existingTextbooks.length === 0
-                    ? "Drop files or click to add."
+                    ? "No textbooks loaded. Add one to get started."
                     : "Happy Learning!"}
                 </p>
               ) : (

@@ -38,29 +38,29 @@ def quick_integration_test():
         
         # Test 1: Initial state
         assert orch.get_state() == "IDLE", "Initial state should be IDLE"
-        print("✅ Test 1: Initial state correct")
+        print("[OK] Test 1: Initial state correct")
         
         # Test 2: State persistence
         orch.state = "QUEUED"
         orch._save_state()
         orch2 = SyncOrchestrator(base_path=".")
         assert orch2.get_state() == "QUEUED", "State should persist"
-        print("✅ Test 2: State persistence works")
+        print("[OK] Test 2: State persistence works")
         
         # Test 3: Cleanup
         orch.cleanup()
         orch2.cleanup()
-        print("✅ Test 3: Cleanup successful")
+        print("[OK] Test 3: Cleanup successful")
         
         return True
         
     except Exception as e:
-        print(f"❌ Integration test failed: {e}")
+        print(f"[FAIL] Integration test failed: {e}")
         return False
 
 def main():
     """Run all tests."""
-    print("\n🧪 SyncOrchestrator Test Suite")
+    print("\nSyncOrchestrator Test Suite")
     print("=" * 60)
     
     results = {
@@ -73,7 +73,7 @@ def main():
     print("=" * 60)
     
     for name, passed in results.items():
-        status = "✅ PASSED" if passed else "❌ FAILED"
+        status = "[PASSED]" if passed else "[FAILED]"
         print(f"{name:20s} {status}")
     
     print("=" * 60)
@@ -81,10 +81,10 @@ def main():
     all_passed = all(results.values())
     
     if all_passed:
-        print("\n🎉 All tests passed!")
+        print("\nAll tests passed!")
         return 0
     else:
-        print("\n⚠️ Some tests failed. Check output above.")
+        print("\nSome tests failed. Check output above.")
         return 1
 
 if __name__ == "__main__":

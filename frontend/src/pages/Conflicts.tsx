@@ -4,8 +4,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { PageChrome, GlassCard, StatusIndicator } from "../components";
+import { PageChrome, GlassCard, StatusIndicator, EmptyState, SkeletonCard } from "../components";
 import { useAuth } from "../contexts/AuthContext";
+import { useNotification } from "../contexts/NotificationContext";
 import {
   getSyncConflicts,
   resolveConflict,
@@ -47,6 +48,7 @@ function formatTimestamp(iso: string | undefined): string {
 
 export function ConflictsPage() {
   const { connectivityStatus } = useAuth();
+  const { push } = useNotification();
   const [conflicts, setConflicts] = useState<SyncConflict[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,12 +63,14 @@ export function ConflictsPage() {
       const res = await getSyncConflicts();
       setConflicts(res.conflicts ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load conflicts");
+      const msg = e instanceof Error ? e.message : "Failed to load conflicts";
+      setError(msg);
       setConflicts([]);
+      push({ type: "error", title: "Conflicts load failed", message: msg });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [push]);
 
   useEffect(() => {
     if (isOffline) {
@@ -86,9 +90,12 @@ export function ConflictsPage() {
     setResolving(entityId);
     try {
       await resolveConflict(entityId, choice);
+      push({ type: "success", title: "Conflict resolved", message: `${entityId} resolved successfully.` });
       await loadConflicts();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Resolution failed");
+      const msg = e instanceof Error ? e.message : "Resolution failed";
+      setError(msg);
+      push({ type: "error", title: "Resolution failed", message: msg });
     } finally {
       setResolving(null);
     }
@@ -109,29 +116,36 @@ export function ConflictsPage() {
         </div>
 
         {loading && (
-          <GlassCard title="Loading">
-            <p className="text-primary/80">Fetching conflicts…</p>
-          </GlassCard>
+          <div className="grid grid-cols-1 gap-4">
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
         )}
 
-        {error && (
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-400 text-sm">
+        {error && !loading && (
+          <div
+            className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-400 text-sm"
+            role="alert"
+            aria-live="polite"
+          >
             {error}
           </div>
         )}
 
-        {!loading && conflicts.length === 0 && (
-          <GlassCard title="Conflict resolution">
-            <p className="text-primary/80 mb-4">
-              No conflicts right now. All data is synchronized.
-            </p>
-            <Link
-              to="/sync"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-glass-border bg-surface-light text-primary hover:bg-surface-light/80 font-medium text-sm"
-            >
-              Open Sync Status
-            </Link>
-          </GlassCard>
+        {!loading && !error && conflicts.length === 0 && (
+          <EmptyState
+            title="No conflicts"
+            description="All data is synchronized. When local and cloud data differ, conflicts will appear here."
+            icon="✓"
+            action={
+              <Link
+                to="/sync"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-glass-border bg-surface-light text-primary hover:bg-surface-light/80 font-medium text-sm"
+              >
+                Open Sync Status
+              </Link>
+            }
+          />
         )}
 
         {!loading && conflicts.length > 0 && (

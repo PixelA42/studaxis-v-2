@@ -309,12 +309,16 @@ export function QuizPage() {
           <div className="quiz-home__form">
             <div className="quiz-home__field">
               <label>Source</label>
-              <div className="quiz-home__pills">
+              <div className="quiz-home__pills" role="tablist" aria-label="Quiz source type">
                 {SOURCE_TABS.map((s) => (
                   <button
                     key={s.id}
                     type="button"
-                    className={`quiz-home__pill ${sourceTab === s.id ? "quiz-home__pill--on" : ""}`}
+                    role="tab"
+                    aria-selected={sourceTab === s.id}
+                    aria-label={`Select ${s.label} as quiz source`}
+                    tabIndex={sourceTab === s.id ? 0 : -1}
+                    className={`quiz-home__pill ${sourceTab === s.id ? "quiz-home__pill--on" : ""} focus:outline-none focus:ring-2 focus:ring-accent-blue focus:ring-offset-2`}
                     onClick={() => { setSourceTab(s.id); setGenError(null); }}
                   >
                     {s.icon} {s.label}
@@ -431,33 +435,39 @@ export function QuizPage() {
               </select>
             </div>
             <div className="quiz-home__field">
-              <label>Question type</label>
-              <div className="quiz-home__toggle">
+              <label id="quiz-qtype-label">Question type</label>
+              <div className="quiz-home__toggle" role="group" aria-labelledby="quiz-qtype-label">
                 <button
                   type="button"
-                  className={qType === "mcq" ? "quiz-home__toggle--on" : ""}
+                  className={`${qType === "mcq" ? "quiz-home__toggle--on" : ""} focus:outline-none focus:ring-2 focus:ring-accent-blue focus:ring-offset-2`}
                   onClick={() => setQType("mcq")}
+                  aria-pressed={qType === "mcq"}
+                  aria-label="Multiple choice questions"
                 >
                   MCQ
                 </button>
                 <button
                   type="button"
-                  className={qType === "open_ended" ? "quiz-home__toggle--on" : ""}
+                  className={`${qType === "open_ended" ? "quiz-home__toggle--on" : ""} focus:outline-none focus:ring-2 focus:ring-accent-blue focus:ring-offset-2`}
                   onClick={() => setQType("open_ended")}
+                  aria-pressed={qType === "open_ended"}
+                  aria-label="Open-ended questions"
                 >
                   Open Ended
                 </button>
               </div>
             </div>
             <div className="quiz-home__field">
-              <label>Count</label>
-              <div className="quiz-home__count">
+              <label id="quiz-count-label">Count</label>
+              <div className="quiz-home__count" role="group" aria-labelledby="quiz-count-label">
                 {COUNTS.map((c) => (
                   <button
                     key={c}
                     type="button"
-                    className={count === c ? "quiz-home__toggle--on" : ""}
+                    className={`${count === c ? "quiz-home__toggle--on" : ""} focus:outline-none focus:ring-2 focus:ring-accent-blue focus:ring-offset-2`}
                     onClick={() => setCount(c)}
+                    aria-pressed={count === c}
+                    aria-label={`${c} questions`}
                   >
                     {c}
                   </button>
@@ -474,9 +484,11 @@ export function QuizPage() {
             </div>
             <button
               type="button"
-              className="quiz-home__btn quiz-home__btn--primary quiz-home__btn--block"
+              className="quiz-home__btn quiz-home__btn--primary quiz-home__btn--block focus:outline-none focus:ring-2 focus:ring-accent-blue focus:ring-offset-2"
               onClick={handleGenerate}
               disabled={generating}
+              aria-label={generating ? "Generating quiz, please wait" : "Generate quiz"}
+              aria-busy={generating}
             >
               {generating ? "🧠 Generating questions..." : "Generate Quiz →"}
             </button>

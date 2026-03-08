@@ -17,6 +17,7 @@ Or: python main.py  (root main.py mounts SPA and runs uvicorn)
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import time
@@ -78,6 +79,8 @@ DATA_DIR = BASE_PATH / "data"
 STATS_FILE = DATA_DIR / "user_stats.json"
 FLASHCARDS_FILE = DATA_DIR / "flashcards.json"
 SAMPLE_TEXTBOOKS_DIR = DATA_DIR / "sample_textbooks"
+
+logger = logging.getLogger("studaxis.main")
 
 
 def _user_dir(user_id: str) -> Path:
@@ -282,9 +285,10 @@ app.include_router(auth_router)
 @app.on_event("startup")
 def _startup():
     """Ensure auth DB tables exist on startup. Select hardware-aware model."""
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
     init_db()
     model = get_best_model()
-    print(f"[Studaxis] Hardware-aware model selected: {model}")
+    logger.info("Studaxis started; hardware-aware model selected: %s", model)
 
 
 # CORS: allow local React (Vite 5173), same-origin (8000 default, 6782, 6783)
@@ -3477,7 +3481,7 @@ def user_me(current_user: Annotated[User, Depends(get_current_user)]):
 
 
 @app.get("/api/user/stats")
-def user_stats_get(user_id: str = Depends(get_user_id)):
+def user_stats_get(current_user: Annotated[User, Depends(get_current_user)], user_id: str = Depends(get_user_id)):
     """Return user progress, streaks, preferences for the authenticated user."""
     stats = _load_user_stats(user_id)
     ensure_streak_structure(stats)
@@ -3652,7 +3656,7 @@ def insights_get(current_user: Annotated[User, Depends(get_current_user)], user_
 
 
 @app.put("/api/user/stats")
-def user_stats_put(stats: dict[str, Any], user_id: str = Depends(get_user_id)):
+def user_stats_put(stats: dict[str, Any], current_user: Annotated[User, Depends(get_current_user)], user_id: str = Depends(get_user_id)):
     """Update user progress/preferences for the authenticated user. Merges with existing."""
     existing = _load_user_stats(user_id)
     for key, value in stats.items():
@@ -3807,7 +3811,7 @@ def _persist_resolved_entity(entity_type: str, entity_id: str, resolved_data: di
 
 
 @app.post("/api/sync")
-def sync_trigger(user_id: str = Depends(get_user_id)):
+def sync_trigger(current_user: Annotated[User, Depends(get_current_user)], user_id: str = Depends(get_user_id)):
     """Trigger sync with AWS when online. Uses SyncManager.try_sync()."""
     try:
         from sync_manager import SyncManager
@@ -3834,7 +3838,7 @@ def sync_trigger(user_id: str = Depends(get_user_id)):
 
 
 @app.get("/api/sync/status")
-def sync_status(user_id: str = Depends(get_user_id)):
+def sync_status(current_user: Annotated[User, Depends(get_current_user)], user_id: str = Depends(get_user_id)):
     """Return sync status: queue summary, connectivity, last sync."""
     stats = _load_user_stats(user_id)
     prefs = stats.get("preferences") or {}
@@ -3863,7 +3867,7 @@ def sync_status(user_id: str = Depends(get_user_id)):
 
 
 @app.get("/api/sync/conflicts")
-def get_conflicts(user_id: str = Depends(get_user_id)):
+def get_conflicts(current_user: Annotated[User, Depends(get_current_user)], user_id: str = Depends(get_user_id)):
     """Return pending sync conflicts for the authenticated user (scoped by user_id from JWT)."""
     engine = _get_conflict_engine(user_id)
     if engine is None:
@@ -3881,7 +3885,7 @@ class ResolveConflictRequest(BaseModel):
 
 
 @app.post("/api/sync/conflicts/{entity_id}/resolve")
-def resolve_conflict(entity_id: str, body: ResolveConflictRequest, user_id: str = Depends(get_user_id)):
+def resolve_conflict(entity_id: str, body: ResolveConflictRequest, current_user: Annotated[User, Depends(get_current_user)], user_id: str = Depends(get_user_id)):
     """Resolve a conflict by entity_id. Persists resolved data and removes from pending."""
     choice = (body.choice or "").strip().lower()
     if choice not in ("keep_local", "keep_cloud", "merge"):

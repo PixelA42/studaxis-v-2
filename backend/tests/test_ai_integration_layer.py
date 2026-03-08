@@ -1,8 +1,14 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import patch, MagicMock
 
 from ai_integration_layer import AIConfig, AIEngine, AIState, AITaskType
+
+
+def _mock_ollama_success(*args, **kwargs):
+    """Return a valid response string for testing without real Ollama."""
+    return "Test response for momentum."
 
 
 class TestAIIntegrationLayer(unittest.TestCase):
@@ -17,7 +23,8 @@ class TestAIIntegrationLayer(unittest.TestCase):
     def tearDown(self) -> None:
         self.tmpdir.cleanup()
 
-    def test_chat_request_returns_standard_response(self) -> None:
+    @patch("ai_integration_layer.AIEngine._call_ollama", side_effect=_mock_ollama_success)
+    def test_chat_request_returns_standard_response(self, mock_ollama: MagicMock) -> None:
         response = self.engine.request(
             task_type=AITaskType.CHAT,
             user_input="Explain momentum in simple terms.",
@@ -31,7 +38,8 @@ class TestAIIntegrationLayer(unittest.TestCase):
         self.assertIn("execution_target", response.metadata)
         self.assertEqual(response.state, AIState.RESPONSE_RECEIVED)
 
-    def test_offline_forces_local_target(self) -> None:
+    @patch("ai_integration_layer.AIEngine._call_ollama", side_effect=_mock_ollama_success)
+    def test_offline_forces_local_target(self, mock_ollama: MagicMock) -> None:
         response = self.engine.request(
             task_type=AITaskType.CHAT,
             user_input="What is osmosis?",

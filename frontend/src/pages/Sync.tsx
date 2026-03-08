@@ -3,8 +3,9 @@
  */
 
 import { useState, useEffect } from "react";
-import { PageChrome, GlassCard, StatusIndicator } from "../components";
+import { PageChrome, GlassCard, StatusIndicator, Skeleton } from "../components";
 import { useAuth } from "../contexts/AuthContext";
+import { useNotification } from "../contexts/NotificationContext";
 import { getSyncStatus, postSync } from "../services/api";
 import { loadSyncQueue } from "../services/storage";
 
@@ -27,13 +28,19 @@ function formatLastSync(iso: string | null | undefined): string {
 
 export function SyncPage() {
   const { connectivityStatus } = useAuth();
+  const { push } = useNotification();
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [queueTotal, setQueueTotal] = useState<number | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   const loadStatus = () => {
-    if (connectivityStatus !== "online") return;
+    if (connectivityStatus !== "online") {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
     getSyncStatus()
       .then((s) => {
         setLastSync(s?.last_sync_timestamp ?? null);
@@ -42,7 +49,9 @@ export function SyncPage() {
       .catch(() => {
         setLastSync(null);
         setQueueTotal(null);
-      });
+        push({ type: "error", title: "Sync status failed", message: "Could not load sync status. Check your connection." });
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
@@ -57,11 +66,24 @@ export function SyncPage() {
       const res = await postSync();
       setSyncMessage(res.message ?? (res.ok ? "Sync triggered." : "Sync failed."));
       if (res.ok) {
+        push({ type: "success", title: "Sync complete", message: res.message ?? "Data synced." });
         loadStatus();
         window.dispatchEvent(new Event("sync-queue-updated"));
+      } else {
+        push({ type: "error", title: "Sync failed", message: res.message ?? res.errors?.join(" ") ?? "Please try again." });
       }
     } catch (e) {
-      setSyncMessage(e instanceof Error ? e.message : "Sync request failed.");
+      const msg = e instanceof Error ? e.message : "Sync request failed.";
+      setSyncMessage(msg);
+      const isNetworkError =
+        msg.toLowerCase().includes("fetch") ||
+        msg.toLowerCase().includes("network") ||
+        msg.toLowerCase().includes("failed to fetch");
+      push({
+        type: "error",
+        title: isNetworkError ? "Connection lost" : "Sync failed",
+        message: isNetworkError ? "Check your connection and try again." : msg,
+      });
     } finally {
       setSyncing(false);
     }
@@ -87,11 +109,27 @@ export function SyncPage() {
         </GlassCard>
 
         <GlassCard title="Cloud Sync">
+          {loading ? (
+            <div className="space-y-4" aria-busy="true" aria-label="Loading sync status">
+              <div>
+                <Skeleton width={80} height={12} variant="text" className="mb-2" aria-label="Loading label" />
+                <Skeleton width={120} height={20} aria-label="Loading last sync" />
+              </div>
+              <div>
+                <Skeleton width={200} height={40} variant="rect" aria-label="Loading sync button" className="rounded-xl" />
+              </div>
+            </div>
+          ) : (
           <div className="space-y-4">
             <div>
               <span className="text-primary/60 text-sm block">Last sync</span>
               <span className="text-primary font-medium">{formatLastSync(lastSync)}</span>
             </div>
+            {!loading && queueTotal !== null && queueTotal === 0 && frontendQueueCount === 0 && (
+              <p className="text-sm text-success font-medium">
+                All offline progress is synced!
+              </p>
+            )}
             {queueTotal !== null && queueTotal > 0 && (
               <div>
                 <span className="text-primary/60 text-sm block">Backend queue</span>
@@ -114,13 +152,22 @@ export function SyncPage() {
               onClick={handleSyncNow}
               disabled={!canSync}
               className="px-5 py-2.5 rounded-xl font-medium text-deep bg-accent-blue hover:bg-accent-blue/90 focus:outline-none focus:ring-2 focus:ring-accent-blue disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label={syncing ? "Syncing in progress" : "Trigger sync now"}
             >
-              {syncing ? "Syncing…" : "Sync Now"}
+              {syncing ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="loading-spinner w-4 h-4" aria-hidden />
+                  Syncing…
+                </span>
+              ) : (
+                "Sync Now"
+              )}
             </button>
             {isOffline && (
               <p className="text-sm text-primary/60">Data will sync when online.</p>
             )}
           </div>
+          )}
         </GlassCard>
 
         <GlassCard title="About">

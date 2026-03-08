@@ -8,13 +8,16 @@ Auth API routes: signup, login, JWT generation.
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import secrets
+import time
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
@@ -25,6 +28,10 @@ from profile_store import UserProfile, load_profile, save_profile, load_profile_
 
 # JWT config (must be before dependencies import to avoid circular import)
 JWT_SECRET = os.environ.get("STUDAXIS_JWT_SECRET", "studaxis-dev-secret-change-in-prod")
+if JWT_SECRET == "studaxis-dev-secret-change-in-prod":
+    logging.getLogger("studaxis.auth").warning(
+        "STUDAXIS_JWT_SECRET not set; using dev fallback. Set it in production."
+    )
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_HOURS = 24 * 7  # 7 days
 VERIFICATION_EXPIRY_HOURS = 24  # Email verification token
@@ -91,6 +98,28 @@ class OnboardingData(BaseModel):
     class_code: str | None = None
     subjects: str | None = None
     grade: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Rate limiting (auth endpoints — prevent brute force)
+# ---------------------------------------------------------------------------
+_RATE_WINDOW_SEC = 60
+_RATE_MAX_REQUESTS = 10
+_rate_store: dict[str, list[float]] = defaultdict(list)
+
+
+def _check_rate_limit(request: Request) -> None:
+    """Raise 429 if IP exceeds rate limit. In-memory; resets on restart."""
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    window_start = now - _RATE_WINDOW_SEC
+    _rate_store[client_ip] = [t for t in _rate_store[client_ip] if t > window_start]
+    if len(_rate_store[client_ip]) >= _RATE_MAX_REQUESTS:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many requests. Please try again in a minute.",
+        )
+    _rate_store[client_ip].append(now)
 
 
 # ---------------------------------------------------------------------------
@@ -170,10 +199,12 @@ def _generate_and_send_otp(email: str) -> None:
 
 @router.post("/signup", response_model=AuthResponse)
 def signup(
+    request: Request,
     req: SignupRequest,
     background_tasks: BackgroundTasks,
     db: Annotated[Session, Depends(get_db)],
 ):
+    _check_rate_limit(request)
     """
     Register a new user. Validates username (alphanumeric + underscore, 3–20 chars)
     and password (8+ chars, 1 upper, 1 lower, 1 digit, 1 special).
@@ -224,12 +255,14 @@ def signup(
 
 @router.post("/login", response_model=AuthResponse)
 def login(
+    request: Request,
     req: LoginRequest,
     db: Annotated[Session, Depends(get_db)],
 ):
     """
     Authenticate by username or email + password. Returns JWT on success.
     """
+    _check_rate_limit(request)
     identifier = req.username_or_email.strip()
     is_email = "@" in identifier
 
@@ -272,10 +305,12 @@ def check_email(
 @router.post("/request-otp")
 @router.post("/send-otp")
 def request_otp(
+    request: Request,
     body: RequestOTPRequest,
     db: Annotated[Session, Depends(get_db)],
 ):
     """Request OTP for existing user. Checks email exists, generates and sends OTP via email."""
+    _check_rate_limit(request)
     email = body.email.strip().lower()
     user = db.query(User).filter(User.email == email).first()
     if not user:

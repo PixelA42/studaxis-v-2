@@ -208,10 +208,11 @@ export function Auth() {
               {step === 1 && (
                 <div className="mt-6 space-y-4 text-left">
                   <div>
-                    <label className="block text-sm font-medium text-primary mb-1">
+                    <label htmlFor="auth-email-step1" className="block text-sm font-medium text-primary mb-1">
                       Email
                     </label>
                     <input
+                      id="auth-email-step1"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -360,10 +361,11 @@ export function Auth() {
               </p>
               <form onSubmit={handleLoginSubmit} className="mt-6 space-y-4 text-left">
                 <div>
-                  <label className="block text-sm font-medium text-primary mb-1">
+                  <label htmlFor="auth-login-username" className="block text-sm font-medium text-primary mb-1">
                     Username or email
                   </label>
                   <input
+                    id="auth-login-username"
                     type="text"
                     value={usernameOrEmail}
                     onChange={(e) => setUsernameOrEmail(e.target.value)}
@@ -373,11 +375,12 @@ export function Auth() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-primary mb-1">
+                  <label htmlFor="auth-login-password" className="block text-sm font-medium text-primary mb-1">
                     Password
                   </label>
                   <div className="relative">
                     <input
+                      id="auth-login-password"
                       type={showLoginPass ? "text" : "password"}
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
