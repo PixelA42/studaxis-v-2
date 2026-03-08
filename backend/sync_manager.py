@@ -52,10 +52,12 @@ class SyncManager:
         appsync_endpoint: Optional[str] = None,
         appsync_api_key: Optional[str] = None,
         base_path: str = ".",
+        user_id: str = "student_001",
     ):
         self.appsync_endpoint = appsync_endpoint or os.getenv("APPSYNC_ENDPOINT", "")
         self.appsync_api_key = appsync_api_key or os.getenv("APPSYNC_API_KEY", "")
         self.base_path = Path(base_path)
+        self.user_id = user_id
         self.queue_path = self.base_path / self.QUEUE_FILE
         self.session = requests.Session()
 
@@ -148,15 +150,20 @@ class SyncManager:
 
         # Respect user opt-out from Settings (Privacy Controls)
         try:
-            from preferences import load_user_stats
-            prefs = load_user_stats().get("preferences") or {}
+            user_stats_path = self.base_path / "data" / "users" / self.user_id / "user_stats.json"
+            if user_stats_path.exists():
+                with open(user_stats_path, encoding="utf-8") as _f:
+                    _stats = json.load(_f)
+                prefs = _stats.get("preferences") or {}
+            else:
+                prefs = {}
             if not prefs.get("sync_enabled", True):
                 result["pending"] = len(self._queue)
                 result["online"] = self.check_connectivity()
                 result["errors"] = ["Cloud sync disabled in Settings"]
                 logger.info("Sync skipped — user has disabled cloud sync")
                 return result
-        except ImportError:
+        except (OSError, json.JSONDecodeError):
             pass
 
         if not self._queue:

@@ -222,28 +222,42 @@ def build_vector_store(rebuild: bool = False) -> Chroma:
     print(f"[info] Total documents loaded: {len(documents)}")
     print("[info] Splitting documents into chunks...")
 
-    # Split documents into chunks for better retrieval
+    # Split documents into chunks — stay within MiniLM-L6-v2's 256-token window
     splitter: RecursiveCharacterTextSplitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,  # Increased from 800 for more context
-        chunk_overlap=200,  # Increased from 150 for better continuity
+        chunk_size=600,   # ~150 tokens, safely within 256-token embedding limit
+        chunk_overlap=100,
         separators=["\n\n", "\n", ". ", " ", ""]
     )
 
     split_docs: list[Any] = splitter.split_documents(documents)
     print(f"✓ Created {len(split_docs)} chunks")
 
+    # Generate deterministic IDs from content hash for deduplication
+    import hashlib
+    doc_ids: list[str] = []
+    for i, doc in enumerate(split_docs):
+        source = doc.metadata.get("source", "unknown")
+        content_hash = hashlib.sha256(doc.page_content.encode("utf-8")).hexdigest()[:16]
+        doc_ids.append(f"{source}_{i}_{content_hash}")
+
     # Clear existing collection if rebuilding
     if rebuild and db_exists:
         try:
             print("[info] Clearing existing collection for rebuild...")
             vector_store.delete_collection()
+            # Re-create the collection after deletion
+            vector_store = Chroma(
+                collection_name=COLLECTION_NAME,
+                persist_directory=str(CHROMA_DIR),
+                embedding_function=embeddings,
+            )
         except Exception as e:
             print(f"[warning] Could not delete existing collection: {e}")
 
-    # Add documents to vector store
+    # Add documents to vector store (with deterministic IDs to prevent duplicates)
     print("[info] Adding documents to vector store...")
     try:
-        vector_store.add_documents(split_docs, ids=None)
+        vector_store.add_documents(split_docs, ids=doc_ids)
         print(f"✅ Vector DB built successfully with {len(split_docs)} chunks.")
     except Exception as e:
         print(f"❌ Error adding documents to vector store: {e}")

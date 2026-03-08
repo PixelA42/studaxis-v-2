@@ -229,7 +229,9 @@ class AIEngine:
         if self._rag_ready:
             return True
         try:
-            from ai_chat.main import get_retriever, get_textbook_context, llm, prompt
+            from ai_chat.main import get_retriever, get_textbook_context, _ensure_initialized, prompt
+            _ensure_initialized()  # trigger lazy init of vector_store + llm
+            from ai_chat.main import llm  # now populated
             self._rag_retriever_fn = get_retriever
             self._rag_textbook_fn = get_textbook_context
             self._rag_llm = llm
@@ -468,6 +470,29 @@ class AIEngine:
                 f"You are an AI study planner. The student is studying {topic}. "
                 f"They have {time_budget_minutes} minutes. "
                 f"Provide a highly focused, bulleted study plan."
+            )
+        if task_type == AITaskType.GRADING:
+            question = context_data.get("question", "[question unknown]")
+            expected = context_data.get("expected_answer", "")
+            topic = context_data.get("topic", "General")
+            difficulty = context_data.get("difficulty", "Beginner")
+            rubric = context_data.get("rubric", "")
+            student_answer = user_input
+
+            rubric_line = f"\nRubric: {rubric}" if rubric and "[GRADING_RUBRIC_PLACEHOLDER]" not in rubric else ""
+            expected_line = f"\nModel answer: {expected}" if expected else ""
+
+            return (
+                f"You are a supportive but honest exam tutor grading a student's answer. "
+                f"Topic: {topic} | Difficulty: {difficulty}\n"
+                f"Question: {question}{expected_line}{rubric_line}\n"
+                f"Student's answer: {student_answer}\n\n"
+                "Grade this answer naturally and conversationally — like a tutor giving feedback face-to-face. "
+                "Start with what they got right (even partly), then clearly explain any gaps or mistakes, "
+                "and finish with a short tip or correction to help them improve. "
+                "Give a score out of 10 at the end in this exact format: Score: X/10. "
+                "Keep your tone encouraging — this is learning feedback, not a harsh critique. "
+                "If the answer is completely wrong, still be kind and explain the correct concept clearly."
             )
         return None
 

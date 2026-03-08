@@ -20,14 +20,17 @@ def _default_base_path() -> Path:
 class LocalStorage:
     """Persistence for user stats and flashcards (flashcards_system interface)."""
 
-    def __init__(self, base_path: str | Path | None = None) -> None:
+    def __init__(self, base_path: str | Path | None = None, user_id: str = "student_001") -> None:
         self._base = Path(base_path) if base_path else _default_base_path()
         self._data_dir = self._base / "data"
-        self._stats_file = self._data_dir / "user_stats.json"
-        self._flashcards_file = self._data_dir / "flashcards.json"
+        self._user_id = user_id
+        # Per-user directory: data/users/{user_id}/
+        self._user_dir = self._data_dir / "users" / user_id
+        self._stats_file = self._user_dir / "user_stats.json"
+        self._flashcards_file = self._user_dir / "flashcards.json"
 
     def _ensure_data_dir(self) -> None:
-        self._data_dir.mkdir(parents=True, exist_ok=True)
+        self._user_dir.mkdir(parents=True, exist_ok=True)
 
     def load_user_stats(self) -> dict[str, Any]:
         """Load user_stats.json; return dict with defaults on missing/error."""
