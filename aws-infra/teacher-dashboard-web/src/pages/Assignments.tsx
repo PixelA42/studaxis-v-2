@@ -1,0 +1,50 @@
+import { Icon } from '../components/icons/Icon';
+import { GlassCard } from '../components/dashboard/GlassCard';
+import { EmptyState } from '../components/shared/EmptyState';
+
+const STAT_ITEMS = [
+  { icon: '📤', label: 'Pending', value: '0', color: 'rgba(253,138,107,0.1)', tc: 'var(--sd-accent-coral)' },
+  { icon: '⏳', label: 'In Progress', value: '0', color: 'rgba(0,168,232,0.1)', tc: 'var(--sd-accent-blue)' },
+  { icon: '✅', label: 'Completed', value: '0', color: 'rgba(16,185,129,0.1)', tc: 'var(--sd-green)' },
+];
+
+export function Assignments() {
+  return (
+    <main id="main-content" className="page-assignments" role="main">
+      <div className="page-header-flex">
+        <div>
+          <h1 className="page-title">Assignments</h1>
+          <p className="page-sub">Assigned quizzes push to student devices on next sync.</p>
+        </div>
+        <button type="button" className="btn btn-primary">
+          <Icon name="plus" size={15} /> Assign Quiz
+        </button>
+      </div>
+
+      <div className="assignments-stats">
+        {STAT_ITEMS.map((s, i) => (
+          <GlassCard key={i} className="assignment-stat-card">
+            <div className="assignment-stat-icon" style={{ background: s.color }}>
+              {s.icon}
+            </div>
+            <div>
+              <div className="assignment-stat-value">{s.value}</div>
+              <div className="assignment-stat-label">{s.label}</div>
+            </div>
+          </GlassCard>
+        ))}
+      </div>
+
+      <GlassCard>
+        <EmptyState
+          icon="📤"
+          title="No assignments yet"
+          description="Generate a quiz with Bedrock and assign it to your class. Students receive it automatically when they come online."
+        />
+        <button type="button" className="btn btn-primary" style={{ marginTop: 8 }}>
+          <Icon name="spark" size={14} /> Generate Quiz
+        </button>
+      </GlassCard>
+    </main>
+  );
+}

@@ -4,16 +4,27 @@
  * Uses [data-theme="light"] and [data-theme="dark"] for consistency
  */
 
-/* Accent palette — shared across light/dark (from student app) */
+/* Accent palette — shared (StudaxisTeacherDashboard.jsx reference) */
 :root {
   --accent-pink: #FA5C5C;
   --accent-coral: #FD8A6B;
   --accent-peach: #FEC288;
   --accent-yellow: #FBEF76;
-  --accent-blue: #00A8E8;
+  --accent-blue: #00a8e8;
+  --accent-green: #10b981;
+  --accent-purple: #8b5cf6;
   --heading-dark: #000000;
   --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
   --card-radius: 16px;
+  /* Reference design tokens (StudaxisTeacherDashboard.jsx) */
+  --sd-dark: #0d1b2a;
+  --sd-grey: #6b7280;
+  --sd-border: #e8edf5;
+  --sd-bg: #f8fafc;
+  --sd-surface: #ffffff;
+  --sd-green: #10b981;
+  --sd-accent-pink: var(--accent-pink);
+  --sd-accent-coral: var(--accent-coral);
 }
 
 /* Default / Dark theme (student app default) */
@@ -115,7 +126,7 @@
   --sd-space-8: 32px;
   --sd-space-10: 40px;
 
-  --sd-font-stack: "Inter", "Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --sd-font-stack: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --sd-text-h1: 28px;
   --sd-text-h2: 20px;
   --sd-text-h3: 16px;
