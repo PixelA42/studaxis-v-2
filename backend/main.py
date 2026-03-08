@@ -40,7 +40,7 @@ from grading.red_pen_feedback import RedPenFeedback
 from auth_routes import router as auth_router
 from database import User, init_db
 from dependencies import get_current_user, get_user_id
-from profile_store import UserProfile, load_profile, save_profile
+from profile_store import UserProfile, load_profile, save_profile, load_profile_for_user, save_profile_for_user
 
 # ---------------------------------------------------------------------------
 # Base path for AI engine and data (user_stats, profile, etc.)
@@ -50,7 +50,6 @@ DATA_DIR = BASE_PATH / "data"
 STATS_FILE = DATA_DIR / "user_stats.json"
 FLASHCARDS_FILE = DATA_DIR / "flashcards.json"
 SAMPLE_TEXTBOOKS_DIR = DATA_DIR / "sample_textbooks"
-_DEFAULT_USER_ID = "student_001"
 
 
 def _user_dir(user_id: str) -> Path:
@@ -61,25 +60,13 @@ def _user_dir(user_id: str) -> Path:
 
 
 def _stats_file(user_id: str) -> Path:
-    """Return path to user_stats.json, migrating legacy flat file on first access."""
-    per_user = _user_dir(user_id) / "user_stats.json"
-    if not per_user.exists():
-        legacy = DATA_DIR / "user_stats.json"
-        if legacy.exists() and user_id == _DEFAULT_USER_ID:
-            import shutil
-            shutil.copy2(legacy, per_user)
-    return per_user
+    """Return path to per-user user_stats.json."""
+    return _user_dir(user_id) / "user_stats.json"
 
 
 def _flashcards_file(user_id: str) -> Path:
-    """Return path to flashcards.json, migrating legacy flat file on first access."""
-    per_user = _user_dir(user_id) / "flashcards.json"
-    if not per_user.exists():
-        legacy = DATA_DIR / "flashcards.json"
-        if legacy.exists() and user_id == _DEFAULT_USER_ID:
-            import shutil
-            shutil.copy2(legacy, per_user)
-    return per_user
+    """Return path to per-user flashcards.json."""
+    return _user_dir(user_id) / "flashcards.json"
 
 app = FastAPI(
     title="Studaxis API",
@@ -131,10 +118,8 @@ def get_ai_engine() -> AIEngine:
 # User stats persistence (same schema as preferences.py / Streamlit)
 # ---------------------------------------------------------------------------
 
-_DEFAULT_USER_ID = "student_001"
-
 _DEFAULT_STATS: dict[str, Any] = {
-    "user_id": "student_001",
+    "user_id": "",
     "last_sync_timestamp": None,
     "streak": {"current": 0, "longest": 0, "last_activity_date": None},
     "quiz_stats": {
@@ -156,7 +141,7 @@ _DEFAULT_STATS: dict[str, Any] = {
 }
 
 
-def _load_user_stats(user_id: str = _DEFAULT_USER_ID) -> dict[str, Any]:
+def _load_user_stats(user_id: str) -> dict[str, Any]:
     """Load user_stats.json for given user; return defaults on missing/error."""
     try:
         f = _stats_file(user_id)
@@ -915,7 +900,7 @@ def flashcards_generate(req: FlashcardGenerateRequest):
 # Flashcards storage (mirror LocalStorage: flashcards.json)
 # ---------------------------------------------------------------------------
 
-def _load_flashcards(user_id: str = _DEFAULT_USER_ID) -> list[dict[str, Any]]:
+def _load_flashcards(user_id: str) -> list[dict[str, Any]]:
     """Load per-user flashcards.json; return [] on missing/error."""
     try:
         f = _flashcards_file(user_id)
@@ -929,7 +914,7 @@ def _load_flashcards(user_id: str = _DEFAULT_USER_ID) -> list[dict[str, Any]]:
     return []
 
 
-def _save_flashcards(cards: list[dict[str, Any]], user_id: str = _DEFAULT_USER_ID) -> None:
+def _save_flashcards(cards: list[dict[str, Any]], user_id: str) -> None:
     """Overwrite per-user flashcards.json."""
     try:
         f = _flashcards_file(user_id)
@@ -938,14 +923,14 @@ def _save_flashcards(cards: list[dict[str, Any]], user_id: str = _DEFAULT_USER_I
         pass
 
 
-def _append_flashcards(new_cards: list[dict[str, Any]], user_id: str = _DEFAULT_USER_ID) -> None:
+def _append_flashcards(new_cards: list[dict[str, Any]], user_id: str) -> None:
     """Append cards to per-user flashcards.json."""
     existing = _load_flashcards(user_id)
     existing.extend(new_cards)
     _save_flashcards(existing, user_id)
 
 
-def _get_due_cards(user_id: str = _DEFAULT_USER_ID) -> list[dict[str, Any]]:
+def _get_due_cards(user_id: str) -> list[dict[str, Any]]:
     """Return cards where next_review <= now or missing."""
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc).isoformat()
@@ -964,7 +949,7 @@ def flashcards_list(user_id: str = Depends(get_user_id)):
     return {"cards": _load_flashcards(user_id)}
 
 
-def _dashboard_flashcards(user_id: str = _DEFAULT_USER_ID) -> list[dict[str, Any]]:
+def _dashboard_flashcards(user_id: str) -> list[dict[str, Any]]:
     """Transform stored flashcards to dashboard format (id, conceptTitle, content, sourceType)."""
     raw = _load_flashcards(user_id)
     out = []
@@ -1090,7 +1075,7 @@ def study_recommendation(req: StudyRecommendationRequest):
 
 
 @app.post("/api/chat", response_model=ChatResponse)
-def chat(req: ChatRequest):
+def chat(req: ChatRequest, user_id: str = Depends(get_user_id)):
     """Turn-based chat with local LLM. Supports clarification follow-ups and RAG context."""
     engine = get_ai_engine()
     ctx: dict[str, Any] = dict(req.context) if req.context else {}
@@ -1102,7 +1087,7 @@ def chat(req: ChatRequest):
             context_data=ctx,
             offline_mode=True,
             privacy_sensitive=True,
-            user_id=ctx.get("user_id"),
+            user_id=user_id,
         )
     except (ConnectionError, TimeoutError) as e:
         raise HTTPException(status_code=503, detail=str(e))
@@ -1601,16 +1586,16 @@ def _profile_to_dict(p: Optional[UserProfile]) -> dict[str, Any]:
 
 
 @app.get("/api/user/profile")
-def user_profile_get():
+def user_profile_get(user_id: str = Depends(get_user_id)):
     """Return persisted user profile (for AuthContext sync)."""
-    p = load_profile()
+    p = load_profile_for_user(user_id)
     return _profile_to_dict(p)
 
 
 @app.post("/api/user/profile")
-def user_profile_post(req: ProfileRequest):
+def user_profile_post(req: ProfileRequest, user_id: str = Depends(get_user_id)):
     """Persist profile; merges with existing. Used by AuthContext. Returns saved profile."""
-    existing = load_profile() or UserProfile()
+    existing = load_profile_for_user(user_id) or UserProfile()
     merged = UserProfile(
         profile_name=req.profile_name if req.profile_name is not None else existing.profile_name,
         profile_mode=req.profile_mode if req.profile_mode is not None else existing.profile_mode,
@@ -1618,7 +1603,7 @@ def user_profile_post(req: ProfileRequest):
         user_role=req.user_role if req.user_role is not None else existing.user_role,
         onboarding_complete=req.onboarding_complete if req.onboarding_complete is not None else getattr(existing, "onboarding_complete", False),
     )
-    save_profile(merged)
+    save_profile_for_user(user_id, merged)
     return _profile_to_dict(merged)
 
 

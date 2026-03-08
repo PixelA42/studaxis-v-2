@@ -15,7 +15,7 @@ Design: Follows design_system.md (glass cards, accessibility)
 
 import streamlit as st
 import json
-from typing import Optional
+from typing import Literal, Optional
 from conflict_resolution_engine import (
     ConflictAwareOrchestrator,
     ConflictResult,
@@ -35,7 +35,7 @@ def render_conflict_badge():
     
     Displays number of pending conflicts with warning icon.
     """
-    orchestrator: ConflictAwareOrchestrator = st.session_state.get("orchestrator")
+    orchestrator: Optional[ConflictAwareOrchestrator] = st.session_state.get("orchestrator")
     if not orchestrator:
         return
     
@@ -84,7 +84,7 @@ def render_conflict_warning_banner():
     
     Full-width banner with link to conflicts page.
     """
-    orchestrator: ConflictAwareOrchestrator = st.session_state.get("orchestrator")
+    orchestrator: Optional[ConflictAwareOrchestrator] = st.session_state.get("orchestrator")
     if not orchestrator:
         return
     
@@ -264,7 +264,7 @@ def show_conflict_resolution_modal(conflict: ConflictResult):
             </div>
             <div class="metadata-row">
                 <span class="label">Device</span>
-                <span class="value">{conflict.local_data.get('device_id', 'Unknown')}</span>
+                <span class="value">{(conflict.local_data or {}).get('device_id', 'Unknown')}</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -289,7 +289,7 @@ def show_conflict_resolution_modal(conflict: ConflictResult):
             </div>
             <div class="metadata-row">
                 <span class="label">Device</span>
-                <span class="value">{conflict.cloud_data.get('device_id', 'Unknown')}</span>
+                <span class="value">{(conflict.cloud_data or {}).get('device_id', 'Unknown')}</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -303,8 +303,8 @@ def show_conflict_resolution_modal(conflict: ConflictResult):
         st.markdown("### 🔍 Changes Detected")
         
         for field in conflict.conflicting_fields:
-            local_val = conflict.local_data.get(field)
-            cloud_val = conflict.cloud_data.get(field)
+            local_val = (conflict.local_data or {}).get(field)
+            cloud_val = (conflict.cloud_data or {}).get(field)
             
             st.markdown(f"**{field}:**")
             col_diff1, col_diff2 = st.columns(2)
@@ -363,7 +363,7 @@ def show_conflict_resolution_modal(conflict: ConflictResult):
         st.info(recommendation)
 
 
-def _apply_resolution(entity_id: str, user_choice: str):
+def _apply_resolution(entity_id: str, user_choice: Literal["keep_local", "keep_cloud", "merge"]):
     """
     Apply user's conflict resolution choice.
     
@@ -371,7 +371,7 @@ def _apply_resolution(entity_id: str, user_choice: str):
         entity_id: Entity ID of conflict
         user_choice: "keep_local" | "keep_cloud" | "merge"
     """
-    orchestrator: ConflictAwareOrchestrator = st.session_state.get("orchestrator")
+    orchestrator: Optional[ConflictAwareOrchestrator] = st.session_state.get("orchestrator")
     if not orchestrator:
         st.error("❌ Orchestrator not initialized")
         return
@@ -398,7 +398,7 @@ def show_conflicts_page():
     """
     st.title("⚠️ Sync Conflicts")
     
-    orchestrator: ConflictAwareOrchestrator = st.session_state.get("orchestrator")
+    orchestrator: Optional[ConflictAwareOrchestrator] = st.session_state.get("orchestrator")
     if not orchestrator:
         st.error("❌ Orchestrator not initialized")
         return
@@ -429,7 +429,7 @@ def show_conflicts_page():
         
         with st.expander(
             f"**{conflict.entity_type}** — {conflict.entity_id} "
-            f"({calculate_time_ago(conflict.detected_at)})",
+            f"({calculate_time_ago(conflict.detected_at or '')})",
             expanded=(idx == 0)  # Expand first conflict
         ):
             show_conflict_card(conflict)
@@ -443,7 +443,7 @@ def show_conflict_card(conflict: ConflictResult):
         conflict: ConflictResult to display
     """
     # Conflict metadata
-    st.markdown(f"**Detected:** {format_timestamp(conflict.detected_at)}")
+    st.markdown(f"**Detected:** {format_timestamp(conflict.detected_at or '')}")
     st.markdown(f"**Reason:** {conflict.reason}")
     st.markdown(f"**Severity:** {get_conflict_severity(conflict).upper()}")
     
@@ -461,7 +461,7 @@ def show_conflict_card(conflict: ConflictResult):
         if conflict.conflicting_fields:
             st.markdown("**Changed Fields:**")
             local_subset = {
-                k: conflict.local_data.get(k)
+                k: (conflict.local_data or {}).get(k)
                 for k in conflict.conflicting_fields
             }
             st.json(local_subset)
@@ -477,7 +477,7 @@ def show_conflict_card(conflict: ConflictResult):
         if conflict.conflicting_fields:
             st.markdown("**Changed Fields:**")
             cloud_subset = {
-                k: conflict.cloud_data.get(k)
+                k: (conflict.cloud_data or {}).get(k)
                 for k in conflict.conflicting_fields
             }
             st.json(cloud_subset)
@@ -489,8 +489,8 @@ def show_conflict_card(conflict: ConflictResult):
         st.markdown("#### 📊 Field Comparison")
         
         for field in conflict.conflicting_fields:
-            local_val = conflict.local_data.get(field)
-            cloud_val = conflict.cloud_data.get(field)
+            local_val = (conflict.local_data or {}).get(field)
+            cloud_val = (conflict.cloud_data or {}).get(field)
             
             col_a, col_b = st.columns(2)
             
@@ -559,7 +559,7 @@ def show_conflict_history():
     """
     st.title("📜 Conflict Resolution History")
     
-    orchestrator: ConflictAwareOrchestrator = st.session_state.get("orchestrator")
+    orchestrator: Optional[ConflictAwareOrchestrator] = st.session_state.get("orchestrator")
     if not orchestrator:
         st.error("❌ Orchestrator not initialized")
         return

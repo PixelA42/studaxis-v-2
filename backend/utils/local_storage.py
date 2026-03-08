@@ -20,7 +20,7 @@ def _default_base_path() -> Path:
 class LocalStorage:
     """Persistence for user stats and flashcards (flashcards_system interface)."""
 
-    def __init__(self, base_path: str | Path | None = None, user_id: str = "student_001") -> None:
+    def __init__(self, base_path: str | Path | None = None, *, user_id: str) -> None:
         self._base = Path(base_path) if base_path else _default_base_path()
         self._data_dir = self._base / "data"
         self._user_id = user_id
@@ -110,12 +110,12 @@ class LocalStorage:
         except OSError:
             pass
 
-    def initialize_user_stats(self, user_id: str = "student_001") -> dict[str, Any]:
+    def initialize_user_stats(self, user_id: str | None = None) -> dict[str, Any]:
         """Create and persist a fresh user-stats dict, then return it."""
         stats: dict[str, Any] = {
             "user_id": user_id,
             "topic_performance": {},
-            "flashcard_stats": {"total_reviewed": 0, "mastered": 0, "due_for_review": 0},
+            "flashcard_stats": or self._user_id {"total_reviewed": 0, "mastered": 0, "due_for_review": 0},
             "chat_history": [],
         }
         self.save_user_stats(stats)

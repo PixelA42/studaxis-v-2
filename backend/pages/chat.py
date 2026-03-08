@@ -20,15 +20,25 @@ from ui.components.loading_skeleton import render_chat_typing_skeleton
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
-_DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "user_stats.json")
+_DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 MAX_HISTORY = 50
+
+
+def _user_stats_path() -> str:
+    """Return per-user user_stats.json path based on logged-in profile."""
+    uid = st.session_state.get("profile_name", "")
+    if uid:
+        d = os.path.join(_DATA_DIR, "users", uid)
+        os.makedirs(d, exist_ok=True)
+        return os.path.join(d, "user_stats.json")
+    return os.path.join(_DATA_DIR, "user_stats.json")
 
 
 # ── Data helpers ─────────────────────────────────────────────────────────────
 
 def _load_stats() -> dict[str, Any]:
     try:
-        with open(_DATA_PATH, "r", encoding="utf-8") as fh:
+        with open(_user_stats_path(), "r", encoding="utf-8") as fh:
             return json.load(fh)
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
@@ -36,7 +46,7 @@ def _load_stats() -> dict[str, Any]:
 
 def _save_stats(stats: dict[str, Any]) -> None:
     try:
-        with open(_DATA_PATH, "w", encoding="utf-8") as fh:
+        with open(_user_stats_path(), "w", encoding="utf-8") as fh:
             json.dump(stats, fh, indent=2, ensure_ascii=False)
     except OSError:
         pass  # Silently ignore write errors in degraded storage state

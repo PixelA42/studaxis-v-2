@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 from auth_utils import hash_password, verify_password
 from database import User, get_db, init_db
 from email_service import send_verification_email
-from profile_store import UserProfile, load_profile, save_profile
+from profile_store import UserProfile, load_profile, save_profile, load_profile_for_user
 
 # JWT config (must be before dependencies import to avoid circular import)
 JWT_SECRET = os.environ.get("STUDAXIS_JWT_SECRET", "studaxis-dev-secret-change-in-prod")
@@ -241,7 +241,9 @@ def login(
         )
 
     token = _create_jwt(user.id, user.username)
-    p = load_profile()
+    p = load_profile_for_user(user.username)
+    if not p:
+        p = load_profile()  # fallback to shared for migration
     onboarding_complete = p.onboarding_complete if p else False
     return AuthResponse(
         access_token=token,

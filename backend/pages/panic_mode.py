@@ -18,7 +18,16 @@ from ai_integration_layer import AIEngine, AITaskType
 from ui_components import render_empty_state, render_mode_status_badge
 
 
-_DATA_PATH = Path(__file__).parent.parent / "data" / "user_stats.json"
+_DATA_DIR = Path(__file__).parent.parent / "data"
+
+
+def _user_stats_path() -> Path:
+    uid = st.session_state.get("profile_name", "")
+    if uid:
+        d = _DATA_DIR / "users" / uid
+        d.mkdir(parents=True, exist_ok=True)
+        return d / "user_stats.json"
+    return _DATA_DIR / "user_stats.json"
 
 _PANIC_QUESTIONS: list[dict[str, str]] = [
     {
@@ -55,9 +64,10 @@ _PANIC_QUESTIONS: list[dict[str, str]] = [
 
 
 def _load_stats() -> dict[str, Any]:
+    p = _user_stats_path()
     try:
-        if _DATA_PATH.exists():
-            return json.loads(_DATA_PATH.read_text(encoding="utf-8"))
+        if p.exists():
+            return json.loads(p.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         pass
     return {
@@ -67,9 +77,10 @@ def _load_stats() -> dict[str, Any]:
 
 
 def _save_stats(stats: dict[str, Any]) -> None:
+    p = _user_stats_path()
     try:
-        _DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
-        _DATA_PATH.write_text(json.dumps(stats, indent=2, ensure_ascii=False), encoding="utf-8")
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(stats, indent=2, ensure_ascii=False), encoding="utf-8")
     except OSError:
         pass
 

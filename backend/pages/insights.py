@@ -16,10 +16,20 @@ from pages.insight_engine_ui import build_student_insights_from_stats, render_st
 from ui.components.page_chrome import render_background_blobs, render_page_root_close, render_page_root_open
 
 
-_STATS_FILE = Path(__file__).parent.parent / "data" / "user_stats.json"
+_DATA_DIR = Path(__file__).parent.parent / "data"
+
+
+def _user_stats_file() -> Path:
+    uid = st.session_state.get("profile_name", "")
+    if uid:
+        d = _DATA_DIR / "users" / uid
+        d.mkdir(parents=True, exist_ok=True)
+        return d / "user_stats.json"
+    return _DATA_DIR / "user_stats.json"
+
 
 _DEFAULT_STATS: dict[str, Any] = {
-    "user_id": "student_001",
+    "user_id": "",
     "streak": {"current": 0, "longest": 0},
     "quiz_stats": {"total_attempted": 0, "total_correct": 0, "average_score": 0.0},
     "flashcard_stats": {"total_reviewed": 0, "mastered": 0, "due_for_review": 0},
@@ -28,9 +38,10 @@ _DEFAULT_STATS: dict[str, Any] = {
 
 def _load_user_stats() -> dict[str, Any]:
     """Load user_stats.json; return safe defaults on any error."""
+    sf = _user_stats_file()
     try:
-        if _STATS_FILE.exists():
-            raw = _STATS_FILE.read_text(encoding="utf-8")
+        if sf.exists():
+            raw = sf.read_text(encoding="utf-8")
             data = json.loads(raw)
             if isinstance(data, dict):
                 return data

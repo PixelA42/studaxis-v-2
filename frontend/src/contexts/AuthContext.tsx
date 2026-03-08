@@ -163,6 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (connectivityStatus !== "online") return;
+    if (!localStorage.getItem(STORAGE_TOKEN)) return;
     getUserProfile()
       .then((backend) => {
         const merged = {

@@ -81,7 +81,7 @@ def _ensure_initialized() -> None:
 llm: Any = None  # populated on first access
 
 # Default storage (CLI / fallback); API callers pass user_id to ask_ai().
-_default_storage: LocalStorage = LocalStorage(base_path=str(ROOT_DIR))
+_default_storage: LocalStorage = LocalStorage(base_path=str(ROOT_DIR), user_id="student_001")
 
 prompt: ChatPromptTemplate = ChatPromptTemplate.from_template("""
 You are Studaxis, a friendly AI study-buddy tutor.

@@ -85,3 +85,38 @@ def save_profile(profile: UserProfile) -> None:
     tmp_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     tmp_path.replace(PROFILE_FILE)
 
+
+def _user_profile_file(user_id: str) -> Path:
+    """Return per-user profile.json path."""
+    return PROFILE_FILE.parent / "users" / user_id / "profile.json"
+
+
+def load_profile_for_user(user_id: str) -> Optional[UserProfile]:
+    """Load profile from per-user directory."""
+    path = _user_profile_file(user_id)
+    try:
+        if not path.exists():
+            return None
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict) or not data.get("profile_name"):
+            return None
+        return UserProfile(
+            profile_name=data.get("profile_name"),
+            profile_mode=data.get("profile_mode"),
+            class_code=data.get("class_code"),
+            user_role=data.get("user_role"),
+            onboarding_complete=data.get("onboarding_complete", False),
+        )
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def save_profile_for_user(user_id: str, profile: UserProfile) -> None:
+    """Persist profile to per-user directory."""
+    path = _user_profile_file(user_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = asdict(profile)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(path)
+

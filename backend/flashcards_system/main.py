@@ -19,7 +19,7 @@ def main():
     # Initialize shared systems
     retriever = ai.get_retriever()
 
-    storage = LocalStorage()
+    storage = LocalStorage(user_id="student_001")
 
     student_model = StudentModel(storage)
 

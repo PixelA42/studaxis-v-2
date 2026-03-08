@@ -20,17 +20,19 @@ security = HTTPBearer(auto_error=False)
 def get_user_id(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security)],
 ) -> str:
-    """Extract username from JWT as user_id. Returns 'student_001' if no/invalid token."""
+    """Extract username from JWT as user_id. Raises 401 if no/invalid token."""
     if credentials is None:
-        return "student_001"
+        raise HTTPException(status_code=401, detail="Not authenticated")
     try:
         payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         username = payload.get("username")
         if username:
             return username
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
         pass
-    return "student_001"
+    raise HTTPException(status_code=401, detail="Invalid token")
 
 
 def get_current_user(

@@ -23,7 +23,7 @@ async function apiFetch(path: string, options: RequestInit = {}): Promise<Respon
   if (token) headers.set("Authorization", `Bearer ${token}`);
   const res = await fetch(url, { ...options, headers });
   if (res.status === 401) {
-    onUnauthorized?.();
+    if (token) onUnauthorized?.();
     throw new Error("Unauthorized");
   }
   return res;

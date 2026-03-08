@@ -50,6 +50,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
+    if (!localStorage.getItem("studaxis_token")) return;
     getUserStats()
       .then((s) => {
         const t = s.preferences?.theme;

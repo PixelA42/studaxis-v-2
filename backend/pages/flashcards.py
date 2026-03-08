@@ -36,13 +36,15 @@ except ImportError:
 
 from utils.local_storage import LocalStorage
 
-_DATA_PATH = Path(__file__).parent.parent / "data" / "user_stats.json"
-
-
 def _get_storage() -> LocalStorage:
-    if "flashcard_storage" not in st.session_state:
-        st.session_state.flashcard_storage = LocalStorage(base_path=str(Path(__file__).parent.parent))
-    return st.session_state.flashcard_storage
+    uid = st.session_state.get("profile_name", "")
+    key = f"flashcard_storage_{uid}" if uid else "flashcard_storage"
+    if key not in st.session_state:
+        st.session_state[key] = LocalStorage(
+            base_path=str(Path(__file__).parent.parent),
+            user_id=uid or "student_001",
+        )
+    return st.session_state[key]
 
 
 def _get_student_model() -> "StudentModel | None":
