@@ -6,25 +6,21 @@ _BACKEND_DIR = Path(__file__).resolve().parent.parent
 if str(_BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(_BACKEND_DIR))
 
+from functools import lru_cache
 from utils.local_storage import LocalStorage
-from ai_chat.vector import build_vector_store, COLLECTION_NAME, CHROMA_DIR, EMBEDDING_MODEL
 
-from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 from typing import Any
 
 # Try to import OllamaLLM; use fallback if version incompatible
+OllamaLLM: Any = None
 try:
-    from langchain_ollama import OllamaLLM
-except ImportError as e:
-    print(f"[warning] Could not import langchain_ollama: {e}")
-    print("[info] Using langchain_community.llms.Ollama as fallback...")
+    from langchain_ollama import OllamaLLM  # type: ignore[assignment]
+except ImportError:
     try:
-        from langchain_community.llms import Ollama as OllamaLLM
+        from langchain_community.llms import Ollama as OllamaLLM  # type: ignore[assignment]
     except ImportError:
-        print("❌ Neither langchain_ollama nor langchain_community.llms.Ollama available")
-        OllamaLLM = None
+        pass
 
 # Root directory (backend when running from backend, or repo root for shared data)
 ROOT_DIR: Path = Path(__file__).resolve().parent.parent
@@ -32,66 +28,74 @@ DATA_DIR: Path = ROOT_DIR / "data"
 
 LLM_MODEL: str = "llama3.2:3b"
 
-# Initialize and load embeddings
-embeddings: HuggingFaceEmbeddings = HuggingFaceEmbeddings(
-    model_name=EMBEDDING_MODEL
-)
+# Approximate chars-per-token ratio for budget estimation
+_CHARS_PER_TOKEN = 4
+# Max tokens for llama3.2:3b context window (conservative)
+_MAX_CONTEXT_TOKENS = 3800
+_NUM_PREDICT = 512
+# Reserve for prompt template + question + generation
+_RESERVED_TOKENS = _NUM_PREDICT + 400
+_CONTEXT_BUDGET_TOKENS = _MAX_CONTEXT_TOKENS - _RESERVED_TOKENS
+_CONTEXT_BUDGET_CHARS = _CONTEXT_BUDGET_TOKENS * _CHARS_PER_TOKEN
 
-# Build or load vector store with textbook embeddings
-print("[info] Initializing vector store for RAG...")
-vector_store: Chroma = build_vector_store(rebuild=False)
 
-print(f"[debug] Using collection: {COLLECTION_NAME}")
-print(f"[debug] Vector store persistence: {CHROMA_DIR}")
+# ---------------------------------------------------------------------------
+# Lazy-initialised singletons (nothing heavy runs at import time)
+# ---------------------------------------------------------------------------
 
-# Local session storage
-storage: LocalStorage = LocalStorage(base_path=str(DATA_DIR))
+@lru_cache(maxsize=1)
+def _get_vector_store():
+    """Build / open the Chroma vector store on first use."""
+    from ai_chat.vector import build_vector_store, COLLECTION_NAME, CHROMA_DIR
+    print("[info] Initializing vector store for RAG...")
+    vs = build_vector_store(rebuild=False)
+    print(f"[debug] Using collection: {COLLECTION_NAME}")
+    print(f"[debug] Vector store persistence: {CHROMA_DIR}")
+    return vs
 
-# Ollama LLM - with fallback handling
-if OllamaLLM is None:
-    print("❌ ERROR: Could not initialize the LLM. Please fix the version compatibility:")
-    print("   Try: pip install --upgrade langchain-community langchain-core langchain-ollama")
-    sys.exit(1)
 
-llm: Any = OllamaLLM(
-    model=LLM_MODEL,
-    temperature=0.5,
-    num_predict=512
-)
+@lru_cache(maxsize=1)
+def _get_llm(temperature: float = 0.5) -> Any:
+    """Create the OllamaLLM on first use."""
+    if OllamaLLM is None:
+        raise RuntimeError(
+            "Neither langchain_ollama nor langchain_community.llms.Ollama available. "
+            "Run: pip install --upgrade langchain-ollama"
+        )
+    return OllamaLLM(model=LLM_MODEL, temperature=temperature, num_predict=_NUM_PREDICT)
+
+
+# Public accessors kept for grader.py and ai_integration_layer.py
+vector_store: Any = None  # populated on first access via property-like helpers
+
+
+def _ensure_initialized() -> None:
+    """Trigger lazy init so module-level `vector_store` / `llm` are set."""
+    global vector_store, llm
+    if vector_store is None:
+        vector_store = _get_vector_store()
+    if llm is None:
+        llm = _get_llm()
+
+
+llm: Any = None  # populated on first access
+
+# Default storage (CLI / fallback); API callers pass user_id to ask_ai().
+_default_storage: LocalStorage = LocalStorage(base_path=str(ROOT_DIR))
 
 prompt: ChatPromptTemplate = ChatPromptTemplate.from_template("""
-You are an expert competitive exam tutor with deep subject knowledge.
+You are Studaxis, a friendly AI study-buddy tutor.
+Use the CONTEXT below to answer. If the context is insufficient, use your own knowledge and note [Model Knowledge].
+Be conversational: short question → short answer; deep question → detailed explanation with analogies.
+Add an exam tip only when genuinely helpful.
 
-PRIORITY HIERARCHY FOR ANSWERING:
-1. **PRIMARY SOURCE**: Use retrieved context material (these are the most relevant chunks from textbooks matched to the question via semantic search)
-2. **SECONDARY SOURCE**: If retrieved context is incomplete, supplement with textbook reference material
-3. **TERTIARY SOURCE**: Only if both retrieved and textbook are insufficient and looks incomplete, use your general knowledge (CLEARLY MARK with [Model Knowledge])
-
-CRITICAL INSTRUCTION:
-- Prioritize the RETRIEVED CONTEXT sections - these are semantically matched to the question
-- Answer using information from retrieved chunks first
-- Textbook reference is for additional context if needed
-- If neither source covers the topic, supplement with general knowledge but explicitly mark it
-- respond to the brief of the question, avoid unnecessary verbosity, and focus on clarity and accuracy.
-- if the question is ambiguous, provide a concise answer based on the most relevant retrieved context and textbook material, and note any assumptions made.
-- if the answer looks incomplete based on the retrieved and textbook material, use your general knowledge to fill in gaps but clearly mark it as [Model Knowledge].
-                                                                                                                           
-RETRIEVED CONTEXT (Semantically Matched to Question):
+CONTEXT:
 {context}
 
-TEXTBOOK REFERENCE (Full material for reference):
 {textbook_context}
 
-USER QUESTION:
+QUESTION:
 {question}
-
-RESPONSE FORMAT:
-Provide a structured answer:
-1. **Direct Answer** - From retrieved context primarily
-2. **Key Concepts** - Properly identify which source this comes from
-3. **Formulas/Definitions** - If applicable, from retrieved and textbook sources
-4. **Exam Strategic Tips** - Your expert knowledge enhanced with source materials
-5. **Important Notes** - Mark if you're adding information beyond provided sources [Model Knowledge]
 
 Answer:""")
 
@@ -111,8 +115,11 @@ def get_textbook_context(subject: str | None = None, max_chars: int = 2000) -> s
         print(f"[debug] Textbook directory not found: {books_dir}")
         return ""
 
-    # Find all text files
-    files: list[Path] = list(books_dir.glob("*.txt"))
+    # Find all supported text files
+    _TEXTBOOK_GLOBS = ("*.txt", "*.md", "*.csv")
+    files: list[Path] = []
+    for pattern in _TEXTBOOK_GLOBS:
+        files.extend(books_dir.glob(pattern))
     if not files:
         print(f"[debug] No textbook files found in: {books_dir}")
         return ""
@@ -143,12 +150,13 @@ def get_textbook_context(subject: str | None = None, max_chars: int = 2000) -> s
             print(f"[debug] Textbook file is empty: {chosen.name}")
             return ""
         
+        full_len = len(text)
         # Truncate to reasonable length for context window
-        if len(text) > max_chars:
+        if full_len > max_chars:
             text = text[:max_chars] + "\n[...textbook content truncated...]"
-            print(f"[debug] Loaded textbook: {chosen.name} ({len(chosen.read_text(encoding='utf-8'))} chars, truncated to {max_chars})")
+            print(f"[debug] Loaded textbook: {chosen.name} ({full_len} chars, truncated to {max_chars})")
         else:
-            print(f"[debug] Loaded textbook: {chosen.name} ({len(text)} chars)")
+            print(f"[debug] Loaded textbook: {chosen.name} ({full_len} chars)")
         
         return text
         
@@ -169,8 +177,10 @@ def get_retriever(subject: str | None = None) -> Any:
     Returns:
         A retriever object configured for optimal semantic search
     """
+    _ensure_initialized()
     search_kwargs: dict[str, Any] = {
-        "k": 8,  # Increased from 4 to get more relevant chunks
+        "k": 4,
+        "fetch_k": 12,  # MMR fetches more candidates then diversifies
     }
     
     # Add subject filter if specified
@@ -178,11 +188,14 @@ def get_retriever(subject: str | None = None) -> Any:
         search_kwargs["filter"] = {"subject": subject.lower()}
         print(f"[debug] Retriever filtering by subject: {subject}")
     
-    retriever = vector_store.as_retriever(search_kwargs=search_kwargs)
+    retriever = vector_store.as_retriever(
+        search_type="mmr",
+        search_kwargs=search_kwargs,
+    )
     return retriever
 
 
-def ask_ai(question: str, subject: str | None = None) -> str:
+def ask_ai(question: str, subject: str | None = None, user_id: str | None = None) -> str:
     """
     Ask the AI a question and get a response using optimized RAG.
     
@@ -235,8 +248,11 @@ def ask_ai(question: str, subject: str | None = None) -> str:
                     print(f"  ✓ Chunk {i+1}: {chunk_text[:60]}... {source_info}")
         
         if valid_chunks:
-            # Join chunks with clear separators and source attribution
-            context = "\n\n---NEXT CHUNK---\n\n".join(valid_chunks)
+            context = "\n\n".join(valid_chunks)
+            # Enforce token budget on retrieved context
+            if len(context) > _CONTEXT_BUDGET_CHARS:
+                context = context[:_CONTEXT_BUDGET_CHARS]
+                print(f"[debug] Trimmed retrieved context to {_CONTEXT_BUDGET_CHARS} chars (token budget)")
             retrieved_context_available = True
             retrieved_chunk_count = len(valid_chunks)
             print(f"✅ Retrieved {retrieved_chunk_count} relevant chunks from semantic search")
@@ -264,17 +280,27 @@ def ask_ai(question: str, subject: str | None = None) -> str:
     sources_msg: str = ", ".join(sources_used) if sources_used else "llm-knowledge-only"
     print(f"[debug] Primary Sources: {sources_msg}")
     
-    # ============ STEP 4: PREPARE CONTEXT FOR LLM ============
-    # Prioritize retrieved context as primary
-    final_context: str = context if retrieved_context_available else "[No relevant chunks found - using textbook]\n" + (textbook_ctx if textbook_available else "[No textbook material]")
-    final_textbook: str = textbook_ctx if textbook_available else "[Textbook reference not available]"
+    # ============ STEP 4: PREPARE CONTEXT FOR LLM (with token budget) ============
+    if retrieved_context_available:
+        final_context = context
+        # Only add textbook if we have remaining budget (else redundant — chunks came from textbooks)
+        remaining_budget = _CONTEXT_BUDGET_CHARS - len(final_context)
+        if textbook_available and remaining_budget > 200:
+            final_textbook = textbook_ctx[:remaining_budget]
+        else:
+            final_textbook = ""
+    else:
+        final_context = textbook_ctx if textbook_available else "[No study material available]"
+        final_textbook = ""
     
     # ============ STEP 5: CREATE RAG CHAIN ============
+    _ensure_initialized()
     chain: Any = prompt | llm
 
     # ============ STEP 6: SAVE USER MESSAGE ============
+    _storage = LocalStorage(base_path=str(ROOT_DIR), user_id=user_id) if user_id else _default_storage
     try:
-        storage.add_chat_message("user", question, subject or "General")
+        _storage.add_chat_message("user", question, subject or "General")
     except Exception as e:
         print(f"[warning] Could not save user message: {e}")
 
@@ -292,7 +318,7 @@ def ask_ai(question: str, subject: str | None = None) -> str:
     
     # ============ STEP 8: SAVE ASSISTANT RESPONSE ============
     try:
-        storage.add_chat_message("assistant", str(response), subject or "General")
+        _storage.add_chat_message("assistant", str(response), subject or "General")
     except Exception as e:
         print(f"[warning] Could not save assistant response: {e}")
 
@@ -306,9 +332,9 @@ if __name__ == "__main__":
     
     # Load or initialize user stats / chat history
     print("\n[info] Loading user session...")
-    stats: dict[str, Any] | None = storage.load_user_stats()
+    stats: dict[str, Any] | None = _default_storage.load_user_stats()
     if not stats:
-        stats = storage.initialize_user_stats("local_user")
+        stats = _default_storage.initialize_user_stats("local_user")
         print("✅ Initialized new local session.")
     else:
         history: list[Any] = stats.get("chat_history", [])

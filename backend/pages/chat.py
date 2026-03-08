@@ -157,9 +157,9 @@ def _render_header() -> None:
             label_visibility="collapsed",
             help="Adjusts how the AI tutor explains concepts",
         )
-        if new_diff != st.session_state.chat_difficulty:
+        if new_diff and new_diff != st.session_state.chat_difficulty:
             st.session_state.chat_difficulty = new_diff
-            _save_difficulty(new_diff)
+            _save_difficulty(str(new_diff))
     with col_clear:
         if st.button("🗑 Clear", key="chat_clear_btn", use_container_width=True, help="Clear chat history"):
             st.session_state.chat_messages = []

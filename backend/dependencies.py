@@ -17,6 +17,22 @@ from database import User, get_db
 security = HTTPBearer(auto_error=False)
 
 
+def get_user_id(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security)],
+) -> str:
+    """Extract username from JWT as user_id. Returns 'student_001' if no/invalid token."""
+    if credentials is None:
+        return "student_001"
+    try:
+        payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        username = payload.get("username")
+        if username:
+            return username
+    except jwt.InvalidTokenError:
+        pass
+    return "student_001"
+
+
 def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security)],
     db: Annotated[Session, Depends(get_db)],

@@ -23,7 +23,7 @@ import uuid
 from pathlib import Path
 from typing import Annotated, Any, Optional
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -35,9 +35,11 @@ if str(_APP_DIR) not in __import__("sys").path:
     __import__("sys").path.insert(0, str(_APP_DIR))
 
 from ai_integration_layer import AIEngine, AIState, AITaskType
+from grading.grader import Grader
+from grading.red_pen_feedback import RedPenFeedback
 from auth_routes import router as auth_router
 from database import User, init_db
-from dependencies import get_current_user
+from dependencies import get_current_user, get_user_id
 from profile_store import UserProfile, load_profile, save_profile
 
 # ---------------------------------------------------------------------------
@@ -47,7 +49,36 @@ BASE_PATH = Path(os.environ.get("STUDAXIS_BASE_PATH", str(_APP_DIR)))
 DATA_DIR = BASE_PATH / "data"
 STATS_FILE = DATA_DIR / "user_stats.json"
 FLASHCARDS_FILE = DATA_DIR / "flashcards.json"
-SAMPLE_TEXTBOOKS_DIR = DATA_DIR / "sample_textbooks"
+SAMPLE_TEXTBOOKS_DIR = DATA_DIR / "sample_textbooks""
+
+
+def _user_dir(user_id: str) -> Path:
+    """Return per-user data directory, creating it if needed."""
+    d = DATA_DIR / "users" / user_id
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _stats_file(user_id: str) -> Path:
+    """Return path to user_stats.json, migrating legacy flat file on first access."""
+    per_user = _user_dir(user_id) / "user_stats.json"
+    if not per_user.exists():
+        legacy = DATA_DIR / "user_stats.json"
+        if legacy.exists() and user_id == _DEFAULT_USER_ID:
+            import shutil
+            shutil.copy2(legacy, per_user)
+    return per_user
+
+
+def _flashcards_file(user_id: str) -> Path:
+    """Return path to flashcards.json, migrating legacy flat file on first access."""
+    per_user = _user_dir(user_id) / "flashcards.json"
+    if not per_user.exists():
+        legacy = DATA_DIR / "flashcards.json"
+        if legacy.exists() and user_id == _DEFAULT_USER_ID:
+            import shutil
+            shutil.copy2(legacy, per_user)
+    return per_user
 
 app = FastAPI(
     title="Studaxis API",
@@ -169,13 +200,14 @@ def _load_user_stats() -> dict[str, Any]:
     return result
 
 
-def _save_user_stats(stats: dict[str, Any]) -> None:
-    """Persist user stats to DATA_DIR/user_stats.json (atomic write)."""
+
+def _save_user_stats(stats: dict[str, Any], user_id: str = _DEFAULT_USER_ID) -> None:
+    """Persist user stats to per-user directory (atomic write)."""
     try:
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
-        tmp = STATS_FILE.with_suffix(".tmp")
+        f = _stats_file(user_id)
+        tmp = f.with_suffix(".tmp")
         tmp.write_text(json.dumps(stats, indent=2, ensure_ascii=False), encoding="utf-8")
-        tmp.replace(STATS_FILE)
+        tmp.replace(f)
     except OSError:
         pass
 
@@ -261,6 +293,9 @@ class GradeResponse(BaseModel):
     text: str
     confidence_score: float = 0.0
     score: Optional[float] = None
+    errors: list[Any] = []
+    strengths: list[Any] = []
+    remarks: str = ""
     metadata: Optional[dict[str, Any]] = None
 
 
@@ -451,9 +486,9 @@ def hardware():
 # Diagnostics (Settings: Deployment Readiness)
 # ---------------------------------------------------------------------------
 
-def _get_sync_readiness() -> tuple[str, str]:
+def _get_sync_readiness(user_id: str = _DEFAULT_USER_ID) -> tuple[str, str]:
     """Return (sync_state, sync_readiness) from user stats and SyncManager."""
-    stats = _load_user_stats()
+    stats = _load_user_stats(user_id)
     prefs = stats.get("preferences") or {}
     sync_enabled = prefs.get("sync_enabled", True)
     last_sync = stats.get("last_sync_timestamp")
@@ -463,7 +498,7 @@ def _get_sync_readiness() -> tuple[str, str]:
 
     try:
         from sync_manager import SyncManager
-        sm = SyncManager(base_path=str(BASE_PATH))
+        sm = SyncManager(base_path=str(BASE_PATH), user_id=user_id)
         pending = sm.queue_size
         online = sm.check_connectivity()
         if pending > 0 and online:
@@ -482,16 +517,16 @@ def _get_sync_readiness() -> tuple[str, str]:
 
 
 @app.get("/api/diagnostics")
-def diagnostics():
+def diagnostics(user_id: str = Depends(get_user_id)):
     """
     Deployment readiness: app version, environment, sync state, last sync.
     Used by Settings Deployment Readiness panel.
     """
-    stats = _load_user_stats()
+    stats = _load_user_stats(user_id)
     prefs = stats.get("preferences") or {}
     sync_enabled = prefs.get("sync_enabled", True)
     last_sync = stats.get("last_sync_timestamp")
-    sync_state, sync_readiness = _get_sync_readiness()
+    sync_state, sync_readiness = _get_sync_readiness(user_id)
 
     return {
         "app_version": getattr(app, "version", "1.0.0"),
@@ -516,19 +551,21 @@ def _format_size(n: int) -> str:
     return f"{n / (1024 * 1024):.1f} MB"
 
 
-def _get_storage_files() -> list[dict[str, Any]]:
-    """List storage files in DATA_DIR with size and description."""
+def _get_storage_files(user_id: str = _DEFAULT_USER_ID) -> list[dict[str, Any]]:
+    """List storage files for a user (per-user dir) plus shared files."""
     files: list[dict[str, Any]] = []
-    known = {
+    user_dir = _user_dir(user_id)
+
+    # Per-user files
+    per_user_known = {
         "user_stats.json": "Progress, streaks, quiz stats, chat history, preferences",
         "flashcards.json": "Flashcard decks and SRS data",
         "profile.json": "User profile (name, mode, class code)",
         "users.db": "Auth database (accounts)",
         "sync_queue.json": "Pending sync items",
     }
-
-    for name, desc in known.items():
-        path = DATA_DIR / name
+    for name, desc in per_user_known.items():
+        path = user_dir / name
         if path.exists():
             try:
                 size = path.stat().st_size
@@ -536,7 +573,7 @@ def _get_storage_files() -> list[dict[str, Any]]:
                 size = 0
             extra = ""
             if name == "flashcards.json":
-                cards = _load_flashcards()
+                cards = _load_flashcards(user_id)
                 extra = f" — {len(cards)} cards" if cards else ""
             elif name == "user_stats.json":
                 stats = _load_user_stats()
@@ -548,6 +585,26 @@ def _get_storage_files() -> list[dict[str, Any]]:
                 "size_bytes": size,
                 "size_human": _format_size(size),
                 "description": desc + extra,
+            })
+
+    # Shared files (not per-user)
+    shared_known = {
+        "profile.json": "User profile (name, mode, class code)",
+        "users.db": "Auth database (accounts)",
+        "sync_queue.json": "Pending sync items",
+    }
+    for name, desc in shared_known.items():
+        path = DATA_DIR / name
+        if path.exists():
+            try:
+                size = path.stat().st_size
+            except OSError:
+                size = 0
+            files.append({
+                "name": name,
+                "size_bytes": size,
+                "size_human": _format_size(size),
+                "description": desc,
             })
         elif name == "sync_queue.json":
             files.append({
@@ -575,9 +632,9 @@ def _get_storage_files() -> list[dict[str, Any]]:
 
 
 @app.get("/api/storage/files")
-def storage_files():
+def storage_files(user_id: str = Depends(get_user_id)):
     """List local storage files for Settings Storage panel."""
-    return {"files": _get_storage_files()}
+    return {"files": _get_storage_files(user_id)}
 
 
 # ---------------------------------------------------------------------------
@@ -881,11 +938,12 @@ def flashcards_generate(req: FlashcardGenerateRequest):
 # Flashcards storage (mirror LocalStorage: flashcards.json)
 # ---------------------------------------------------------------------------
 
-def _load_flashcards() -> list[dict[str, Any]]:
-    """Load flashcards.json; return [] on missing/error."""
+def _load_flashcards(user_id: str = _DEFAULT_USER_ID) -> list[dict[str, Any]]:
+    """Load per-user flashcards.json; return [] on missing/error."""
     try:
-        if FLASHCARDS_FILE.exists():
-            raw = FLASHCARDS_FILE.read_text(encoding="utf-8")
+        f = _flashcards_file(user_id)
+        if f.exists():
+            raw = f.read_text(encoding="utf-8")
             data = json.loads(raw)
             if isinstance(data, list):
                 return data
@@ -894,29 +952,27 @@ def _load_flashcards() -> list[dict[str, Any]]:
     return []
 
 
-def _save_flashcards(cards: list[dict[str, Any]]) -> None:
-    """Overwrite flashcards.json."""
+def _save_flashcards(cards: list[dict[str, Any]], user_id: str = _DEFAULT_USER_ID) -> None:
+    """Overwrite per-user flashcards.json."""
     try:
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
-        FLASHCARDS_FILE.write_text(
-            json.dumps(cards, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
+        f = _flashcards_file(user_id)
+        f.write_text(json.dumps(cards, indent=2, ensure_ascii=False), encoding="utf-8")
     except OSError:
         pass
 
 
-def _append_flashcards(new_cards: list[dict[str, Any]]) -> None:
-    """Append cards to flashcards.json."""
-    existing = _load_flashcards()
+def _append_flashcards(new_cards: list[dict[str, Any]], user_id: str = _DEFAULT_USER_ID) -> None:
+    """Append cards to per-user flashcards.json."""
+    existing = _load_flashcards(user_id)
     existing.extend(new_cards)
-    _save_flashcards(existing)
+    _save_flashcards(existing, user_id)
 
 
-def _get_due_cards() -> list[dict[str, Any]]:
-    """Return cards where next_review <= now or missing (same logic as LocalStorage)."""
+def _get_due_cards(user_id: str = _DEFAULT_USER_ID) -> list[dict[str, Any]]:
+    """Return cards where next_review <= now or missing."""
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc).isoformat()
-    all_cards = _load_flashcards()
+    all_cards = _load_flashcards(user_id)
     due = []
     for c in all_cards:
         next_review = c.get("next_review") or ""
@@ -926,14 +982,14 @@ def _get_due_cards() -> list[dict[str, Any]]:
 
 
 @app.get("/api/flashcards")
-def flashcards_list():
-    """Return all stored flashcards (for sync/debug)."""
-    return {"cards": _load_flashcards()}
+def flashcards_list(user_id: str = Depends(get_user_id)):
+    """Return all stored flashcards for the authenticated user."""
+    return {"cards": _load_flashcards(user_id)}
 
 
-def _dashboard_flashcards() -> list[dict[str, Any]]:
+def _dashboard_flashcards(user_id: str = _DEFAULT_USER_ID) -> list[dict[str, Any]]:
     """Transform stored flashcards to dashboard format (id, conceptTitle, content, sourceType)."""
-    raw = _load_flashcards()
+    raw = _load_flashcards(user_id)
     out = []
     for c in raw:
         cid = c.get("id") or str(uuid.uuid4())
@@ -958,15 +1014,15 @@ def _dashboard_flashcards() -> list[dict[str, Any]]:
 
 
 @app.get("/api/dashboard/flashcards")
-def dashboard_flashcards():
-    """Return flashcards in dashboard format (conceptTitle, content, sourceType) for aerogel card."""
-    return {"cards": _dashboard_flashcards()}
+def dashboard_flashcards(user_id: str = Depends(get_user_id)):
+    """Return flashcards in dashboard format for the authenticated user."""
+    return {"cards": _dashboard_flashcards(user_id)}
 
 
 @app.get("/api/flashcards/due")
-def flashcards_due():
-    """Return cards due for review (next_review <= now or missing)."""
-    return {"cards": _get_due_cards()}
+def flashcards_due(user_id: str = Depends(get_user_id)):
+    """Return cards due for review for the authenticated user."""
+    return {"cards": _get_due_cards(user_id)}
 
 
 class FlashcardsAppendRequest(BaseModel):
@@ -974,11 +1030,11 @@ class FlashcardsAppendRequest(BaseModel):
 
 
 @app.post("/api/flashcards")
-def flashcards_append(req: FlashcardsAppendRequest):
-    """Append generated cards to storage (enriched with next_review, etc.)."""
+def flashcards_append(req: FlashcardsAppendRequest, user_id: str = Depends(get_user_id)):
+    """Append generated cards to storage for the authenticated user."""
     if not req.cards:
         return {"ok": True, "appended": 0}
-    _append_flashcards(req.cards)
+    _append_flashcards(req.cards, user_id)
     return {"ok": True, "appended": len(req.cards)}
 
 
@@ -987,9 +1043,9 @@ class FlashcardsReplaceRequest(BaseModel):
 
 
 @app.put("/api/flashcards")
-def flashcards_replace(req: FlashcardsReplaceRequest):
-    """Replace stored flashcards (e.g. after SRS update)."""
-    _save_flashcards(req.cards)
+def flashcards_replace(req: FlashcardsReplaceRequest, user_id: str = Depends(get_user_id)):
+    """Replace stored flashcards for the authenticated user."""
+    _save_flashcards(req.cards, user_id)
     return {"ok": True, "count": len(req.cards)}
 
 
@@ -1056,39 +1112,9 @@ def study_recommendation(req: StudyRecommendationRequest):
 # ---------------------------------------------------------------------------
 
 
-@app.post("/api/chat", response_model=ChatResponse)
-def chat(req: ChatRequest):
-    """Turn-based chat with local LLM (and optional RAG context)."""
-    engine = get_ai_engine()
-    task = AITaskType.CLARIFY if req.is_clarification else AITaskType.CHAT
-    context = req.context or {}
-    context.setdefault("difficulty", "Beginner")
-    try:
-        response = engine.request(
-            task_type=task,
-            user_input=req.message.strip(),
-            context_data=context,
-            offline_mode=True,
-            privacy_sensitive=True,
-            user_id=context.get("user_id"),
-        )
-    except (ConnectionError, TimeoutError) as e:
-        raise HTTPException(status_code=503, detail=str(e))
-    return ChatResponse(
-        text=response.text,
-        confidence_score=response.confidence_score,
-        metadata=response.metadata,
-    )
-
-
-# ---------------------------------------------------------------------------
-# Grade
-# ---------------------------------------------------------------------------
-
-
 @app.post("/api/grade", response_model=GradeResponse)
 def grade(req: GradeRequest):
-    """Grade subjective/objective answers (local LLM, Red Pen–style feedback)."""
+    """Grade subjective/objective answers using AI engine with Red Pen–style feedback."""
     engine = get_ai_engine()
     try:
         response = engine.request(
@@ -1108,10 +1134,72 @@ def grade(req: GradeRequest):
         )
     except (ConnectionError, TimeoutError) as e:
         raise HTTPException(status_code=503, detail=str(e))
+
+    # Parse "Score: X/10" from AI response for structured output
+    score = None
+    import re
+    match = re.search(r"Score:\s*(\d+(?:\.\d+)?)\s*/\s*10", response.text, re.IGNORECASE)
+    if match:
+        score = float(match.group(1))
+
     return GradeResponse(
         text=response.text,
         confidence_score=response.confidence_score,
+        score=score,
+        errors=[],  # AI engine returns freeform; optional: parse if needed
+        strengths=[],
+        remarks="",
         metadata=response.metadata,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Grade
+# ---------------------------------------------------------------------------
+
+
+@app.post("/api/grade", response_model=GradeResponse)
+for name, desc in known.items():
+        path = DATA_DIR / name
+        if path.exists():
+            try:
+                size = path.stat().st_size
+            except OSError:
+                size = 0
+            extra = ""
+            if name == "flashcards.json":
+                cards = _load_flashcards()
+                extra = f" — {len(cards)} cards" if cards else ""
+            elif name == "user_stats.json":
+                stats = _load_user_stats()
+                chat_len = len(stats.get("chat_history") or [])
+                if chat_len:
+                    extra = f" — {chat_len} chat messages"
+            files.append({
+                "name": name,
+                "size_bytes": size,
+                "size_human": _format_size(size),
+                "description": desc + extra,
+            })
+        elif name == "sync_queue.json":
+            files.append({
+                "name": name,
+                "size_bytes": 0,
+                "size_human": "0 B",
+                "description": desc + " — not created yet",
+            })
+
+    feedback_text = RedPenFeedback().generate(
+        question=req.question,
+        answer=req.answer,
+        grading=result,
+    )
+    return GradeResponse(
+        text=feedback_text,
+        score=result.get("score"),
+        errors=result.get("errors", []),
+        strengths=result.get("strengths", []),
+        remarks=result.get("remarks", ""),
     )
 
 
@@ -1277,6 +1365,105 @@ def panic_generate_files(
     return {"id": "panic", "title": f"Panic Mode — {subject}", "items": items}
 
 
+@app.post("/api/quiz/{quiz_id}/submit", response_model=QuizSubmitResponse)
+def quiz_submit(quiz_id: str, req: QuizSubmitRequest):
+    """Submit quiz answers; grade via AI and update user stats."""
+    engine = get_ai_engine()
+    stats = _load_user_stats()
+    quiz_stats = stats.setdefault("quiz_stats", {})
+    topic_scores: dict[str, list[float]] = {}
+    for r in req.results:
+        topic = r.get("topic", "General")
+        score = float(r.get("score", 0))
+        topic_scores.setdefault(topic, []).append(score)
+        total_attempted = int(quiz_stats.get("total_attempted", 0)) + 1
+        total_correct = int(quiz_stats.get("total_correct", 0)) + (1 if score >= 6.0 else 0)
+        prev_avg = float(quiz_stats.get("average_score", 0.0))
+        quiz_stats["total_attempted"] = total_attempted
+        quiz_stats["total_correct"] = total_correct
+        quiz_stats["average_score"] = round(((prev_avg * (total_attempted - 1)) + score) / total_attempted, 2)
+        by_topic = quiz_stats.setdefault("by_topic", {})
+        te = by_topic.setdefault(topic, {"attempts": 0, "avg_score": 0.0})
+        te["attempts"] = int(te.get("attempts", 0)) + 1
+        te["avg_score"] = round(((float(te.get("avg_score", 0)) * (te["attempts"] - 1)) + score) / te["attempts"], 2)
+    _save_user_stats(stats)
+
+    weak_topics_text: Optional[str] = None
+    recommendation_text: Optional[str] = None
+    if topic_scores:
+        weak_topics_payload = {
+            topic: round(sum(vals) / len(vals), 2) for topic, vals in topic_scores.items()
+        }
+        engine = get_ai_engine()
+        try:
+            weak_topic_response = engine.request(
+                task_type=AITaskType.WEAK_TOPIC_DETECTION,
+                user_input="Identify weak topics from this exam result.",
+                context_data={
+                    "exam_mode": "panic_mode",
+                    "topic_scores": weak_topics_payload,
+                    "total_questions": len(req.items),
+                },
+                offline_mode=True,
+                privacy_sensitive=True,
+                user_id=None,
+            )
+            weak_topics_text = weak_topic_response.text
+            if weak_topics_text and weak_topics_text.strip():
+                rec_response = engine.request(
+                    task_type=AITaskType.STUDY_RECOMMENDATION,
+                    user_input="Create a post-exam improvement plan.",
+                    context_data={
+                        "exam_mode": "panic_mode",
+                        "topic_scores": weak_topics_payload,
+                        "weak_topics_summary": weak_topics_text,
+                        "study_time_minutes": 20,
+                    },
+                    offline_mode=True,
+                    privacy_sensitive=True,
+                    user_id=None,
+                )
+                recommendation_text = rec_response.text
+        except (ConnectionError, TimeoutError):
+            pass
+        if not weak_topics_text:
+            weak_topics_text = "AI unavailable for weak-topic analysis."
+        if not recommendation_text:
+            recommendation_text = "Complete more quizzes and review weak areas from your stats."
+
+    # Enqueue for AWS sync (AppSync recordQuizAttempt) when sync enabled
+    if req.results:
+        _enqueue_panic_quiz_for_sync(req.results, len(req.items))
+
+    return {"weak_topics_text": weak_topics_text, "recommendation_text": recommendation_text}
+
+
+def _enqueue_panic_quiz_for_sync(results: list[dict[str, Any]], total_questions: int) -> None:
+    """Queue panic mode quiz attempt for AWS AppSync sync. No-op if sync disabled or no profile."""
+    try:
+        prefs = _load_user_stats().get("preferences") or {}
+        if not prefs.get("sync_enabled", True):
+            return
+        profile = load_profile()
+        user_id = (profile and profile.profile_name) or "anonymous"
+        if user_id == "anonymous":
+            return
+        avg = sum(float(r.get("score", 0)) for r in results) / len(results) if results else 0.0
+        score_pct = int(round(avg * 10))  # 0–10 scale → 0–100 for AWS
+        from sync_manager import SyncManager
+        sm = SyncManager(base_path=str(BASE_PATH))
+        sm.enqueue_quiz_sync(
+            user_id=user_id,
+            quiz_id="panic",
+            score=min(100, max(0, score_pct)),
+            total_questions=total_questions,
+            subject="Panic Mode",
+            difficulty="Medium",
+        )
+    except Exception:
+        pass  # Sync is best-effort; do not fail the request
+
+
 class PanicGradeOneRequest(BaseModel):
     question_id: str = Field(...)
     answer: str = Field(default="")
@@ -1423,99 +1610,45 @@ def _enqueue_panic_quiz_for_sync(results: list[dict[str, Any]], total_questions:
         pass  # Sync is best-effort; do not fail the request
 
 
-@app.post("/api/quiz/{quiz_id}/submit", response_model=QuizSubmitResponse)
-def quiz_submit(quiz_id: str, req: QuizSubmitRequest):
-    """Submit quiz answers; grade via AI and update user stats."""
+@app.post("/api/grade", response_model=GradeResponse)
+def grade(req: GradeRequest):
+    """Grade subjective/objective answers using AI engine with Red Pen–style feedback."""
     engine = get_ai_engine()
-    stats = _load_user_stats()
-    quiz_stats = stats.setdefault("quiz_stats", {})
-    results: list[dict[str, Any]] = []
-    difficulty = (stats.get("preferences") or {}).get("difficulty_level", "Beginner")
+    try:
+        response = engine.request(
+            task_type=AITaskType.GRADING,
+            user_input=req.answer,
+            context_data={
+                "question_id": req.question_id,
+                "question": req.question,
+                "expected_answer": req.expected_answer,
+                "topic": req.topic,
+                "difficulty": req.difficulty,
+                "rubric": req.rubric or "[GRADING_RUBRIC_PLACEHOLDER]",
+            },
+            offline_mode=req.offline_mode,
+            privacy_sensitive=True,
+            user_id=req.user_id,
+        )
+    except (ConnectionError, TimeoutError) as e:
+        raise HTTPException(status_code=503, detail=str(e))
 
-    items_list = (req.items if req.items else PANIC_ITEMS) if quiz_id == "panic" else QUIZ_ITEMS
-    items_by_id = {q["id"]: q for q in items_list}
-    topic_scores: dict[str, list[float]] = {}
-    for entry in req.answers:
-        qid = entry.get("question_id") or entry.get("id")
-        answer = entry.get("answer", "")
-        if not qid or qid not in items_by_id:
-            results.append({"question_id": qid, "error": "unknown question", "score": 0.0})
-            continue
-        item = items_by_id[qid]
-        expected = item.get("expected_answer", "")
-        score = _local_score(answer, expected)
-        try:
-            grading = engine.request(
-                task_type=AITaskType.GRADING,
-                user_input=answer,
-                context_data={
-                    "question_id": item["id"],
-                    "question": item["question"],
-                    "topic": item["topic"],
-                    "expected_answer": expected,
-                    "difficulty": difficulty,
-                    "rubric": "[GRADING_RUBRIC_PLACEHOLDER]",
-                },
-                offline_mode=True,
-                privacy_sensitive=True,
-            )
-            feedback_text = grading.text
-        except (ConnectionError, TimeoutError):
-            feedback_text = "Grading unavailable."
-        topic = item.get("topic", "General")
-        results.append({"question_id": qid, "score": score, "feedback": feedback_text, "topic": topic})
-        topic_scores.setdefault(topic, []).append(score)
+    # Parse "Score: X/10" from AI response for structured output
+    score = None
+    import re
+    match = re.search(r"Score:\s*(\d+(?:\.\d+)?)\s*/\s*10", response.text, re.IGNORECASE)
+    if match:
+        score = float(match.group(1))
 
-        total_attempted = int(quiz_stats.get("total_attempted", 0)) + 1
-        total_correct = int(quiz_stats.get("total_correct", 0)) + (1 if score >= 6.0 else 0)
-        prev_avg = float(quiz_stats.get("average_score", 0.0))
-        quiz_stats["total_attempted"] = total_attempted
-        quiz_stats["total_correct"] = total_correct
-        quiz_stats["average_score"] = round(((prev_avg * (total_attempted - 1)) + score) / total_attempted, 2)
-        by_topic = quiz_stats.setdefault("by_topic", {})
-        te = by_topic.setdefault(topic, {"attempts": 0, "avg_score": 0.0})
-        te["attempts"] = int(te.get("attempts", 0)) + 1
-        te["avg_score"] = round(((float(te.get("avg_score", 0)) * (te["attempts"] - 1)) + score) / te["attempts"], 2)
-
-    _save_user_stats(stats)
-
-    weak_topics_text: Optional[str] = None
-    recommendation_text: Optional[str] = None
-    if quiz_id == "panic" and topic_scores:
-        weak_topics_payload = {
-            topic: round(sum(vals) / len(vals), 2) for topic, vals in topic_scores.items()
-        }
-        try:
-            weak_topic_response = engine.request(
-                task_type=AITaskType.WEAK_TOPIC_DETECTION,
-                user_input="Identify weak topics from this exam result.",
-                context_data={
-                    "exam_mode": "panic_mode",
-                    "topic_scores": weak_topics_payload,
-                    "total_questions": len(items_list),
-                },
-                offline_mode=True,
-                privacy_sensitive=True,
-                user_id=None,
-            )
-            weak_topics_text = weak_topic_response.text
-            rec_response = engine.request(
-                task_type=AITaskType.STUDY_RECOMMENDATION,
-                user_input="Create a post-exam improvement plan.",
-                context_data={
-                    "exam_mode": "panic_mode",
-                    "topic_scores": weak_topics_payload,
-                    "weak_topics_summary": weak_topics_text,
-                    "study_time_minutes": 20,
-                },
-                offline_mode=True,
-                privacy_sensitive=True,
-                user_id=None,
-            )
-            recommendation_text = rec_response.text
-        except (ConnectionError, TimeoutError):
-            weak_topics_text = "AI unavailable for weak-topic analysis."
-            recommendation_text = "Complete more quizzes and review weak areas from your stats."
+    return GradeResponse(
+        text=response.text,
+        confidence_score=response.confidence_score,
+        score=score,
+        errors=[],  # AI engine returns freeform; optional: parse if needed
+        strengths=[],
+        remarks="",
+        metadata=response.metadata,
+    )
 
     # Enqueue panic mode for AWS sync when applicable
     if quiz_id == "panic" and results:
@@ -1550,21 +1683,21 @@ def user_me(current_user: Annotated[User, Depends(get_current_user)]):
 
 
 @app.get("/api/user/stats")
-def user_stats_get():
-    """Return user progress, streaks, preferences (same schema as Streamlit)."""
-    return _load_user_stats()
+def user_stats_get(user_id: str = Depends(get_user_id)):
+    """Return user progress, streaks, preferences for the authenticated user."""
+    return _load_user_stats(user_id)
 
 
 @app.put("/api/user/stats")
-def user_stats_put(stats: dict[str, Any]):
-    """Update user progress/preferences. Merges with existing or replaces."""
-    existing = _load_user_stats()
+def user_stats_put(stats: dict[str, Any], user_id: str = Depends(get_user_id)):
+    """Update user progress/preferences for the authenticated user. Merges with existing."""
+    existing = _load_user_stats(user_id)
     for key, value in stats.items():
         if isinstance(value, dict) and isinstance(existing.get(key), dict):
             existing[key] = {**existing[key], **value}
         else:
             existing[key] = value
-    _save_user_stats(existing)
+    _save_user_stats(existing, user_id)
     return {"ok": True}
 
 
@@ -1572,32 +1705,20 @@ def user_stats_put(stats: dict[str, Any]):
 # Data export & clear (Settings: Export Data, Clear Local Data)
 # ---------------------------------------------------------------------------
 
-def _profile_to_dict(p: Optional[UserProfile]) -> dict[str, Any]:
-    """Convert UserProfile to JSON-serializable dict."""
-    if p is None:
-        return {"profile_name": None, "profile_mode": None, "class_code": None, "user_role": None, "onboarding_complete": False}
-    return {
-        "profile_name": p.profile_name,
-        "profile_mode": p.profile_mode,
-        "class_code": p.class_code,
-        "user_role": p.user_role,
-        "onboarding_complete": getattr(p, "onboarding_complete", False),
-    }
-
 
 @app.get("/api/data/export")
-def data_export():
+def data_export(user_id: str = Depends(get_user_id)):
     """
-    Export all user stats, flashcards, and profile as a single JSON payload.
-    Returns JSON suitable for backup or migration.
+    Export all user stats and flashcards for the authenticated user.
     """
     from datetime import datetime, timezone
-    stats = _load_user_stats()
-    cards = _load_flashcards()
+    stats = _load_user_stats(user_id)
+    cards = _load_flashcards(user_id)
     profile = load_profile()
     payload = {
         "exported_at": datetime.now(timezone.utc).isoformat(),
         "version": "1.0",
+        "user_id": user_id,
         "user_stats": stats,
         "flashcards": cards,
         "profile": _profile_to_dict(profile),
@@ -1606,15 +1727,16 @@ def data_export():
 
 
 @app.post("/api/data/clear")
-def data_clear():
+def data_clear(user_id: str = Depends(get_user_id)):
     """
-    Clear local study data: reset user_stats to defaults, clear flashcards,
-    reset profile. Does NOT delete auth (users.db) — user accounts remain.
+    Clear study data for the authenticated user: reset stats to defaults, clear flashcards.
+    Does NOT delete auth (users.db) or affect other users.
     """
-    _save_user_stats(dict(_DEFAULT_STATS))
-    _save_flashcards([])
-    save_profile(UserProfile())
-    return {"ok": True, "message": "Local data cleared. User stats, flashcards, and profile have been reset."}
+    default = dict(_DEFAULT_STATS)
+    default["user_id"] = user_id
+    _save_user_stats(default, user_id)
+    _save_flashcards([], user_id)
+    return {"ok": True, "message": f"Data cleared for user '{user_id}'."}
 
 
 # ---------------------------------------------------------------------------
@@ -1685,20 +1807,20 @@ def _get_orchestrator():
     return _orchestrator
 
 
-def _persist_resolved_entity(entity_type: str, entity_id: str, resolved_data: dict) -> None:
+def _persist_resolved_entity(entity_type: str, entity_id: str, resolved_data: dict, user_id: str = _DEFAULT_USER_ID) -> None:
     """Persist resolved conflict data to local store based on entity type."""
-    stats = _load_user_stats()
+    stats = _load_user_stats(user_id)
     et = (entity_type or "").lower()
     if et in ("userstats", "user_stats") or entity_id in ("user_stats", "stats"):
-        _save_user_stats(resolved_data)
+        _save_user_stats(resolved_data, user_id)
     elif et in ("streakrecord", "streak"):
         merged = dict(stats)
         merged["streak"] = {**(stats.get("streak") or {}), **resolved_data}
-        _save_user_stats(merged)
+        _save_user_stats(merged, user_id)
     elif et in ("quizstats", "quiz_stats"):
         merged = dict(stats)
         merged["quiz_stats"] = {**(stats.get("quiz_stats") or {}), **resolved_data}
-        _save_user_stats(merged)
+        _save_user_stats(merged, user_id)
     else:
         # Default: deep merge top-level keys into user_stats
         for k, v in resolved_data.items():
@@ -1706,15 +1828,15 @@ def _persist_resolved_entity(entity_type: str, entity_id: str, resolved_data: di
                 stats[k] = {**stats[k], **v}
             else:
                 stats[k] = v
-        _save_user_stats(stats)
+        _save_user_stats(stats, user_id)
 
 
 @app.post("/api/sync")
-def sync_trigger():
+def sync_trigger(user_id: str = Depends(get_user_id)):
     """Trigger sync with AWS when online. Uses SyncManager.try_sync()."""
     try:
         from sync_manager import SyncManager
-        sm = SyncManager(base_path=str(BASE_PATH))
+        sm = SyncManager(base_path=str(BASE_PATH), user_id=user_id)
         result = sm.try_sync()
         return {
             "ok": True,
@@ -1736,9 +1858,9 @@ def sync_trigger():
 
 
 @app.get("/api/sync/status")
-def sync_status():
+def sync_status(user_id: str = Depends(get_user_id)):
     """Return sync status: queue summary, connectivity, last sync."""
-    stats = _load_user_stats()
+    stats = _load_user_stats(user_id)
     prefs = stats.get("preferences") or {}
     sync_enabled = prefs.get("sync_enabled", True)
     last_sync = stats.get("last_sync_timestamp")
@@ -1755,7 +1877,7 @@ def sync_status():
 
     try:
         from sync_manager import SyncManager
-        sm = SyncManager(base_path=str(BASE_PATH))
+        sm = SyncManager(base_path=str(BASE_PATH), user_id=user_id)
         out["online"] = sm.check_connectivity()
         out["queue"] = sm.get_queue_summary()
     except Exception:
@@ -1783,7 +1905,7 @@ class ResolveConflictRequest(BaseModel):
 
 
 @app.post("/api/sync/conflicts/{entity_id}/resolve")
-def resolve_conflict(entity_id: str, body: ResolveConflictRequest):
+def resolve_conflict(entity_id: str, body: ResolveConflictRequest, user_id: str = Depends(get_user_id)):
     """Resolve a conflict by entity_id. Persists resolved data and removes from pending."""
     choice = (body.choice or "").strip().lower()
     if choice not in ("keep_local", "keep_cloud", "merge"):
@@ -1800,7 +1922,7 @@ def resolve_conflict(entity_id: str, body: ResolveConflictRequest):
         entity_type = conflict_dict.get("entity_type", "UserStats") if conflict_dict else "UserStats"
 
         resolved_data = orch.resolve_conflict_manual(entity_id, choice)
-        _persist_resolved_entity(entity_type, entity_id, resolved_data)
+        _persist_resolved_entity(entity_type, entity_id, resolved_data, user_id)
         orch.trigger_sync_debounced()
         return {"ok": True, "entity_id": entity_id, "choice": choice}
     except ValueError as e:
