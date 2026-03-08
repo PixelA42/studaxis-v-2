@@ -114,7 +114,6 @@ const PASSWORD_RULES = [
   { id: "lower", label: "One lowercase letter", test: (p: string) => /[a-z]/.test(p) },
   { id: "number", label: "One digit", test: (p: string) => /\d/.test(p) },
   { id: "special", label: "One special (@$!%*?&)", test: (p: string) => /[@$!%*?&]/.test(p) },
-  { id: "allowed", label: "Only letters, numbers, @$!%*?&", test: (p: string) => /^[A-Za-z\d@$!%*?&]*$/.test(p) },
 ] as const;
 
 /* ── OTP 6-box input ── */
@@ -904,7 +903,7 @@ export function OnboardingFlow({
               />
               {tab === "signup" && signupSubStep === "details" && (
                 <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "4px" }}>
-                  {PASSWORD_RULES.map((r) => (
+                  {PASSWORD_RULES.filter((r) => !r.label.includes("Only letters, numbers")).map((r) => (
                     <div key={r.id} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
                       <span style={{
                         width: 14, height: 14, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",

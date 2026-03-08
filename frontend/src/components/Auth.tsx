@@ -18,7 +18,6 @@ const PASSWORD_RULES = [
   { id: "lower", label: "One lowercase letter", test: (p: string) => /[a-z]/.test(p) },
   { id: "number", label: "One digit", test: (p: string) => /\d/.test(p) },
   { id: "special", label: "One special character (@$!%*?&)", test: (p: string) => /[@$!%*?&]/.test(p) },
-  { id: "allowed", label: "Only letters, numbers, @$!%*?&", test: (p: string) => /^[A-Za-z\d@$!%*?&]*$/.test(p) },
 ] as const;
 
 function CheckItem({ met, label }: { met: boolean; label: string }) {
@@ -311,9 +310,11 @@ export function Auth() {
                       </button>
                     </div>
                     <div className="mt-2 space-y-1.5">
-                      {passwordChecks.map((c) => (
-                        <CheckItem key={c.id} met={c.met} label={c.label} />
-                      ))}
+                      {passwordChecks
+                        .filter((c) => !c.label.includes("Only letters, numbers"))
+                        .map((c) => (
+                          <CheckItem key={c.id} met={c.met} label={c.label} />
+                        ))}
                     </div>
                   </div>
                   {error && (

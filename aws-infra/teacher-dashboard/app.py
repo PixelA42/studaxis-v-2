@@ -599,7 +599,7 @@ with tab1:
         """, unsafe_allow_html=True)
         st.markdown("""
         <div class="glass-card">
-            <div class="card-title">How it works</div>
+            <div class="card-title"  style="color:#00a8e8">How it works</div>
             <div style="font-size:0.86rem;color:#2d334a;line-height:2;margin-top:8px;">
                 <div>&#9312; Students complete quizzes and activities on their devices, even without internet.</div>
                 <div>&#9313; Devices sync automatically the moment they connect to a network.</div>
@@ -643,23 +643,24 @@ with tab1:
             st.markdown('<div class="card-title">🏆 Student Performance</div>', unsafe_allow_html=True)
             st.markdown('<div class="card-sub">Sorted by average score · updates automatically when student devices sync</div>',
                         unsafe_allow_html=True)
-            df_display = df_stats.sort_values('avg_score', ascending=False).reset_index(drop=True)
+            df_display = df_stats.sort_values(by='avg_score', ascending=False).reset_index(drop=True)
             df_display.index = df_display.index + 1
+            col_map = {
+                'student_id': 'Student ID', 'total_quizzes': 'Quizzes',
+                'avg_score': 'Avg Score (%)', 'current_streak': 'Streak',
+                'connectivity_status': 'Status', 'last_sync': 'Last Sync',
+            }
             st.dataframe(
                 df_display[['student_id','total_quizzes','avg_score',
                              'current_streak','connectivity_status','last_sync']]
-                .rename(columns={
-                    'student_id': 'Student ID', 'total_quizzes': 'Quizzes',
-                    'avg_score': 'Avg Score (%)', 'current_streak': 'Streak',
-                    'connectivity_status': 'Status', 'last_sync': 'Last Sync',
-                }),
+                .rename(columns=col_map),
                 use_container_width=True, hide_index=False,
             )
             st.markdown('</div>', unsafe_allow_html=True)
 
         with chart_col:
             st.markdown('<div class="glass-card" style="padding:16px 16px 4px;">', unsafe_allow_html=True)
-            if len(df_stats) > 0 and not df_stats['avg_score'].isna().all():
+            if len(df_stats) > 0 and not bool(df_stats['avg_score'].isna().all()):
                 fig = px.histogram(
                     df_stats, x='avg_score', nbins=10,
                     title="Score Distribution",
@@ -706,7 +707,7 @@ with tab2:
                 for _, row in topic_data.iterrows():
                     fig_bar.add_trace(go.Bar(
                         x=[row['Topic']], y=[row['Avg Score']], name=row['Topic'],
-                        marker=dict(color=TOPIC_COLORS.get(row['Topic'], '#94a3b8'),
+                        marker=dict(color=TOPIC_COLORS.get(str(row['Topic']), '#94a3b8'),
                                     opacity=0.87,
                                     line=dict(color='rgba(255,255,255,0.35)', width=1.5)),
                         width=0.55, showlegend=False,
@@ -772,7 +773,7 @@ with tab3:
     else:
         struggling = df_stats[
             (df_stats['avg_score'] < 60) | (df_stats['current_streak'] == 0)
-        ].sort_values('avg_score')
+        ].sort_values(by='avg_score')
 
         if struggling.empty:
             st.markdown("""
@@ -791,7 +792,7 @@ with tab3:
             for _, row in struggling.iterrows():
                 score    = row['avg_score']
                 streak   = row['current_streak']
-                sid      = row['student_id']
+                sid      = str(row['student_id'])
                 is_crit  = score < 60
                 bar_color = '#ef4444' if is_crit else '#fb923c'
                 pct_w     = int(score)
@@ -978,11 +979,11 @@ with tab4:
                     unsafe_allow_html=True)
         for _, row in df_sync.iterrows():
             dot    = sync_dot(row.get('sync_status', 'offline'))
-            sid    = row.get('student_id', row.get('studentId', 'UNK'))
-            if pd.isna(sid):
+            sid_val = row.get('student_id', row.get('studentId', 'UNK'))
+            if not isinstance(sid_val, (str, int, float, type(None))) or sid_val is None or (isinstance(sid_val, float) and pd.isna(sid_val)) or sid_val == '':
                 sid = 'UNK'
             else:
-                sid = str(sid)
+                sid = str(sid_val)
             ac     = avatar_color(sid)
             inits  = sid[:3].upper()
             ts     = str(row.get('last_sync_timestamp', row.get('lastSyncTimestamp', 'N/A')))[:19].replace('T', '  ')
