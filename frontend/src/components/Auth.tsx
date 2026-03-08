@@ -11,12 +11,14 @@ import { postSignup } from "../services/api";
 
 const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
 
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 const PASSWORD_RULES = [
   { id: "length", label: "At least 8 characters", test: (p: string) => p.length >= 8 },
   { id: "upper", label: "One uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
   { id: "lower", label: "One lowercase letter", test: (p: string) => /[a-z]/.test(p) },
-  { id: "number", label: "One number", test: (p: string) => /\d/.test(p) },
+  { id: "number", label: "One digit", test: (p: string) => /\d/.test(p) },
   { id: "special", label: "One special character (@$!%*?&)", test: (p: string) => /[@$!%*?&]/.test(p) },
+  { id: "allowed", label: "Only letters, numbers, @$!%*?&", test: (p: string) => /^[A-Za-z\d@$!%*?&]*$/.test(p) },
 ] as const;
 
 function CheckItem({ met, label }: { met: boolean; label: string }) {
@@ -89,8 +91,8 @@ export function Auth() {
     [password]
   );
   const passwordAllMet = useMemo(
-    () => passwordChecks.every((c) => c.met),
-    [passwordChecks]
+    () => PASSWORD_REGEX.test(password),
+    [password]
   );
 
   const canSignupStep1 = email.trim().length > 0 && emailValid === true;

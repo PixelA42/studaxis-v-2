@@ -107,12 +107,14 @@ const AppleIcon = () => (
   </svg>
 );
 
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 const PASSWORD_RULES = [
   { id: "length", label: "At least 8 characters", test: (p: string) => p.length >= 8 },
   { id: "upper", label: "One uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
   { id: "lower", label: "One lowercase letter", test: (p: string) => /[a-z]/.test(p) },
-  { id: "number", label: "One number", test: (p: string) => /\d/.test(p) },
+  { id: "number", label: "One digit", test: (p: string) => /\d/.test(p) },
   { id: "special", label: "One special (@$!%*?&)", test: (p: string) => /[@$!%*?&]/.test(p) },
+  { id: "allowed", label: "Only letters, numbers, @$!%*?&", test: (p: string) => /^[A-Za-z\d@$!%*?&]*$/.test(p) },
 ] as const;
 
 /* ── OTP 6-box input ── */
@@ -708,9 +710,8 @@ export function OnboardingFlow({
         setError("Please fill all fields.");
         return;
       }
-      const passwordChecks = PASSWORD_RULES.map((r) => r.test(p));
-      if (!passwordChecks.every(Boolean)) {
-        setError("Password must have 8+ chars, 1 upper, 1 lower, 1 number, 1 special (@$!%*?&).");
+      if (!PASSWORD_REGEX.test(p)) {
+        setError("Password must have 8+ chars, 1 upper, 1 lower, 1 number, 1 special (@$!%*?&), only letters/numbers/@$!%*?&.");
         return;
       }
       setRequestingOtp(true);

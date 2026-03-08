@@ -48,7 +48,9 @@
     "difficulty_level": "Beginner",
     "theme": "light",
     "language": "English",
-    "sync_enabled": true
+    "sync_enabled": true,
+    "subject": "chemistry",
+    "grade": "College"
   },
   "hardware_info": {}
 }
