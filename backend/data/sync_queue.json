@@ -1,1 +1,396 @@
-[]
+[
+  {
+    "id": "sync_1773073560.089607",
+    "type": "quiz_result",
+    "mutation_type": "quiz_result",
+    "payload": {
+      "userId": "hhh",
+      "quizId": "gen_f6138e1d730c",
+      "result": {
+        "quiz_id": "gen_f6138e1d730c",
+        "completed_at": "2026-03-09T16:26:00.085599+00:00",
+        "score": 20.0,
+        "max_score": 50.0,
+        "percent": 40,
+        "subject": "Chemistry",
+        "question_type": "mcq",
+        "answers": [
+          {
+            "question_id": "fb1",
+            "user_answer": "0",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "D. H2O",
+            "explanation": "Water is H2O — two hydrogen atoms and one oxygen atom."
+          },
+          {
+            "question_id": "fb2",
+            "user_answer": "2",
+            "correct": true,
+            "score": 10.0,
+            "correct_answer": "C. Newton",
+            "explanation": "Force is measured in Newtons (N) where 1N = 1 kg⋅m/s²."
+          },
+          {
+            "question_id": "fb3",
+            "user_answer": "1",
+            "correct": true,
+            "score": 10.0,
+            "correct_answer": "B. An object stays at rest or in motion unless acted upon",
+            "explanation": "Newton's First Law is the law of inertia."
+          },
+          {
+            "question_id": "fb4",
+            "user_answer": "1",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "A. Deoxyribonucleic Acid",
+            "explanation": "DNA = Deoxyribonucleic Acid, the molecule of heredity."
+          },
+          {
+            "question_id": "fb5",
+            "user_answer": "1",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "C. Mitochondria",
+            "explanation": "Mitochondria produce ATP through cellular respiration."
+          }
+        ]
+      }
+    },
+    "created_at": "2026-03-09T16:26:00.089607+00:00",
+    "queued_at": "2026-03-09T16:26:00.089607+00:00",
+    "retries": 0,
+    "retry_count": 1,
+    "last_error": "AWS sync not configured for this type"
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "hhh",
+      "quizId": "gen_f6138e1d730c",
+      "score": 40,
+      "totalQuestions": 5,
+      "subject": "Chemistry",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-09T16:26:00.109803+00:00",
+      "classCode": "ds hd"
+    },
+    "queued_at": "2026-03-09T16:26:00.109803+00:00",
+    "retry_count": 1,
+    "last_error": "GraphQL error: ValidationError: score cannot exceed totalQuestions"
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "hhh",
+      "quizId": "panic",
+      "score": 40,
+      "totalQuestions": 5,
+      "subject": "Panic Mode",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-09T16:26:00.131871+00:00",
+      "classCode": "SOLO"
+    },
+    "queued_at": "2026-03-09T16:26:00.131871+00:00",
+    "retry_count": 1,
+    "last_error": "GraphQL error: ValidationError: score cannot exceed totalQuestions"
+  },
+  {
+    "id": "sync_1773073608.255",
+    "type": "quiz_result",
+    "mutation_type": "quiz_result",
+    "payload": {
+      "userId": "hhh",
+      "quizId": "gen_13228add0749",
+      "result": {
+        "quiz_id": "gen_13228add0749",
+        "completed_at": "2026-03-09T16:26:48.249994+00:00",
+        "score": 10.0,
+        "max_score": 50.0,
+        "percent": 20,
+        "subject": "Biology",
+        "question_type": "mcq",
+        "answers": [
+          {
+            "question_id": "fb1",
+            "user_answer": "1",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "A. Deoxyribonucleic Acid",
+            "explanation": "DNA = Deoxyribonucleic Acid, the molecule of heredity."
+          },
+          {
+            "question_id": "fb2",
+            "user_answer": "1",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "D. H2O",
+            "explanation": "Water is H2O — two hydrogen atoms and one oxygen atom."
+          },
+          {
+            "question_id": "fb3",
+            "user_answer": "1",
+            "correct": true,
+            "score": 10.0,
+            "correct_answer": "B. An object stays at rest or in motion unless acted upon",
+            "explanation": "Newton's First Law is the law of inertia."
+          },
+          {
+            "question_id": "fb4",
+            "user_answer": "0",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "C. Mitochondria",
+            "explanation": "Mitochondria produce ATP through cellular respiration."
+          },
+          {
+            "question_id": "fb5",
+            "user_answer": "0",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "C. Newton",
+            "explanation": "Force is measured in Newtons (N) where 1N = 1 kg⋅m/s²."
+          }
+        ]
+      }
+    },
+    "created_at": "2026-03-09T16:26:48.255000+00:00",
+    "queued_at": "2026-03-09T16:26:48.255000+00:00",
+    "retries": 0,
+    "retry_count": 1,
+    "last_error": "AWS sync not configured for this type"
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "hhh",
+      "quizId": "gen_13228add0749",
+      "score": 20,
+      "totalQuestions": 5,
+      "subject": "Biology",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-09T16:26:48.308479+00:00",
+      "classCode": "ds hd"
+    },
+    "queued_at": "2026-03-09T16:26:48.308479+00:00",
+    "retry_count": 1,
+    "last_error": "GraphQL error: ValidationError: score cannot exceed totalQuestions"
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "hhh",
+      "quizId": "panic",
+      "score": 20,
+      "totalQuestions": 5,
+      "subject": "Panic Mode",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-09T16:26:48.331651+00:00",
+      "classCode": "SOLO"
+    },
+    "queued_at": "2026-03-09T16:26:48.331651+00:00",
+    "retry_count": 1,
+    "last_error": "GraphQL error: ValidationError: score cannot exceed totalQuestions"
+  },
+  {
+    "id": "sync_1773075754.387741",
+    "type": "quiz_result",
+    "mutation_type": "quiz_result",
+    "payload": {
+      "userId": "hhh",
+      "quizId": "panic",
+      "result": {
+        "quiz_id": "panic",
+        "completed_at": "2026-03-09T17:02:34.369531+00:00",
+        "score": 0.0,
+        "max_score": 50.0,
+        "percent": 0,
+        "subject": "Physics",
+        "question_type": "open_ended",
+        "answers": [
+          {
+            "question_id": "fb1",
+            "user_answer": "",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "C. Newton",
+            "explanation": "Force is measured in Newtons (N) where 1N = 1 kg⋅m/s²."
+          },
+          {
+            "question_id": "fb2",
+            "user_answer": "",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "A. Deoxyribonucleic Acid",
+            "explanation": "DNA = Deoxyribonucleic Acid, the molecule of heredity."
+          },
+          {
+            "question_id": "fb3",
+            "user_answer": "",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "C. Mitochondria",
+            "explanation": "Mitochondria produce ATP through cellular respiration."
+          },
+          {
+            "question_id": "fb4",
+            "user_answer": "",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "D. H2O",
+            "explanation": "Water is H2O — two hydrogen atoms and one oxygen atom."
+          },
+          {
+            "question_id": "fb5",
+            "user_answer": "",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "B. An object stays at rest or in motion unless acted upon",
+            "explanation": "Newton's First Law is the law of inertia."
+          }
+        ]
+      }
+    },
+    "created_at": "2026-03-09T17:02:34.387741+00:00",
+    "queued_at": "2026-03-09T17:02:34.387741+00:00",
+    "retries": 0,
+    "retry_count": 1,
+    "last_error": "AWS sync not configured for this type"
+  },
+  {
+    "id": "sync_1773076072.001125",
+    "type": "flashcard_create",
+    "mutation_type": "flashcard_create",
+    "payload": {
+      "userId": "hhh",
+      "deckId": "1773076071970",
+      "title": "General",
+      "subject": "General"
+    },
+    "created_at": "2026-03-09T17:07:52.001125+00:00",
+    "queued_at": "2026-03-09T17:07:52.001125+00:00",
+    "retries": 0,
+    "retry_count": 1,
+    "last_error": "AWS sync not configured for this type"
+  },
+  {
+    "id": "sync_1773076128.173628",
+    "type": "flashcard_create",
+    "mutation_type": "flashcard_create",
+    "payload": {
+      "userId": "hhh",
+      "deckId": "1773076128161",
+      "title": "General",
+      "subject": "General"
+    },
+    "created_at": "2026-03-09T17:08:48.173628+00:00",
+    "queued_at": "2026-03-09T17:08:48.173628+00:00",
+    "retries": 0,
+    "retry_count": 1,
+    "last_error": "AWS sync not configured for this type"
+  },
+  {
+    "id": "sync_1773076421.980961",
+    "type": "quiz_result",
+    "mutation_type": "quiz_result",
+    "payload": {
+      "userId": "hhh",
+      "quizId": "panic",
+      "result": {
+        "quiz_id": "panic",
+        "completed_at": "2026-03-09T17:13:41.975309+00:00",
+        "score": 0.0,
+        "max_score": 50.0,
+        "percent": 0,
+        "subject": "Biology",
+        "question_type": "open_ended",
+        "answers": [
+          {
+            "question_id": "fb1",
+            "user_answer": "",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "A. Deoxyribonucleic Acid",
+            "explanation": "DNA = Deoxyribonucleic Acid, the molecule of heredity."
+          },
+          {
+            "question_id": "fb2",
+            "user_answer": "",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "C. Newton",
+            "explanation": "Force is measured in Newtons (N) where 1N = 1 kg⋅m/s²."
+          },
+          {
+            "question_id": "fb3",
+            "user_answer": "",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "B. An object stays at rest or in motion unless acted upon",
+            "explanation": "Newton's First Law is the law of inertia."
+          },
+          {
+            "question_id": "fb4",
+            "user_answer": "",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "C. Mitochondria",
+            "explanation": "Mitochondria produce ATP through cellular respiration."
+          },
+          {
+            "question_id": "fb5",
+            "user_answer": "",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "D. H2O",
+            "explanation": "Water is H2O — two hydrogen atoms and one oxygen atom."
+          }
+        ]
+      }
+    },
+    "created_at": "2026-03-09T17:13:41.980961+00:00",
+    "queued_at": "2026-03-09T17:13:41.980961+00:00",
+    "retries": 0,
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "hhh",
+      "quizId": "panic",
+      "score": 0,
+      "totalQuestions": 5,
+      "subject": "Biology",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-09T17:13:42.079768+00:00",
+      "classCode": "ds hd"
+    },
+    "queued_at": "2026-03-09T17:13:42.079768+00:00",
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "hhh",
+      "quizId": "panic",
+      "score": 0,
+      "totalQuestions": 5,
+      "subject": "Panic Mode",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-09T17:13:42.115777+00:00",
+      "classCode": "SOLO"
+    },
+    "queued_at": "2026-03-09T17:13:42.115777+00:00",
+    "retry_count": 0,
+    "last_error": ""
+  }
+]

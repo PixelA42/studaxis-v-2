@@ -1,28 +1,20 @@
-﻿{
-    "Version":  "2012-10-17",
-    "Statement":  [
-                      {
-                          "Effect":  "Allow",
-                          "Resource":  "*",
-                          "Action":  [
-                                         "bedrock:InvokeModel"
-                                     ]
-                      },
-                      {
-                          "Effect":  "Allow",
-                          "Resource":  "arn:aws:s3:::studaxis-payloads/*",
-                          "Action":  [
-                                         "s3:GetObject",
-                                         "s3:PutObject",
-                                         "s3:HeadObject"
-                                     ]
-                      },
-                      {
-                          "Effect":  "Allow",
-                          "Resource":  "arn:aws:dynamodb:ap-south-1:718980965213:table/studaxis-content-distribution",
-                          "Action":  [
-                                         "dynamodb:PutItem"
-                                     ]
-                      }
-                  ]
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["bedrock:InvokeModel"],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:HeadObject"],
+      "Resource": "arn:aws:s3:::studaxis-payloads/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["dynamodb:PutItem"],
+      "Resource": "arn:aws:dynamodb:ap-south-1:718980965213:table/studaxis-content-distribution"
+    }
+  ]
 }

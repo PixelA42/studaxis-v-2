@@ -1,11 +1,431 @@
 {
   "decks": [
     {
-      "id": "deck_cfa623013845",
+      "id": "deck_9e6ddada4eb4",
       "title": "All Cards",
       "subject": "General",
       "created_at": "2026-03-09",
       "cards": [
+        {
+          "id": "fc1",
+          "front": "What are the key concepts in this topic?",
+          "back": "Review the main definitions and examples from your notes.",
+          "ease": "medium",
+          "next_review": "2026-03-09T17:08:26.365Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "What are the key concepts in this topic?",
+          "answer": "Review the main definitions and examples from your notes.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "fc2",
+          "front": "How would you explain this to someone new to the subject?",
+          "back": "Use simple language and one concrete example.",
+          "ease": "medium",
+          "next_review": "2026-03-09T17:08:26.365Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "How would you explain this to someone new to the subject?",
+          "answer": "Use simple language and one concrete example.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "fc3",
+          "front": "What is the most important takeaway?",
+          "back": "Summarize the core idea in one sentence.",
+          "ease": "medium",
+          "next_review": "2026-03-09T17:08:26.365Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "What is the most important takeaway?",
+          "answer": "Summarize the core idea in one sentence.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "fc4",
+          "front": "What connections does this have to other topics?",
+          "back": "Consider prerequisites and follow-up concepts.",
+          "ease": "medium",
+          "next_review": "2026-03-09T17:08:26.365Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "What connections does this have to other topics?",
+          "answer": "Consider prerequisites and follow-up concepts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "fc5",
+          "front": "What would an exam question on this look like?",
+          "back": "Think of a short question and model answer.",
+          "ease": "medium",
+          "next_review": "2026-03-09T17:08:26.365Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "What would an exam question on this look like?",
+          "answer": "Think of a short question and model answer.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "fc1",
+          "front": "What are the key concepts in this topic?",
+          "back": "Review the main definitions and examples from your notes.",
+          "ease": "medium",
+          "next_review": "2026-03-09T17:08:26.365Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "What are the key concepts in this topic?",
+          "answer": "Review the main definitions and examples from your notes.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "fc2",
+          "front": "How would you explain this to someone new to the subject?",
+          "back": "Use simple language and one concrete example.",
+          "ease": "medium",
+          "next_review": "2026-03-09T17:08:26.365Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "How would you explain this to someone new to the subject?",
+          "answer": "Use simple language and one concrete example.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "fc3",
+          "front": "What is the most important takeaway?",
+          "back": "Summarize the core idea in one sentence.",
+          "ease": "medium",
+          "next_review": "2026-03-09T17:08:26.365Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "What is the most important takeaway?",
+          "answer": "Summarize the core idea in one sentence.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "fc4",
+          "front": "What connections does this have to other topics?",
+          "back": "Consider prerequisites and follow-up concepts.",
+          "ease": "medium",
+          "next_review": "2026-03-09T17:08:26.365Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "What connections does this have to other topics?",
+          "answer": "Consider prerequisites and follow-up concepts.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "fc5",
+          "front": "What would an exam question on this look like?",
+          "back": "Think of a short question and model answer.",
+          "ease": "medium",
+          "next_review": "2026-03-09T17:08:26.365Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General",
+          "sourceType": [
+            "topic"
+          ],
+          "question": "What would an exam question on this look like?",
+          "answer": "Think of a short question and model answer.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "fb1",
+          "front": "What is the chemical formula for water?",
+          "back": "D. H2O\n\nWater is H2O — two hydrogen atoms and one oxygen atom.",
+          "ease": "medium",
+          "next_review": "2026-03-09",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General"
+        },
+        {
+          "id": "fb4",
+          "front": "What does DNA stand for?",
+          "back": "A. Deoxyribonucleic Acid\n\nDNA = Deoxyribonucleic Acid, the molecule of heredity.",
+          "ease": "medium",
+          "next_review": "2026-03-09",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General"
+        },
+        {
+          "id": "fb5",
+          "front": "Which organelle is the powerhouse of the cell?",
+          "back": "C. Mitochondria\n\nMitochondria produce ATP through cellular respiration.",
+          "ease": "medium",
+          "next_review": "2026-03-09",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General"
+        },
+        {
+          "id": "6ebac09c",
+          "front": "Can a Programmable Logic Device implement a logic function that is unknown at the time of its manufacture?",
+          "back": "No, it can only implement a logic function that is known at the time of its manufacture",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Programmable Logic Devices",
+          "sourceType": [
+            "file"
+          ],
+          "question": "Can a Programmable Logic Device implement a logic function that is unknown at the time of its manufacture?",
+          "answer": "No, it can only implement a logic function that is known at the time of its manufacture",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "01145fc5",
+          "front": "What are the two main components of a Programmable Logic Device (PLD)?",
+          "back": "An AND array and an OR array.",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "AND array",
+          "sourceType": [
+            "file"
+          ],
+          "question": "What are the two main components of a Programmable Logic Device (PLD)?",
+          "answer": "An AND array and an OR array.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "874e53f4",
+          "front": "What are the main components of a PLD?",
+          "back": "An AND array and an OR array to provide an AND-OR sum of products implementation.",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "AND array",
+          "sourceType": [
+            "file"
+          ],
+          "question": "What are the main components of a PLD?",
+          "answer": "An AND array and an OR array to provide an AND-OR sum of products implementation.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5fecc869",
+          "front": "What are the main components of a Programmable Logic Device (PLD)?",
+          "back": "A PLD is an integrated circuit with programmable gates divided into an AND array and an OR array",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "OR array",
+          "sourceType": [
+            "file"
+          ],
+          "question": "What are the main components of a Programmable Logic Device (PLD)?",
+          "answer": "A PLD is an integrated circuit with programmable gates divided into an AND array and an OR array",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "41c9b624",
+          "front": "What are the primary components of a PLD?",
+          "back": "An AND array and an OR array",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "OR array",
+          "sourceType": [
+            "file"
+          ],
+          "question": "What are the primary components of a PLD?",
+          "answer": "An AND array and an OR array",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8faa3154",
+          "front": "How does a PROM differ from a ROM?",
+          "back": "A PROM is programmable but read-only, whereas a ROM is read-only and permanent binary information must be specified by the designer",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "PROM",
+          "sourceType": [
+            "file"
+          ],
+          "question": "How does a PROM differ from a ROM?",
+          "answer": "A PROM is programmable but read-only, whereas a ROM is read-only and permanent binary information must be specified by the designer",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7eda043d",
+          "front": "How are Boolean functions implemented in PROMs?",
+          "back": "using s or ICs electrically",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "PROM",
+          "sourceType": [
+            "file"
+          ],
+          "question": "How are Boolean functions implemented in PROMs?",
+          "answer": "using s or ICs electrically",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "f9dd40c9",
+          "front": "What is the main purpose of using Programmable Read Only Memory (PROM) in Programmable Logic Devices (PLDs)?",
+          "back": "To store permanent binary information that must be specified by the designer, which is then embedded in the unit to form the required interconnection pattern",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Programmable Read Only Memory",
+          "sourceType": [
+            "file"
+          ],
+          "question": "What is the main purpose of using Programmable Read Only Memory (PROM) in Programmable Logic Devices (PLDs)?",
+          "answer": "To store permanent binary information that must be specified by the designer, which is then embedded in the unit to form the required interconnection pattern",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "b55d339d",
+          "front": "What happens to the stored data in a PROM when it is powered off?",
+          "back": "The data is lost forever, as PROMs are read-only memory devices",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Programmable Read Only Memory",
+          "sourceType": [
+            "file"
+          ],
+          "question": "What happens to the stored data in a PROM when it is powered off?",
+          "answer": "The data is lost forever, as PROMs are read-only memory devices",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "22ba8d5d",
+          "front": "How are minterms generated in a PROM, given that the inputs of AND gates are fixed and non-programmable?",
+          "back": "Minterms are generated by using an nx2n decoder to implement 2n product terms",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Sum of minterms",
+          "sourceType": [
+            "file"
+          ],
+          "question": "How are minterms generated in a PROM, given that the inputs of AND gates are fixed and non-programmable?",
+          "answer": "Minterms are generated by using an nx2n decoder to implement 2n product terms",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "fb1",
+          "front": "What is the chemical formula for water?",
+          "back": "D. H2O\n\nWater is H2O — two hydrogen atoms and one oxygen atom.",
+          "ease": "medium",
+          "next_review": "2026-03-09",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General"
+        },
+        {
+          "id": "fb4",
+          "front": "What does DNA stand for?",
+          "back": "A. Deoxyribonucleic Acid\n\nDNA = Deoxyribonucleic Acid, the molecule of heredity.",
+          "ease": "medium",
+          "next_review": "2026-03-09",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General"
+        },
+        {
+          "id": "fb5",
+          "front": "Which organelle is the powerhouse of the cell?",
+          "back": "C. Mitochondria\n\nMitochondria produce ATP through cellular respiration.",
+          "ease": "medium",
+          "next_review": "2026-03-09",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "General"
+        },
         {
           "id": "6ebac09c",
           "front": "Can a Programmable Logic Device implement a logic function that is unknown at the time of its manufacture?",

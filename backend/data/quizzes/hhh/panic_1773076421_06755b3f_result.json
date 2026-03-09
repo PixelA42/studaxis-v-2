@@ -1,0 +1,51 @@
+{
+  "quiz_id": "panic",
+  "completed_at": "2026-03-09T17:13:41.975309+00:00",
+  "score": 0.0,
+  "max_score": 50.0,
+  "percent": 0,
+  "subject": "Biology",
+  "question_type": "open_ended",
+  "answers": [
+    {
+      "question_id": "fb1",
+      "user_answer": "",
+      "correct": false,
+      "score": 0.0,
+      "correct_answer": "A. Deoxyribonucleic Acid",
+      "explanation": "DNA = Deoxyribonucleic Acid, the molecule of heredity."
+    },
+    {
+      "question_id": "fb2",
+      "user_answer": "",
+      "correct": false,
+      "score": 0.0,
+      "correct_answer": "C. Newton",
+      "explanation": "Force is measured in Newtons (N) where 1N = 1 kg⋅m/s²."
+    },
+    {
+      "question_id": "fb3",
+      "user_answer": "",
+      "correct": false,
+      "score": 0.0,
+      "correct_answer": "B. An object stays at rest or in motion unless acted upon",
+      "explanation": "Newton's First Law is the law of inertia."
+    },
+    {
+      "question_id": "fb4",
+      "user_answer": "",
+      "correct": false,
+      "score": 0.0,
+      "correct_answer": "C. Mitochondria",
+      "explanation": "Mitochondria produce ATP through cellular respiration."
+    },
+    {
+      "question_id": "fb5",
+      "user_answer": "",
+      "correct": false,
+      "score": 0.0,
+      "correct_answer": "D. H2O",
+      "explanation": "Water is H2O — two hydrogen atoms and one oxygen atom."
+    }
+  ]
+}

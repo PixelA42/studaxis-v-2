@@ -7,6 +7,11 @@ Purpose:
     - get_classes_for_teacher: List all classes for a teacher
     - verify_class_code: Validate student join code, return class info
 
+Frontend contract (teacher-dashboard-web teacherApi.ts):
+  - POST /classes  body: { teacher_id: string, class_name: string }  → 200 + { class_id, teacher_id, class_name, class_code, created_at }
+  - GET  /classes?teacher_id=...  → 200 + { classes: [...] }
+  - GET  /classes/verify?code=... → 200 + { class_id, class_name, class_code } or 404
+
 DynamoDB Table: studaxis-classes
   - PK: class_id (UUID)
   - GSI: teacher_id-class_id (teacher_id as PK)
@@ -162,7 +167,8 @@ def verify_class_code(class_code: str) -> dict | None:
 
 def lambda_handler(event, context):
     """
-    API Gateway REST handler.
+    API Gateway REST handler (proxy integration).
+    Event shape: httpMethod, path (e.g. /prod/classes or /classes), body (JSON string), queryStringParameters.
 
     Paths:
       POST /classes          — body: { teacher_id, class_name } → create_class
@@ -175,14 +181,30 @@ def lambda_handler(event, context):
     if event.get("httpMethod") == "OPTIONS":
         return _cors_response(200, {"message": "CORS OK"})
 
-    path = event.get("path", event.get("resource", ""))
+    path = (event.get("path") or event.get("resource") or "").strip()
     method = event.get("httpMethod", "GET")
 
+    # Normalize path: API Gateway may send /prod/classes or /classes
+    path_lower = path.lower()
+    is_classes_post = (
+        method == "POST"
+        and ("/classes" in path_lower or path_lower.endswith("/classes"))
+        and "/verify" not in path_lower
+    )
+
     try:
-        if method == "POST" and ("/classes" in path or path.endswith("/classes")):
-            body = json.loads(event.get("body", "{}") or "{}")
-            teacher_id = (body.get("teacher_id") or "").strip()
-            class_name = (body.get("class_name") or "").strip()
+        if is_classes_post:
+            raw_body = event.get("body") or "{}"
+            if isinstance(raw_body, str):
+                try:
+                    body = json.loads(raw_body)
+                except json.JSONDecodeError:
+                    body = {}
+            else:
+                body = raw_body
+            # Frontend sends snake_case; allow camelCase for flexibility
+            teacher_id = (body.get("teacher_id") or body.get("teacherId") or "").strip()
+            class_name = (body.get("class_name") or body.get("className") or "").strip()
             cls = create_class(teacher_id, class_name)
             return _cors_response(200, cls)
 
@@ -195,7 +217,7 @@ def lambda_handler(event, context):
                     return _cors_response(404, {"error": "Class code not found"})
                 return _cors_response(200, result)
 
-            teacher_id = (params.get("teacher_id") or "").strip()
+            teacher_id = (params.get("teacher_id") or params.get("teacherId") or "").strip()
             if teacher_id:
                 classes = get_classes_for_teacher(teacher_id)
                 return _cors_response(200, {"classes": classes})

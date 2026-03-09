@@ -1,0 +1,51 @@
+{
+  "quiz_id": "gen_13228add0749",
+  "completed_at": "2026-03-09T16:26:48.249994+00:00",
+  "score": 10.0,
+  "max_score": 50.0,
+  "percent": 20,
+  "subject": "Biology",
+  "question_type": "mcq",
+  "answers": [
+    {
+      "question_id": "fb1",
+      "user_answer": "1",
+      "correct": false,
+      "score": 0.0,
+      "correct_answer": "A. Deoxyribonucleic Acid",
+      "explanation": "DNA = Deoxyribonucleic Acid, the molecule of heredity."
+    },
+    {
+      "question_id": "fb2",
+      "user_answer": "1",
+      "correct": false,
+      "score": 0.0,
+      "correct_answer": "D. H2O",
+      "explanation": "Water is H2O — two hydrogen atoms and one oxygen atom."
+    },
+    {
+      "question_id": "fb3",
+      "user_answer": "1",
+      "correct": true,
+      "score": 10.0,
+      "correct_answer": "B. An object stays at rest or in motion unless acted upon",
+      "explanation": "Newton's First Law is the law of inertia."
+    },
+    {
+      "question_id": "fb4",
+      "user_answer": "0",
+      "correct": false,
+      "score": 0.0,
+      "correct_answer": "C. Mitochondria",
+      "explanation": "Mitochondria produce ATP through cellular respiration."
+    },
+    {
+      "question_id": "fb5",
+      "user_answer": "0",
+      "correct": false,
+      "score": 0.0,
+      "correct_answer": "C. Newton",
+      "explanation": "Force is measured in Newtons (N) where 1N = 1 kg⋅m/s²."
+    }
+  ]
+}

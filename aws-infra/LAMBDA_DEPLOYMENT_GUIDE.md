@@ -24,15 +24,18 @@ The script will:
    - `teacher_auth` → Teacher authentication Lambda
    - `class_manager` → Class management Lambda
    - `teacher_generate_notes` → Notes generation Lambda
+   - `assignment_manager` → Assignment management Lambda (create/list/delete assignments)
 
 2. **Deploy/Update Lambda functions**:
    - `studaxis-teacher-auth-dev` (NEW)
    - `studaxis-class-manager-dev` (NEW)
    - `studaxis-teacher-generate-notes-dev` (NEW)
+   - `studaxis-assignment-manager-dev` (NEW)
    - `studaxis-content-distribution-dev` (UPDATE existing)
 
 3. **Create IAM role** (if needed):
    - `studaxis-teacher-generate-notes-role-dev` with Bedrock, S3, and DynamoDB permissions
+   - `studaxis-assignment-manager-role-dev` with DynamoDB access to `studaxis-assignments` (created by deploy script if missing)
 
 4. **Verify deployment** by checking all Lambda functions are active
 
@@ -44,6 +47,7 @@ The script will:
 - Existing IAM roles:
   - `studaxis-teacher-auth-dev-sam` ✓
   - `studaxis-class-manager-role-dev` ✓
+  - `studaxis-assignment-manager-role-dev` ✓ (created by deploy script if missing)
 
 ## Manual Steps After Deployment
 
@@ -60,8 +64,12 @@ Create these integrations:
 | GET | `/classes` | `studaxis-class-manager-dev` |
 | POST | `/classes` | `studaxis-class-manager-dev` |
 | GET | `/classes/verify` | `studaxis-class-manager-dev` |
+| POST | `/generateQuiz` | `studaxis-quiz-generation-dev` |
 | POST | `/teacher/generateNotes` | `studaxis-teacher-generate-notes-dev` |
 | POST | `/generateNotes` | `studaxis-teacher-generate-notes-dev` |
+| **POST** | **`/assignments`** | **`studaxis-assignment-manager-dev`** |
+| **GET** | **`/assignments`** | **`studaxis-assignment-manager-dev`** |
+| **DELETE** | **`/assignments/{id}`** | **`studaxis-assignment-manager-dev`** |
 
 **Steps:**
 1. Click "Create Resource" for each path
@@ -69,7 +77,19 @@ Create these integrations:
 3. Choose "Lambda Function" integration
 4. Select the corresponding function
 5. Enable "Lambda Proxy Integration"
-6. Click "Actions" → "Deploy API" → Stage: `prod`
+6. For **POST /generateQuiz** (used by Quiz Generator in the dashboard): set **Authorization** to **NONE** so the browser can call it without IAM signing
+7. For **/assignments** methods: set **Authorization** to **NONE**
+8. Click "Actions" → "Deploy API" → Stage: `dev` (or your stage name)
+
+**Alternatively — Assignments API via script (recommended):**  
+After deploying Lambdas, run the script to create `/assignments` and `/assignments/{id}` and wire them to `studaxis-assignment-manager-dev`:
+
+```powershell
+cd aws-infra
+.\setup-assignments-api.ps1
+```
+
+This adds POST/GET/OPTIONS on `/assignments`, DELETE/OPTIONS on `/assignments/{id}`, grants API Gateway permission to invoke the Lambda, and deploys to the `dev` stage.
 
 ### 2. Create AppSync API
 

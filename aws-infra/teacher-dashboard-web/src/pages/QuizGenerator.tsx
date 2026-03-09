@@ -6,8 +6,11 @@ import { useClass } from '../context/ClassContext';
 import { GlassCard } from '../components/dashboard/GlassCard';
 import { EmptyState } from '../components/shared/EmptyState';
 import { exportToDocx } from '../lib/quizToDocx';
+import { exportToPdf } from '../lib/quizToPdf';
+import { createAssignment } from '../lib/assignmentApi';
 
-const API_URL = import.meta.env.VITE_API_GATEWAY_URL || '';
+const API_BASE = (import.meta.env.VITE_API_GATEWAY_URL || '').replace(/\/$/, '');
+const QUIZ_API_URL = API_BASE ? `${API_BASE}/generateQuiz` : '';
 
 export function QuizGenerator() {
   const { teacher } = useTeacher();
@@ -25,6 +28,7 @@ export function QuizGenerator() {
   });
   const [generating, setGenerating] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generated, setGenerated] = useState<{
     title: string;
@@ -50,20 +54,31 @@ export function QuizGenerator() {
     };
 
     try {
-      if (!API_URL) {
+      if (!QUIZ_API_URL) {
         throw new Error('API Gateway URL not configured (VITE_API_GATEWAY_URL)');
       }
-      const res = await fetch(API_URL, {
+      const res = await fetch(QUIZ_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(60000), // 60s Bedrock can be slow
       });
 
-      const data = await res.json();
+      let data: Record<string, unknown>;
+      try {
+        const text = await res.text();
+        data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+      } catch {
+        throw new Error(
+          res.ok
+            ? 'Invalid JSON from server'
+            : `HTTP ${res.status} ${res.statusText}. Check API Gateway stage (e.g. /dev) and CORS.`
+        );
+      }
 
       if (!res.ok) {
-        throw new Error(data?.error || `HTTP ${res.status}: ${res.statusText}`);
+        const msg = (data?.error as string) || (data?.message as string) || res.statusText;
+        throw new Error(`HTTP ${res.status}: ${msg}`);
       }
 
       const s3_url = data?.s3_url as string | undefined;
@@ -109,25 +124,75 @@ export function QuizGenerator() {
     }
   };
 
+  /** Get quiz JSON for export: use in-memory data or fetch from S3 if needed. */
+  const getQuizDataForExport = async (): Promise<Record<string, unknown>> => {
+    if (!generated) throw new Error('No quiz generated.');
+    if (generated.quizData) return generated.quizData as Record<string, unknown>;
+    if (generated.s3_url) {
+      const res = await fetch(generated.s3_url, { mode: 'cors' });
+      if (!res.ok) throw new Error(`Could not fetch quiz from S3 (${res.status}). Use Download JSON first.`);
+      return (await res.json()) as Record<string, unknown>;
+    }
+    throw new Error('No quiz data available. Generate a quiz first.');
+  };
+
   const handleDownloadDocx = async () => {
     if (!generated) return;
     setDownloadingDocx(true);
     setError(null);
     try {
-      let quizData = generated.quizData;
-      if (!quizData && generated.s3_url) {
-        const res = await fetch(generated.s3_url, { mode: 'cors' });
-        if (!res.ok) throw new Error(`Failed to fetch quiz from S3 (${res.status}). Try downloading JSON first.`);
-        quizData = (await res.json()) as Record<string, unknown>;
-      }
+      const quizData = await getQuizDataForExport();
       const safeTitle = (generated.title || 'quiz').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 50);
       await exportToDocx(quizData, `${safeTitle}.docx`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Failed to export DOCX.';
-      setError(msg.includes('fetch') ? `${msg} (CORS may block S3. Use JSON download.)` : msg);
-      alert(msg);
+      setError(msg);
     } finally {
       setDownloadingDocx(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!generated) return;
+    setDownloadingPdf(true);
+    setError(null);
+    try {
+      const quizData = await getQuizDataForExport();
+      const safeTitle = (generated.title || 'quiz').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 50);
+      exportToPdf(quizData, `${safeTitle}.pdf`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to export PDF.');
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  /** Assign current quiz to the selected class and go to Assignments tab. */
+  const [assigning, setAssigning] = useState(false);
+  const handleAssignToClass = async () => {
+    if (!generated || !teacher) return;
+    const classCode = form.assignTo === 'all' ? activeClass?.class_code : form.assignTo;
+    if (!classCode?.trim()) {
+      setError('Select a class to assign to.');
+      return;
+    }
+    setAssigning(true);
+    setError(null);
+    try {
+      await createAssignment({
+        teacher_id: teacher.teacherId || teacher.classCode || '',
+        class_code: classCode,
+        content_type: 'quiz',
+        content_id: `quiz_${Date.now()}`,
+        title: generated.title,
+        description: `${generated.count} questions · ${generated.difficulty}`,
+        content_data: generated.quizData ?? undefined,
+      });
+      navigate('/assignments');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to create assignment.');
+    } finally {
+      setAssigning(false);
     }
   };
 
@@ -285,9 +350,11 @@ export function QuizGenerator() {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  onClick={() => navigate('/assignments')}
+                  onClick={handleAssignToClass}
+                  disabled={assigning}
                 >
-                  <Icon name="send" size={14} /> Assign to Class
+                  {assigning ? <div className="spinner" style={{ width: 14, height: 14 }} /> : <Icon name="send" size={14} />}
+                  {assigning ? ' Assigning...' : ' Assign to Class'}
                 </button>
                 <button
                   type="button"
@@ -297,6 +364,15 @@ export function QuizGenerator() {
                 >
                   {downloadingDocx ? <div className="spinner" style={{ width: 14, height: 14 }} /> : '📄'}
                   {downloadingDocx ? ' Exporting...' : ' Download as Word (.docx)'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleDownloadPdf}
+                  disabled={downloadingPdf}
+                >
+                  {downloadingPdf ? <div className="spinner" style={{ width: 14, height: 14 }} /> : '📕'}
+                  {downloadingPdf ? ' Exporting...' : ' Download as PDF'}
                 </button>
                 <button type="button" className="btn btn-ghost" onClick={handleDownload}>
                   {generated.s3_url ? (
