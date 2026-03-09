@@ -672,7 +672,11 @@ def _get_ollama_available_models() -> list[str]:
 
 
 # Fallback models to try when configured model returns 404 (not found)
-_OLLAMA_FALLBACK_MODELS = ["llama3.2:3b-instruct", "llama3:3b", "llama3.2:3b", "mistral", "llama2"]
+# Prefer 7B/8B for 16GB; include 3B for low-RAM
+_OLLAMA_FALLBACK_MODELS = [
+    "llama3.2:7b", "llama3:8b", "llama3.2:3b-instruct",
+    "llama3.2:3b-instruct", "llama3:3b", "llama3.2:3b", "mistral", "llama2",
+]
 
 
 @app.get("/api/ollama/models")
@@ -2583,8 +2587,9 @@ def quiz_get(quiz_id: str, user_id: str = Depends(get_user_id)):
 
 @app.post("/api/quiz/generate")
 def quiz_generate(req: QuizGenerateRequest, user_id: str = Depends(get_user_id)):
-    """Generate quiz from materials or topic. Saves to data/quizzes/{user_id}/{quiz_id}.json."""
-    topic = (req.topic_text or "").strip()
+    """Generate quiz from materials or topic. Saves to data/quizzes/{user_id}/{quiz_id}.json.
+    Accepts topic_text or query; uses subject as fallback when both empty."""
+    topic = (req.topic_text or req.query or "").strip()
     if req.source == "materials" and req.source_ids:
         texts: list[str] = []
         for tid in req.source_ids[:5]:
@@ -2688,10 +2693,11 @@ class PanicGenerateWeblinkRequest(BaseModel):
 
 
 class QuizGenerateRequest(BaseModel):
-    source: str = Field(..., description="materials | topic")
+    source: str = Field(default="topic", description="materials | topic (default topic for backward compat)")
     subject: str = Field(default="General")
     source_ids: Optional[list[str]] = Field(default=None, description="Textbook ids when source=materials")
     topic_text: Optional[str] = Field(default=None, description="Topic or pasted text when source=topic")
+    query: Optional[str] = Field(default=None, description="Alias for topic_text (some clients send 'query')")
     question_type: str = Field(default="mcq", description="mcq | open_ended")
     num_questions: int = Field(default=10, ge=1, le=20)
     difficulty: str = Field(default="Beginner")
@@ -3080,7 +3086,7 @@ Output only the notes, no preamble."""
 
     raise HTTPException(
         status_code=503,
-        detail=last_error or "Could not generate notes. Ensure Ollama is running (ollama serve) and a model is installed (ollama pull llama3.2:3b-instruct).",
+        detail=last_error or "Could not generate notes. Ensure Ollama is running (ollama serve) and a model is installed (e.g. ollama pull llama3.2:7b or ollama pull llama3.2:3b-instruct).",
     )
 
 
@@ -3852,9 +3858,15 @@ def user_me(current_user: Annotated[User, Depends(get_current_user)]):
 
 @app.get("/api/user/stats")
 def user_stats_get(current_user: Annotated[User, Depends(get_current_user)], user_id: str = Depends(get_user_id)):
-    """Return user progress, streaks, preferences for the authenticated user."""
+    """Return user progress, streaks, preferences for the authenticated user.
+    Reconciles flashcard_stats from actual deck data so Cards Mastered and Due reflect reality."""
     stats = _load_user_stats(user_id)
     ensure_streak_structure(stats)
+    ensure_flashcard_structure(stats)
+    decks = _load_flashcard_decks(user_id)
+    cards = _all_cards_from_decks(decks)
+    if cards:
+        update_flashcard_stats_from_cards(stats, cards)
     _update_streak(stats)
     _save_user_stats(stats, user_id)
     return stats

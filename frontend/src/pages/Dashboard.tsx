@@ -123,7 +123,13 @@ export function DashboardPage() {
   const streakLongest = stats?.streak?.longest ?? 0;
   const quizAttempted = stats?.quiz_stats?.total_attempted ?? 0;
   const quizCorrect = stats?.quiz_stats?.total_correct ?? 0;
-  const quizAvg = quizAttempted > 0 ? Math.round((quizCorrect / quizAttempted) * 100) : 0;
+  const backendAvg = stats?.quiz_stats?.average_score;
+  const quizAvg =
+    quizAttempted > 0
+      ? backendAvg != null && backendAvg > 0
+        ? Math.round(backendAvg * 10)
+        : Math.round((quizCorrect / quizAttempted) * 100)
+      : 0;
   const flashcardsMastered = stats?.flashcard_stats?.mastered ?? 0;
   const flashcardsDue = Math.max(
     stats?.flashcard_stats?.due_for_review ?? 0,

@@ -119,6 +119,7 @@ export function DashboardOverview() {
         </div>
         <div className="logo-container">
             <img src="./studaxis-logo.png" alt="" className="circular-logo overview-welcome-emoji" aria-hidden="true" />
+          alt="Studaxis logo, a circular emblem with stylized elements representing education and technology. The logo is centered in a clean, modern interface, conveying a welcoming and professional atmosphere. No visible text within the logo."
           </div>
       </div>
 

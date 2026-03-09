@@ -545,7 +545,7 @@ export function ChatPage() {
                     />
                   </svg>
                 </div>
-                <span style={{ fontSize: "13px", fontWeight: 800, color: "#0d1b2a", letterSpacing: "-0.3px" }}>
+                <span style={{ fontSize: "13px", fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.3px" }}>
                   Chat History
                 </span>
               </div>
@@ -553,7 +553,7 @@ export function ChatPage() {
                 type="button"
                 className="chat-icon-btn"
                 onClick={() => setSidebarOpen(false)}
-                style={{ color: "#9ca3af", padding: "4px" }}
+                style={{ color: "var(--text-muted)", padding: "4px" }}
                 aria-label="Close sidebar"
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
@@ -583,7 +583,7 @@ export function ChatPage() {
                     style={{
                       fontSize: "10px",
                       fontWeight: 700,
-                      color: "#9ca3af",
+                      color: "var(--text-muted)",
                       letterSpacing: "0.8px",
                       textTransform: "uppercase",
                       padding: "0 8px 6px",
@@ -658,10 +658,10 @@ export function ChatPage() {
                 </svg>
               </div>
               <div className="min-w-0 flex-1">
-                <div style={{ fontSize: "11px", fontWeight: 700, color: "#0d1b2a" }}>
+                <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-primary)" }}>
                   Llama 3.2 · RAG
                 </div>
-                <div style={{ fontSize: "10px", color: "#9ca3af" }}>
+                <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>
                   {isOnline ? "Online" : "Offline"} · Local
                 </div>
               </div>
@@ -685,8 +685,8 @@ export function ChatPage() {
         <div
           className="flex items-center gap-3 px-6 flex-shrink-0"
           style={{
-            background: "#fff",
-            borderBottom: "1.5px solid #e8edf5",
+            background: "var(--bg-card)",
+            borderBottom: "1.5px solid var(--border-color)",
             height: "68px",
             boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
           }}
@@ -696,7 +696,7 @@ export function ChatPage() {
               type="button"
               className="chat-icon-btn"
               onClick={() => setSidebarOpen(true)}
-              style={{ color: "#6b7280", padding: "6px", borderRadius: "8px" }}
+              style={{ color: "var(--text-secondary)", padding: "6px", borderRadius: "8px" }}
               aria-label="Open sidebar"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -713,7 +713,7 @@ export function ChatPage() {
             </svg>
             Dashboard
           </Link>
-          <div style={{ width: "1px", height: "28px", background: "#e8edf5" }} />
+          <div style={{ width: "1px", height: "28px", background: "var(--border-color)" }} />
           <div
             style={{
               width: "38px",
@@ -738,10 +738,10 @@ export function ChatPage() {
             </svg>
           </div>
           <div>
-            <div style={{ fontSize: "15px", fontWeight: 800, color: "#0d1b2a", letterSpacing: "-0.4px" }}>
+            <div style={{ fontSize: "15px", fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.4px" }}>
               AI Tutor Chat
             </div>
-            <div style={{ fontSize: "11px", color: "#9ca3af", fontWeight: 500 }}>
+            <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 500 }}>
               Powered by Llama 3.2 · RAG-grounded
             </div>
           </div>
@@ -771,8 +771,8 @@ export function ChatPage() {
               onChange={(e) => handleLevelChange(e.target.value)}
               style={{
                 appearance: "none",
-                background: "#f8f9fc",
-                border: "1.5px solid #e5e7eb",
+                background: "var(--bg-input)",
+                border: "1.5px solid var(--border-color)",
                 borderRadius: "9px",
                 padding: "7px 32px 7px 12px",
                 fontSize: "12.5px",
@@ -963,8 +963,8 @@ export function ChatPage() {
           {attachedTextbook && (
             <div
               style={{
-                background: "#fff",
-                border: "1.5px solid #e8edf5",
+                background: "var(--bg-card)",
+                border: "1.5px solid var(--border-color)",
                 borderRadius: "12px",
                 padding: "10px 14px",
                 display: "flex",
@@ -990,7 +990,7 @@ export function ChatPage() {
                 <polyline points="14 2 14 8 20 8" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: "12px", fontWeight: 600, color: "#0d1b2a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {attachedTextbook.filename.length > 28 ? attachedTextbook.filename.slice(0, 25) + "..." : attachedTextbook.filename}
                 </div>
               </div>
@@ -1102,8 +1102,8 @@ export function ChatPage() {
                       {pendingUploadFile ? (
                         <div
                           style={{
-                            background: "#fff",
-                            border: "1.5px solid #e8edf5",
+                            background: "var(--bg-card)",
+                            border: "1.5px solid var(--border-color)",
                             borderRadius: "12px",
                             padding: "10px 14px",
                             display: "flex",
@@ -1130,10 +1130,10 @@ export function ChatPage() {
                             <polyline points="14 2 14 8 20 8" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: "12px", fontWeight: 600, color: "#0d1b2a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                               {pendingUploadFile.name.length > 28 ? pendingUploadFile.name.slice(0, 25) + "..." : pendingUploadFile.name}
                             </div>
-                            <div style={{ fontSize: "10px", color: "#9ca3af" }}>
+                            <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>
                               {pendingUploadFile.size < 1024
                                 ? `${pendingUploadFile.size} B`
                                 : pendingUploadFile.size < 1024 * 1024
@@ -1213,10 +1213,10 @@ export function ChatPage() {
                               <polyline points="17 8 12 3 7 8" stroke="#FA5C5C" strokeWidth="2" strokeLinecap="round" />
                               <line x1="12" y1="3" x2="12" y2="15" stroke="#FA5C5C" strokeWidth="2" strokeLinecap="round" />
                             </svg>
-                            <div style={{ fontSize: "13.5px", fontWeight: 700, color: "#0d1b2a" }}>
+                            <div style={{ fontSize: "13.5px", fontWeight: 700, color: "var(--text-primary)" }}>
                               Upload Textbook or Notes
                             </div>
-                            <div style={{ fontSize: "11.5px", color: "#9ca3af" }}>
+                            <div style={{ fontSize: "11.5px", color: "var(--text-muted)" }}>
                               PDF, DOCX, TXT — drag here or click to browse
                             </div>
                           </div>
@@ -1455,8 +1455,8 @@ function ChatBubble({
             maxWidth: "68%",
             padding: "12px 16px",
             borderRadius: "4px 16px 16px 16px",
-            background: "#fff",
-            color: "#1a2035",
+            background: "var(--bg-card)",
+            color: "var(--text-primary)",
             fontSize: "13.5px",
             fontWeight: 400,
             lineHeight: 1.6,

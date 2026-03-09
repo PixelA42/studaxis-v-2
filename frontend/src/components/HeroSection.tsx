@@ -94,7 +94,7 @@ export default function HeroSection() {
     <div
       style={{
         minHeight: "70vh",
-        background: "#ffffff",
+        background: "var(--bg-base)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -240,7 +240,7 @@ export default function HeroSection() {
             fontSize: "clamp(3rem, 9vw, 6.2rem)",
             fontWeight: 900,
             lineHeight: 1.0,
-            color: "#0d1b2a",
+            color: "var(--text-primary)",
             letterSpacing: "-0.04em",
             animation: "fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s both",
             marginBottom: "0.15em",
@@ -273,7 +273,7 @@ export default function HeroSection() {
             fontSize: "clamp(3rem, 9vw, 6.2rem)",
             fontWeight: 900,
             lineHeight: 1.05,
-            color: "#0d1b2a",
+            color: "var(--text-primary)",
             letterSpacing: "-0.04em",
             animation: "fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.2s both",
             marginBottom: "1.1em",
@@ -296,7 +296,7 @@ export default function HeroSection() {
         <p
           style={{
             fontSize: "clamp(0.95rem, 2vw, 1.1rem)",
-            color: "#7a8598",
+            color: "var(--text-secondary)",
             fontWeight: 400,
             lineHeight: 1.65,
             maxWidth: "460px",
@@ -359,7 +359,7 @@ export default function HeroSection() {
               <span
                 style={{
                   fontSize: "11.5px",
-                  color: "#9ca3af",
+                  color: "var(--text-muted)",
                   fontWeight: 500,
                   letterSpacing: "0.5px",
                 }}
@@ -373,7 +373,7 @@ export default function HeroSection() {
             style={{
               width: "1px",
               height: "32px",
-              background: "#e5e7eb",
+              background: "var(--border-color)",
               margin: "0 4px",
             }}
           />
@@ -402,7 +402,7 @@ export default function HeroSection() {
             <span
               style={{
                 fontSize: "12px",
-                color: "#6b7280",
+                color: "var(--text-secondary)",
                 fontWeight: 500,
                 marginLeft: "6px",
               }}

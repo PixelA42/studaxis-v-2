@@ -1,6 +1,6 @@
 {
   "user_id": "",
-  "last_sync_timestamp": "2026-03-09T09:33:30.022605+00:00",
+  "last_sync_timestamp": "2026-03-09T12:06:39.947114+00:00",
   "streak": {
     "current": 2,
     "longest": 2,
@@ -19,9 +19,9 @@
     "last_score": null
   },
   "flashcard_stats": {
-    "total_reviewed": 2,
+    "total_reviewed": 6,
     "mastered": 0,
-    "due_for_review": 4,
+    "due_for_review": 0,
     "cards": {
       "1": {
         "ease": "hard",
@@ -67,7 +67,7 @@
     "theme": "light",
     "language": "English",
     "sync_enabled": true,
-    "subject": "math",
+    "subject": "history",
     "grade": "Grade 10"
   },
   "hardware_info": {}

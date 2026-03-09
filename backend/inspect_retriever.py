@@ -1,5 +1,11 @@
 from pathlib import Path
-from langchain_huggingface import HuggingFaceEmbeddings
+try:
+    from langchain_huggingface import HuggingFaceEmbeddings
+except ImportError:
+    try:
+        from langchain_community.embeddings import HuggingFaceEmbeddings
+    except ImportError:
+        from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 
 # Use repo root for data so backend shares data/ with existing setup

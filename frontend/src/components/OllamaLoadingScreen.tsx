@@ -29,13 +29,13 @@ export function OllamaLoadingScreen(_props: { onReady?: () => void }) {
       style={{
         margin: 0,
         padding: 0,
-        backgroundColor: "#ffffff",
-        backgroundImage: "radial-gradient(circle at 50% 50%, #f8fafc 0%, #ffffff 100%)",
+        backgroundColor: "var(--bg-base)",
+        backgroundImage: "radial-gradient(circle at 50% 50%, var(--bg-input) 0%, var(--bg-base) 100%)",
         minHeight: "100vh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: "#0f172a",
+        color: "var(--text-primary)",
         overflow: "hidden",
         WebkitFontSmoothing: "antialiased",
       }}
@@ -70,7 +70,7 @@ export function OllamaLoadingScreen(_props: { onReady?: () => void }) {
               letterSpacing: "0.25em",
               textTransform: "uppercase",
               opacity: 0.6,
-              color: "#0f172a",
+              color: "var(--text-primary)",
             }}
           >
             Loading Studaxis
@@ -151,7 +151,7 @@ export function OllamaLoadingScreen(_props: { onReady?: () => void }) {
             fontSize: "0.7rem",
             letterSpacing: "0.1em",
             opacity: 0.5,
-            color: "#0f172a",
+            color: "var(--text-primary)",
           }}
         >
           <span>OFFLINE_FIRST • LOCAL_AI</span>
@@ -163,7 +163,7 @@ export function OllamaLoadingScreen(_props: { onReady?: () => void }) {
           style={{
             fontFamily: "JetBrains Mono, ui-monospace, monospace",
             fontSize: 10,
-            color: "#64748b",
+            color: "var(--text-secondary)",
             display: "flex",
             gap: 20,
             marginTop: 10,

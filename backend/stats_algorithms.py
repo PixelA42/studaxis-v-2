@@ -135,7 +135,12 @@ def update_flashcard_stats_from_cards(
         if not next_review or nr_date <= now:
             due_for_review += 1
         entry = cards_dict.get(cid, {})
-        if entry.get("mastered") or (nr_date and nr_date > mastered_threshold):
+        is_mastered = (
+            entry.get("mastered")
+            or c.get("mastered")
+            or (nr_date and nr_date > mastered_threshold)
+        )
+        if is_mastered:
             total_mastered += 1
 
     fc["mastered"] = total_mastered

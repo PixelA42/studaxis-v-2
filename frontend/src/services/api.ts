@@ -1213,23 +1213,23 @@ export async function postQuizGenerate(params: {
   subject: string;
   source_ids?: string[] | null;
   topic_text?: string | null;
+  query?: string | null;
   question_type: "mcq" | "open_ended";
   num_questions: number;
   difficulty: string;
 }): Promise<{ id: string; title: string; items: QuizItem[]; subject: string; difficulty: string; question_type: string }> {
+  const topicVal = params.topic_text ?? params.query ?? null;
   const body = {
     source: params.source,
     subject: params.subject ?? "General",
     source_ids: params.source_ids ?? null,
-    topic_text: params.topic_text != null ? params.topic_text : null,
+    topic_text: topicVal != null ? topicVal : null,
+    query: topicVal != null ? topicVal : null,
     question_type: params.question_type ?? "mcq",
     num_questions: params.num_questions ?? 10,
     difficulty: params.difficulty ?? "Beginner",
   };
-  return request("/api/quiz/generate", {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
+  return request("/api/quiz/generate", { method: "POST", body: JSON.stringify(body) }, API_TIMEOUT_LONG_MS);
 }
 
 /** Generate quiz from URL. Returns { id, title, items } */
@@ -1249,10 +1249,7 @@ export async function postQuizGenerateFromUrl(params: {
     question_type: params.question_type ?? "mcq",
     difficulty: params.difficulty ?? "Beginner",
   };
-  return request("/api/quiz/generate-from-url", {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
+  return request("/api/quiz/generate-from-url", { method: "POST", body: JSON.stringify(body) }, API_TIMEOUT_LONG_MS);
 }
 
 /** Generate quiz from pasted text. Returns { id, title, items } */
@@ -1272,10 +1269,7 @@ export async function postQuizGenerateFromText(params: {
     question_type: params.question_type ?? "mcq",
     difficulty: params.difficulty ?? "Beginner",
   };
-  return request("/api/quiz/generate-from-text", {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
+  return request("/api/quiz/generate-from-text", { method: "POST", body: JSON.stringify(body) }, API_TIMEOUT_LONG_MS);
 }
 
 /** Generate quiz from uploaded file (PDF/PPT). Returns { id, title, items } */
@@ -1294,10 +1288,7 @@ export async function postQuizGenerateFromFile(params: {
   form.append("num_questions", String(params.num_questions ?? 10));
   form.append("question_type", params.question_type ?? "mcq");
   form.append("difficulty", params.difficulty ?? "Beginner");
-  const res = await apiFetch("/api/quiz/generate-from-file", {
-    method: "POST",
-    body: form,
-  });
+  const res = await apiFetch("/api/quiz/generate-from-file", { method: "POST", body: form }, API_TIMEOUT_LONG_MS);
   if (!res.ok) {
     const raw = await res.text();
     let message = raw || `API error ${res.status}`;

@@ -119,10 +119,7 @@ export function QuizPage() {
 
   const handleGenerate = async () => {
     setGenError(null);
-    if (sourceTab === "topic" && !topicInput.trim()) {
-      setGenError("Please enter a topic or concept.");
-      return;
-    }
+    // Topic source: use topic_input or fall back to subject (backend accepts both)
     if (sourceTab === "textbook") {
       if (!selectedTextbook || !selectedTextbook.trim()) {
         setGenError("Select a textbook first.");
@@ -157,10 +154,12 @@ export function QuizPage() {
     try {
       let res: { id: string };
       if (sourceTab === "topic") {
+        const topicOrSubject = topicInput.trim() || subject;
         res = await postQuizGenerate({
           source: "topic",
           subject,
-          topic_text: topicInput.trim(),
+          topic_text: topicOrSubject,
+          query: topicOrSubject,
           question_type: qType,
           num_questions: count,
           difficulty,
@@ -267,34 +266,72 @@ export function QuizPage() {
 
   return (
     <PageChrome backTo="/dashboard" backLabel="← Back to Dashboard">
-      <div className="quiz-home">
-        <h1 className="quiz-home__title">Quiz</h1>
+      <div style={{ maxWidth: 640, margin: "0 auto", padding: "32px 24px 80px" }}>
+        {/* Title */}
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+            <div style={{
+              width: 42, height: 42, borderRadius: 13,
+              background: "linear-gradient(135deg, #FA5C5C, #FD8A6B)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 20, boxShadow: "0 4px 14px rgba(250,92,92,0.3)"
+            }}>🧠</div>
+            <h1 style={{ fontSize: 26, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
+              Quiz Generator
+            </h1>
+          </div>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginLeft: 54 }}>
+            Powered by Ollama · Runs fully offline on your device
+          </p>
+        </div>
 
         {showAssignments && (
-          <section className="quiz-home__section">
-            <h2 className="quiz-home__section-title">Assigned by Teacher</h2>
-            <div className="quiz-home__cards">
+          <section style={{ marginBottom: 32 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)", marginBottom: 14 }}>Assigned by Teacher</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {assignments.map((a) => (
-                <div key={a.id} className="quiz-home__card quiz-home__card--assignment">
-                  <div className="quiz-home__card-header">
-                    <span className="quiz-home__card-title">{a.title}</span>
-                    <span
-                      className="quiz-home__card-due"
-                      style={{ color: isPastDue(a.due_date) ? "#FA5C5C" : undefined }}
-                    >
+                <div key={a.id} style={{
+                  background: "var(--bg-card)",
+                  borderRadius: 16,
+                  border: "1.5px solid var(--border-color)",
+                  boxShadow: "var(--shadow-card)",
+                  padding: "18px 20px 16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <span style={{ fontWeight: 700, fontSize: 15, color: "var(--text-primary)" }}>{a.title}</span>
+                    <span style={{ fontSize: 13, color: isPastDue(a.due_date) ? "#FA5C5C" : "var(--text-secondary)" }}>
                       Due {a.due_date || "—"}
                     </span>
                   </div>
-                  <span
-                    className="quiz-home__chip"
-                    style={{ background: `${statusColor(a.status)}20`, color: statusColor(a.status) }}
-                  >
-                    {a.status}
-                  </span>
+                  <span style={{
+                    alignSelf: "flex-start",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    background: `${statusColor(a.status)}20`,
+                    color: statusColor(a.status),
+                    borderRadius: 8,
+                    padding: "2px 10px",
+                    marginBottom: 8
+                  }}>{a.status}</span>
                   <button
                     type="button"
-                    className="quiz-home__btn quiz-home__btn--primary"
                     onClick={() => navigate(`/quiz/${a.quiz_id}`)}
+                    style={{
+                      marginTop: 2,
+                      padding: "10px 0",
+                      background: "linear-gradient(135deg, #00a8e8, #0088c7)",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 10,
+                      fontWeight: 800,
+                      fontSize: 14,
+                      cursor: "pointer",
+                      boxShadow: "0 2px 10px rgba(0,168,232,0.18)",
+                      transition: "all 0.18s"
+                    }}
                   >
                     Start Quiz →
                   </button>
@@ -304,202 +341,477 @@ export function QuizPage() {
           </section>
         )}
 
-        <section className="quiz-home__section">
-          <h2 className="quiz-home__section-title">Quiz from Resources</h2>
-          <div className="quiz-home__form">
-            <div className="quiz-home__field">
-              <label>Source</label>
-              <div className="quiz-home__pills" role="tablist" aria-label="Quiz source type">
-                {SOURCE_TABS.map((s) => (
+        {/* Card Wrapper for form */}
+        <div style={{
+          background: "var(--bg-card)",
+          borderRadius: 20,
+          border: "1.5px solid var(--border-color)",
+          boxShadow: "var(--shadow-card)",
+          padding: "28px 28px 24px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 24
+        }}>
+          {/* Source */}
+          <div>
+            <label style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "#6b7280",
+              textTransform: "uppercase",
+              letterSpacing: "0.07em",
+              marginBottom: 10,
+              display: "block"
+            }}>Source</label>
+            <div role="tablist" aria-label="Quiz source type" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {SOURCE_TABS.map((s) => {
+                const active = sourceTab === s.id;
+                return (
                   <button
                     key={s.id}
                     type="button"
                     role="tab"
-                    aria-selected={sourceTab === s.id}
+                    aria-selected={active}
                     aria-label={`Select ${s.label} as quiz source`}
-                    tabIndex={sourceTab === s.id ? 0 : -1}
-                    className={`quiz-home__pill ${sourceTab === s.id ? "quiz-home__pill--on" : ""} focus:outline-none focus:ring-2 focus:ring-accent-blue focus:ring-offset-2`}
+                    tabIndex={active ? 0 : -1}
                     onClick={() => { setSourceTab(s.id); setGenError(null); }}
+                    style={{
+                      padding: "9px 16px",
+                      borderRadius: 99,
+                      fontWeight: 700,
+                      fontSize: 13,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 7,
+                      border: "none",
+                      cursor: "pointer",
+                      background: active ? "linear-gradient(135deg,#FA5C5C,#FD8A6B)" : "var(--bg-hover)",
+                      color: active ? "#fff" : "var(--text-secondary)",
+                      boxShadow: active ? "0 4px 12px rgba(250,92,92,0.3)" : undefined,
+                      transition: "all 0.18s"
+                    }}
                   >
                     {s.icon} {s.label}
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
-
-            {sourceTab === "textbook" && (
-              <div className="quiz-home__field">
-                <label>Textbook</label>
-                <select
-                  value={selectedTextbook}
-                  onChange={(e) => setSelectedTextbook(e.target.value)}
-                  className="quiz-home__input"
-                >
-                  <option value="">— Select textbook —</option>
-                  {textbooks.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {sourceTab === "weblink" && (
-              <div className="quiz-home__field">
-                <label>Paste a URL…</label>
-                <input
-                  type="url"
-                  className="quiz-home__input"
-                  placeholder="https://example.com/article"
-                  value={weblinkUrl}
-                  onChange={(e) => { setWeblinkUrl(e.target.value); setGenError(null); }}
-                />
-                {sourceTab === "weblink" && genError && (
-                  <p className="quiz-home__error" style={{ marginTop: 8 }} role="alert">{genError}</p>
-                )}
-              </div>
-            )}
-
-            {sourceTab === "file" && (
-              <div className="quiz-home__field">
-                <label>Upload file (PDF or PPT)</label>
-                <div
-                  onDrop={handleDrop}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{
-                    border: `2px dashed ${isDragOver ? "var(--accent-blue, #00a8e8)" : "var(--glass-border, #e2e8f0)"}`,
-                    background: isDragOver ? "rgba(0,168,232,0.05)" : "var(--surface-light, #f8fafc)",
-                    padding: 24,
-                    borderRadius: 12,
-                    cursor: "pointer",
-                    textAlign: "center",
-                  }}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf,.ppt,.pptx"
-                    onChange={handleFileSelect}
-                    style={{ display: "none" }}
-                  />
-                  {uploadFile ? (
-                    <span>{uploadFile.name}</span>
-                  ) : (
-                    <span>Drag & drop PDF or PPT here, or click to browse</span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {sourceTab === "paste" && (
-              <div className="quiz-home__field">
-                <label>Paste your notes or article text…</label>
-                <textarea
-                  className="quiz-home__input"
-                  placeholder="Paste your notes, an article, or any text here…"
-                  value={pasteText}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v.length <= PASTE_MAX) setPasteText(v);
-                    setGenError(null);
-                  }}
-                  maxLength={PASTE_MAX}
-                  rows={6}
-                  style={{ resize: "vertical" }}
-                />
-                <p style={{ fontSize: 12, color: "var(--primary-60)", marginTop: 4 }}>{pasteText.length} / {PASTE_MAX}</p>
-                {sourceTab === "paste" && genError && (
-                  <p className="quiz-home__error" style={{ marginTop: 8 }} role="alert">{genError}</p>
-                )}
-              </div>
-            )}
-
-            <div className="quiz-home__field">
-              <label>Topic or concept (optional)</label>
-              <input
-                type="text"
-                className="quiz-home__input"
-                placeholder="e.g. Photosynthesis, Newton's Laws, World War II..."
-                value={topicInput}
-                onChange={(e) => { setTopicInput(e.target.value); setGenError(null); }}
-                aria-describedby="quiz-topic-hint"
-              />
-              <p id="quiz-topic-hint" className="quiz-home__hint" style={{ fontSize: 12, color: "var(--primary-60)", marginTop: 4 }}>
-                Required only for Quick Topic. Optional when using Textbook, Web Link, or File.
-              </p>
-            </div>
-            <div className="quiz-home__field">
-              <label>Subject</label>
-              <select value={subject} onChange={(e) => setSubject(e.target.value)}>
-                {SUBJECTS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
-            <div className="quiz-home__field">
-              <label id="quiz-qtype-label">Question type</label>
-              <div className="quiz-home__toggle" role="group" aria-labelledby="quiz-qtype-label">
-                <button
-                  type="button"
-                  className={`${qType === "mcq" ? "quiz-home__toggle--on" : ""} focus:outline-none focus:ring-2 focus:ring-accent-blue focus:ring-offset-2`}
-                  onClick={() => setQType("mcq")}
-                  aria-pressed={qType === "mcq"}
-                  aria-label="Multiple choice questions"
-                >
-                  MCQ
-                </button>
-                <button
-                  type="button"
-                  className={`${qType === "open_ended" ? "quiz-home__toggle--on" : ""} focus:outline-none focus:ring-2 focus:ring-accent-blue focus:ring-offset-2`}
-                  onClick={() => setQType("open_ended")}
-                  aria-pressed={qType === "open_ended"}
-                  aria-label="Open-ended questions"
-                >
-                  Open Ended
-                </button>
-              </div>
-            </div>
-            <div className="quiz-home__field">
-              <label id="quiz-count-label">Count</label>
-              <div className="quiz-home__count" role="group" aria-labelledby="quiz-count-label">
-                {COUNTS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    className={`${count === c ? "quiz-home__toggle--on" : ""} focus:outline-none focus:ring-2 focus:ring-accent-blue focus:ring-offset-2`}
-                    onClick={() => setCount(c)}
-                    aria-pressed={count === c}
-                    aria-label={`${c} questions`}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="quiz-home__field">
-              <label>Difficulty</label>
-              <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
-                {DIFFICULTIES.map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
-            </div>
-            <button
-              type="button"
-              className="quiz-home__btn quiz-home__btn--primary quiz-home__btn--block focus:outline-none focus:ring-2 focus:ring-accent-blue focus:ring-offset-2"
-              onClick={handleGenerate}
-              disabled={generating}
-              aria-label={generating ? "Generating quiz, please wait" : "Generate quiz"}
-              aria-busy={generating}
-            >
-              {generating ? "🧠 Generating questions..." : "Generate Quiz →"}
-            </button>
           </div>
-        </section>
 
-        {genError && (sourceTab !== "weblink" && sourceTab !== "paste") && (
-          <p className="quiz-home__error" role="alert">
+          {/* Textbook */}
+          {sourceTab === "textbook" && (
+            <div>
+              <label style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "var(--text-secondary)",
+                textTransform: "uppercase",
+                letterSpacing: "0.07em",
+                marginBottom: 10,
+                display: "block"
+              }}>Textbook</label>
+              <select
+                value={selectedTextbook}
+                onChange={(e) => setSelectedTextbook(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "13px 16px",
+                  border: "1.5px solid var(--border-color)",
+                  borderRadius: 12,
+                  fontSize: 14,
+                  color: "var(--text-primary)",
+                  background: "var(--bg-input)",
+                  outline: "none",
+                  cursor: "pointer",
+                  appearance: "auto",
+                  fontFamily: "inherit",
+                  transition: "border 0.15s, box-shadow 0.15s"
+                }}
+                onFocus={e => e.target.style.borderColor = "#00a8e8"}
+                onBlur={e => e.target.style.borderColor = "#e8edf5"}
+              >
+                <option value="">— Select textbook —</option>
+                {textbooks.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Weblink */}
+          {sourceTab === "weblink" && (
+            <div>
+              <label style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "var(--text-secondary)",
+                textTransform: "uppercase",
+                letterSpacing: "0.07em",
+                marginBottom: 10,
+                display: "block"
+              }}>Paste a URL…</label>
+              <input
+                type="url"
+                placeholder="https://example.com/article"
+                value={weblinkUrl}
+                onChange={(e) => { setWeblinkUrl(e.target.value); setGenError(null); }}
+                style={{
+                  width: "100%",
+                  padding: "14px 18px",
+                  border: "1.5px solid var(--border-color)",
+                  borderRadius: 12,
+                  fontSize: 14,
+                  color: "var(--text-primary)",
+                  background: "var(--bg-input)",
+                  outline: "none",
+                  fontFamily: "inherit",
+                  transition: "border 0.15s, box-shadow 0.15s"
+                }}
+                onFocus={e => e.target.style.borderColor = "#00a8e8"}
+                onBlur={e => e.target.style.borderColor = "#e8edf5"}
+              />
+              {sourceTab === "weblink" && genError && (
+                <p style={{ fontSize: 13, color: "#FA5C5C", marginTop: 8 }} role="alert">{genError}</p>
+              )}
+            </div>
+          )}
+
+          {/* File */}
+          {sourceTab === "file" && (
+            <div>
+              <label style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "var(--text-secondary)",
+                textTransform: "uppercase",
+                letterSpacing: "0.07em",
+                marginBottom: 10,
+                display: "block"
+              }}>Upload file (PDF or PPT)</label>
+              <div
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  border: `2px dashed ${isDragOver ? "#00a8e8" : "var(--border-color)"}`,
+                  background: isDragOver ? "rgba(0,168,232,0.05)" : "var(--bg-input)",
+                  padding: 24,
+                  borderRadius: 12,
+                  cursor: "pointer",
+                  textAlign: "center",
+                  fontSize: 14,
+                  color: "var(--text-primary)",
+                  fontFamily: "inherit",
+                  transition: "border 0.15s, box-shadow 0.15s"
+                }}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.ppt,.pptx"
+                  onChange={handleFileSelect}
+                  style={{ display: "none" }}
+                />
+                {uploadFile ? (
+                  <span>{uploadFile.name}</span>
+                ) : (
+                  <span>Drag & drop PDF or PPT here, or click to browse</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Paste */}
+          {sourceTab === "paste" && (
+            <div>
+              <label style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "var(--text-secondary)",
+                textTransform: "uppercase",
+                letterSpacing: "0.07em",
+                marginBottom: 10,
+                display: "block"
+              }}>Paste your notes or article text…</label>
+              <textarea
+                placeholder="Paste your notes, an article, or any text here…"
+                value={pasteText}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v.length <= PASTE_MAX) setPasteText(v);
+                  setGenError(null);
+                }}
+                maxLength={PASTE_MAX}
+                rows={6}
+                style={{
+                  width: "100%",
+                  padding: "14px 18px",
+                  border: "1.5px solid var(--border-color)",
+                  borderRadius: 12,
+                  fontSize: 14,
+                  color: "var(--text-primary)",
+                  background: "var(--bg-input)",
+                  outline: "none",
+                  fontFamily: "inherit",
+                  resize: "vertical",
+                  transition: "border 0.15s, box-shadow 0.15s"
+                }}
+                onFocus={e => e.target.style.borderColor = "#00a8e8"}
+                onBlur={e => e.target.style.borderColor = "#e8edf5"}
+              />
+              <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>{pasteText.length} / {PASTE_MAX}</p>
+              {sourceTab === "paste" && genError && (
+                <p style={{ fontSize: 13, color: "#FA5C5C", marginTop: 8 }} role="alert">{genError}</p>
+              )}
+            </div>
+          )}
+
+          {/* Topic */}
+          <div>
+            <label style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "var(--text-secondary)",
+              textTransform: "uppercase",
+              letterSpacing: "0.07em",
+              marginBottom: 10,
+              display: "block"
+            }}>Topic or concept (optional)</label>
+            <input
+              type="text"
+              placeholder="e.g. Photosynthesis, Newton's Laws, World War II..."
+              value={topicInput}
+              onChange={(e) => { setTopicInput(e.target.value); setGenError(null); }}
+              aria-describedby="quiz-topic-hint"
+              style={{
+                width: "100%",
+                padding: "14px 18px",
+                border: "1.5px solid var(--border-color)",
+                borderRadius: 12,
+                fontSize: 14,
+                color: "var(--text-primary)",
+                background: "var(--bg-input)",
+                outline: "none",
+                fontFamily: "inherit",
+                transition: "border 0.15s, box-shadow 0.15s"
+              }}
+              onFocus={e => e.target.style.borderColor = "#00a8e8"}
+              onBlur={e => e.target.style.borderColor = "#e8edf5"}
+            />
+            <p id="quiz-topic-hint" style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
+              Quick Topic: enter a concept or leave blank to use the subject below. Optional for other sources.
+            </p>
+          </div>
+
+          {/* Subject */}
+          <div>
+            <label style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "var(--text-secondary)",
+              textTransform: "uppercase",
+              letterSpacing: "0.07em",
+              marginBottom: 10,
+              display: "block"
+            }}>Subject</label>
+            <select
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "13px 16px",
+                border: "1.5px solid var(--border-color)",
+                borderRadius: 12,
+                fontSize: 14,
+                color: "var(--text-primary)",
+                background: "var(--bg-input)",
+                outline: "none",
+                cursor: "pointer",
+                appearance: "auto",
+                fontFamily: "inherit",
+                transition: "border 0.15s, box-shadow 0.15s"
+              }}
+              onFocus={e => e.target.style.borderColor = "#00a8e8"}
+              onBlur={e => e.target.style.borderColor = "#e8edf5"}
+            >
+              {SUBJECTS.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Question Type Toggle */}
+          <div>
+            <label style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "var(--text-secondary)",
+              textTransform: "uppercase",
+              letterSpacing: "0.07em",
+              marginBottom: 10,
+              display: "block"
+            }} id="quiz-qtype-label">Question type</label>
+            <div role="group" aria-labelledby="quiz-qtype-label" style={{
+              display: "inline-flex",
+              background: "var(--bg-hover)",
+              borderRadius: 99,
+              padding: 4
+            }}>
+              <button
+                type="button"
+                onClick={() => setQType("mcq")}
+                aria-pressed={qType === "mcq"}
+                aria-label="Multiple choice questions"
+                style={{
+                  padding: "8px 22px",
+                  borderRadius: 99,
+                  border: "none",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  fontFamily: "inherit",
+                  cursor: "pointer",
+                  background: qType === "mcq" ? "var(--bg-card)" : "transparent",
+                  color: qType === "mcq" ? "var(--text-primary)" : "var(--text-secondary)",
+                  boxShadow: qType === "mcq" ? "0 2px 8px rgba(0,0,0,0.1)" : undefined,
+                  transition: "all 0.18s"
+                }}
+              >
+                MCQ
+              </button>
+              <button
+                type="button"
+                onClick={() => setQType("open_ended")}
+                aria-pressed={qType === "open_ended"}
+                aria-label="Open-ended questions"
+                style={{
+                  padding: "8px 22px",
+                  borderRadius: 99,
+                  border: "none",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  fontFamily: "inherit",
+                  cursor: "pointer",
+                  background: qType === "open_ended" ? "var(--bg-card)" : "transparent",
+                  color: qType === "open_ended" ? "var(--text-primary)" : "var(--text-secondary)",
+                  boxShadow: qType === "open_ended" ? "0 2px 8px rgba(0,0,0,0.1)" : undefined,
+                  transition: "all 0.18s"
+                }}
+              >
+                Open Ended
+              </button>
+            </div>
+          </div>
+
+          {/* Count Buttons */}
+          <div>
+            <label style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "var(--text-secondary)",
+              textTransform: "uppercase",
+              letterSpacing: "0.07em",
+              marginBottom: 10,
+              display: "block"
+            }} id="quiz-count-label">Count</label>
+            <div role="group" aria-labelledby="quiz-count-label" style={{ display: "flex", gap: 10 }}>
+              {COUNTS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCount(c)}
+                  aria-pressed={count === c}
+                  aria-label={`${c} questions`}
+                  style={{
+                    width: 52,
+                    height: 44,
+                    borderRadius: 12,
+                    fontWeight: 800,
+                    fontSize: 15,
+                    fontFamily: "inherit",
+                    border: "none",
+                    cursor: "pointer",
+                    background: count === c ? "linear-gradient(135deg,#00a8e8,#0088c7)" : "var(--bg-hover)",
+                    color: count === c ? "#fff" : "var(--text-secondary)",
+                    boxShadow: count === c ? "0 4px 10px rgba(0,168,232,0.3)" : undefined,
+                    transition: "all 0.18s"
+                  }}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Difficulty */}
+          <div>
+            <label style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "var(--text-secondary)",
+              textTransform: "uppercase",
+              letterSpacing: "0.07em",
+              marginBottom: 10,
+              display: "block"
+            }}>Difficulty</label>
+            <select
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "13px 16px",
+                border: "1.5px solid var(--border-color)",
+                borderRadius: 12,
+                fontSize: 14,
+                color: "var(--text-primary)",
+                background: "var(--bg-input)",
+                outline: "none",
+                cursor: "pointer",
+                appearance: "auto",
+                fontFamily: "inherit",
+                transition: "border 0.15s, box-shadow 0.15s"
+              }}
+              onFocus={e => e.target.style.borderColor = "#00a8e8"}
+              onBlur={e => e.target.style.borderColor = "#e8edf5"}
+            >
+              {DIFFICULTIES.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Generate Button */}
+        <button
+          type="button"
+          onClick={handleGenerate}
+          disabled={generating}
+          aria-label={generating ? "Generating quiz, please wait" : "Generate quiz"}
+          aria-busy={generating}
+          style={{
+            width: "100%",
+            padding: 16,
+            background: "linear-gradient(135deg, #FA5C5C, #FD8A6B)",
+            color: "white",
+            border: "none",
+            borderRadius: 14,
+            fontSize: 15,
+            fontWeight: 800,
+            cursor: generating ? "not-allowed" : "pointer",
+            boxShadow: "0 6px 20px rgba(250,92,92,0.35)",
+            transition: "all 0.18s",
+            fontFamily: "inherit",
+            letterSpacing: "0.01em",
+            marginTop: 16
+          }}
+          onMouseOver={e => { e.currentTarget.style.boxShadow = "0 8px 28px rgba(250,92,92,0.45)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+          onMouseOut={e => { e.currentTarget.style.boxShadow = "0 6px 20px rgba(250,92,92,0.35)"; e.currentTarget.style.transform = "none"; }}
+        >
+          {generating ? "🧠 Generating questions..." : "Generate Quiz →"}
+        </button>
+
+        {genError && (
+          <p style={{ fontSize: 14, color: "#FA5C5C", marginTop: 18, fontWeight: 600 }} role="alert">
             {genError}
           </p>
         )}

@@ -1056,8 +1056,8 @@ export function FlashcardsPage() {
           <div
             className="flashcard-explanation-panel"
             style={{
-              background: "#fff",
-              border: "1px solid rgba(0,0,0,0.08)",
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-color)",
               borderRadius: "12px",
               padding: "16px 20px",
               marginTop: "-8px",

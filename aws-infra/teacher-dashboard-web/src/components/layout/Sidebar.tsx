@@ -31,19 +31,49 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
   return (
     <nav className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`} aria-label="Main navigation">
       <div className={`sidebar__brand ${collapsed ? 'sidebar__brand--collapsed' : ''}`}>
-          <span className="sidebar__logo">
-            {/* Studaxis logo PNG */}
-            <img
-              src={require("../../assets/studaxis-logo.png")}
-              alt="Studaxis Logo"
-              width={32}
-              height={32}
-              style={{ display: "block" }}
-            />
-          </span>
+        {collapsed ? (
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: "linear-gradient(135deg,#FA5C5C,#FD8A6B)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 18,
+            fontWeight: 900,
+            color: "white",
+            boxShadow: "0 4px 12px rgba(250,92,92,0.35)",
+            fontFamily: "inherit"
+          }}>S</div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: "linear-gradient(135deg,#FA5C5C,#FD8A6B)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 18,
+              fontWeight: 900,
+              color: "white",
+              flexShrink: 0,
+              boxShadow: "0 4px 12px rgba(250,92,92,0.35)",
+              fontFamily: "inherit"
+            }}>S</div>
+            <span style={{
+              fontWeight: 900,
+              fontSize: 17,
+              color: "var(--text-primary, #0d1b2a)",
+              letterSpacing: "-0.3px",
+              fontFamily: "inherit"
+            }}>Studaxis</span>
+          </div>
+        )}
         {!collapsed && (
           <div>
-            <span className="sidebar__title">Studaxis</span>
             <span className="sidebar__subtitle">Teacher Dashboard</span>
           </div>
         )}

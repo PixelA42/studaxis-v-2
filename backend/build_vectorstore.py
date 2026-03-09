@@ -27,7 +27,13 @@ FILE_TIMEOUT = 120
 
 
 def main():
-    from langchain_huggingface import HuggingFaceEmbeddings
+    try:
+        from langchain_huggingface import HuggingFaceEmbeddings
+    except ImportError:
+        try:
+            from langchain_community.embeddings import HuggingFaceEmbeddings
+        except ImportError:
+            from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
     from langchain_chroma import Chroma
     from langchain_text_splitters import RecursiveCharacterTextSplitter
     from langchain_community.document_loaders import PyPDFLoader, TextLoader

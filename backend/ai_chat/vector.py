@@ -15,10 +15,17 @@ import logging
 logging.getLogger("torch").setLevel(logging.ERROR)
 logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
 
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader, TextLoader, CSVLoader
+# Embeddings: prefer langchain_huggingface, fallback to langchain_community
+try:
+    from langchain_huggingface import HuggingFaceEmbeddings
+except ImportError:
+    try:
+        from langchain_community.embeddings import HuggingFaceEmbeddings
+    except ImportError:
+        from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
 # additional loaders may not exist in all environments; wrap imports
 try:
     from langchain_community.document_loaders import Docx2txtLoader

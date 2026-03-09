@@ -203,7 +203,7 @@
 }
 
 .textbooks-archive .tb-queue-panel {
-  background: #ffffff;
+  background: var(--bg-card);
   padding: 40px;
   display: flex;
   flex-direction: column;

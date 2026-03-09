@@ -25,7 +25,13 @@ from email_service import send_otp_email, send_verification_email
 from profile_store import UserProfile, load_profile, save_profile, load_profile_for_user, save_profile_for_user
 
 # JWT config (must be before dependencies import to avoid circular import)
-JWT_SECRET = os.environ.get("STUDAXIS_JWT_SECRET", "studaxis-dev-secret-change-in-prod")
+_raw_jwt_secret = os.environ.get("STUDAXIS_JWT_SECRET", "studaxis-dev-secret-change-in-prod")
+# HS256 recommends key >= 32 bytes (RFC 7518); avoid InsecureKeyLengthWarning
+if len(_raw_jwt_secret.encode("utf-8")) < 32:
+    import hashlib
+    JWT_SECRET = hashlib.sha256(_raw_jwt_secret.encode()).hexdigest()
+else:
+    JWT_SECRET = _raw_jwt_secret
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_HOURS = 24 * 7  # 7 days
 VERIFICATION_EXPIRY_HOURS = 24  # Email verification token

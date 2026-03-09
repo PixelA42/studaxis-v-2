@@ -12,121 +12,8 @@
       "completedAtLocal": "2026-03-08T06:43:27.624844+00:00"
     },
     "queued_at": "2026-03-08T06:43:27.624844+00:00",
-    "retry_count": 2,
+    "retry_count": 4,
     "last_error": "GraphQL error: ValidationError: totalQuestions must be > 0"
-  },
-  {
-    "id": "sync_1772968862.373834",
-    "type": "flashcard_create",
-    "mutation_type": "flashcard_create",
-    "payload": {
-      "userId": "hhh",
-      "deckId": "1772968862240",
-      "title": "Typhoid fever",
-      "subject": "Typhoid fever"
-    },
-    "created_at": "2026-03-08T11:21:02.377334+00:00",
-    "queued_at": "2026-03-08T11:21:02.377334+00:00",
-    "retries": 0,
-    "retry_count": 2,
-    "last_error": "AWS sync not configured for this type"
-  },
-  {
-    "id": "sync_1772969213.531891",
-    "type": "flashcard_create",
-    "mutation_type": "flashcard_create",
-    "payload": {
-      "userId": "hhh",
-      "deckId": "1772969213452",
-      "title": "Typhoid vaccine",
-      "subject": "Typhoid vaccine"
-    },
-    "created_at": "2026-03-08T11:26:53.534037+00:00",
-    "queued_at": "2026-03-08T11:26:53.534037+00:00",
-    "retries": 0,
-    "retry_count": 2,
-    "last_error": "AWS sync not configured for this type"
-  },
-  {
-    "id": "sync_1772969332.52107",
-    "type": "flashcard_create",
-    "mutation_type": "flashcard_create",
-    "payload": {
-      "userId": "hhh",
-      "deckId": "1772969332022",
-      "title": "Content-based",
-      "subject": "Content-based"
-    },
-    "created_at": "2026-03-08T11:28:52.521070+00:00",
-    "queued_at": "2026-03-08T11:28:52.521070+00:00",
-    "retries": 0,
-    "retry_count": 2,
-    "last_error": "AWS sync not configured for this type"
-  },
-  {
-    "id": "sync_1772973019.184898",
-    "type": "flashcard_create",
-    "mutation_type": "flashcard_create",
-    "payload": {
-      "userId": "hhh",
-      "deckId": "1772973018799",
-      "title": "Content-based",
-      "subject": "Content-based"
-    },
-    "created_at": "2026-03-08T12:30:19.184898+00:00",
-    "queued_at": "2026-03-08T12:30:19.184898+00:00",
-    "retries": 0,
-    "retry_count": 2,
-    "last_error": "AWS sync not configured for this type"
-  },
-  {
-    "id": "sync_1772973118.897333",
-    "type": "flashcard_review",
-    "mutation_type": "flashcard_review",
-    "payload": {
-      "userId": "hhh",
-      "deckId": "deck_1772973062934_l9b2wm9",
-      "cardId": "1",
-      "ease": "hard",
-      "nextReview": "2026-03-09T12:31:58.541Z"
-    },
-    "created_at": "2026-03-08T12:31:58.897333+00:00",
-    "queued_at": "2026-03-08T12:31:58.897333+00:00",
-    "retries": 0,
-    "retry_count": 2,
-    "last_error": "AWS sync not configured for this type"
-  },
-  {
-    "id": "sync_1772975201.811348",
-    "type": "flashcard_create",
-    "mutation_type": "flashcard_create",
-    "payload": {
-      "userId": "hhh",
-      "deckId": "1772975201690",
-      "title": "Hut",
-      "subject": "Hut"
-    },
-    "created_at": "2026-03-08T13:06:41.811348+00:00",
-    "queued_at": "2026-03-08T13:06:41.811348+00:00",
-    "retries": 0,
-    "retry_count": 2,
-    "last_error": "AWS sync not configured for this type"
-  },
-  {
-    "id": "sync_1772975201.968933",
-    "type": "flashcard_create",
-    "mutation_type": "flashcard_create",
-    "payload": {
-      "userId": "hhh",
-      "deckId": "1772975201905",
-      "title": "Hut",
-      "subject": "Hut"
-    },
-    "created_at": "2026-03-08T13:06:41.968933+00:00",
-    "queued_at": "2026-03-08T13:06:41.968933+00:00",
-    "retries": 0,
-    "retry_count": 2,
-    "last_error": "AWS sync not configured for this type"
   },
   {
     "id": "sync_1773055227.78652",
@@ -141,7 +28,23 @@
     "created_at": "2026-03-09T11:20:27.786520+00:00",
     "queued_at": "2026-03-09T11:20:27.786520+00:00",
     "retries": 0,
-    "retry_count": 0,
-    "last_error": ""
+    "retry_count": 2,
+    "last_error": "AWS sync not configured for this type"
+  },
+  {
+    "id": "sync_1773056937.900287",
+    "type": "flashcard_create",
+    "mutation_type": "flashcard_create",
+    "payload": {
+      "userId": "hhh",
+      "deckId": "1773056937870",
+      "title": "SI Base Units",
+      "subject": "SI Base Units"
+    },
+    "created_at": "2026-03-09T11:48:57.900287+00:00",
+    "queued_at": "2026-03-09T11:48:57.900287+00:00",
+    "retries": 0,
+    "retry_count": 2,
+    "last_error": "AWS sync not configured for this type"
   }
 ]

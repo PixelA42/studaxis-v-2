@@ -5,7 +5,7 @@
 .quiz-home__title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #0d1b2a;
+  color: var(--text-primary);
   margin: 0 0 1.5rem 0;
 }
 
@@ -16,7 +16,7 @@
 .quiz-home__section-title {
   font-size: 1rem;
   font-weight: 700;
-  color: #0d1b2a;
+  color: var(--text-primary);
   margin: 0 0 0.75rem 0;
 }
 
@@ -29,8 +29,8 @@
 .quiz-home__card {
   padding: 1rem 1.25rem;
   border-radius: 12px;
-  border: 1px solid #e8edf5;
-  background: #fff;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
 }
 
 .quiz-home__card--assignment {
@@ -47,13 +47,13 @@
 
 .quiz-home__card-title {
   font-weight: 700;
-  color: #0d1b2a;
+  color: var(--text-primary);
   display: block;
 }
 
 .quiz-home__card-due {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .quiz-home__chip {
@@ -79,14 +79,14 @@
 .quiz-home__field label {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .quiz-home__field select {
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
-  border: 1.5px solid #e8edf5;
-  background: #fff;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-input);
   font-size: 0.9rem;
 }
 
@@ -99,8 +99,8 @@
 .quiz-home__pill {
   padding: 0.4rem 0.75rem;
   border-radius: 20px;
-  border: 1.5px solid #e8edf5;
-  background: #fff;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-card);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
@@ -123,8 +123,8 @@
 .quiz-home__count button {
   padding: 0.4rem 0.75rem;
   border-radius: 8px;
-  border: 1.5px solid #e8edf5;
-  background: #fff;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-card);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -139,8 +139,8 @@
 .quiz-home__input {
   padding: 0.75rem 1rem;
   border-radius: 10px;
-  border: 1.5px solid #e8edf5;
-  background: #fff;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-input);
   font-size: 0.95rem;
 }
 

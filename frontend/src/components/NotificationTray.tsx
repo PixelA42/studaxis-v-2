@@ -74,8 +74,8 @@ export function NotificationTray() {
           top: 0,
           height: "100vh",
           width: 360,
-          background: "#ffffff",
-          borderLeft: "1.5px solid #e8edf5",
+          background: "var(--bg-card)",
+          borderLeft: "1.5px solid var(--border-color)",
           boxShadow: "-8px 0 32px rgba(0,0,0,0.1)",
           zIndex: 200,
           animation: "slideIn 0.3s cubic-bezier(0.16,1,0.3,1)",
@@ -103,7 +103,7 @@ export function NotificationTray() {
               style={{
                 fontSize: 16,
                 fontWeight: 700,
-                color: "#0d1b2a",
+                color: "var(--text-primary)",
                 margin: 0,
                 letterSpacing: "-0.3px",
               }}
@@ -154,7 +154,7 @@ export function NotificationTray() {
                 height: 32,
                 border: "none",
                 background: "transparent",
-                color: "#9ca3af",
+                color: "var(--text-muted)",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
@@ -184,7 +184,7 @@ export function NotificationTray() {
             style={{
               textAlign: "center",
               padding: "48px 24px",
-              color: "#9ca3af",
+              color: "var(--text-muted)",
             }}
           >
             <div
@@ -192,7 +192,7 @@ export function NotificationTray() {
                 display: "flex",
                 justifyContent: "center",
                 marginBottom: 16,
-                color: "#d1d5db",
+                color: "var(--text-muted)",
               }}
             >
               <HiBell className="w-12 h-12" style={{ width: 48, height: 48 }} />
@@ -201,7 +201,7 @@ export function NotificationTray() {
               style={{
                 fontSize: 15,
                 fontWeight: 700,
-                color: "#6b7280",
+                color: "var(--text-secondary)",
                 marginBottom: 8,
               }}
             >
@@ -211,7 +211,7 @@ export function NotificationTray() {
               style={{
                 fontSize: 12,
                 lineHeight: 1.5,
-                color: "#9ca3af",
+                color: "var(--text-muted)",
               }}
             >
               Quiz assignments, sync alerts and streak reminders will appear here
@@ -236,7 +236,7 @@ export function NotificationTray() {
                   background: "transparent",
                   fontSize: 11,
                   fontWeight: 600,
-                  color: "#6b7280",
+                  color: "var(--text-secondary)",
                   cursor: "pointer",
                 }}
               >
@@ -303,7 +303,7 @@ function NotificationCard({
             height: 24,
             border: "none",
             background: "transparent",
-            color: "#9ca3af",
+            color: "var(--text-muted)",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
@@ -360,7 +360,7 @@ function NotificationCard({
                   fontSize: 9,
                   fontWeight: 600,
                   background: "rgba(0,0,0,0.06)",
-                  color: "#6b7280",
+                  color: "var(--text-secondary)",
                   borderRadius: 10,
                   padding: "2px 6px",
                 }}
@@ -373,7 +373,7 @@ function NotificationCard({
             style={{
               fontSize: 13,
               fontWeight: 700,
-              color: "#0d1b2a",
+              color: "var(--text-primary)",
               lineHeight: 1.3,
             }}
           >
@@ -383,7 +383,7 @@ function NotificationCard({
             <div
               style={{
                 fontSize: 12,
-                color: "#6b7280",
+                color: "var(--text-secondary)",
                 marginTop: 4,
                 lineHeight: 1.5,
               }}
@@ -394,7 +394,7 @@ function NotificationCard({
           <div
             style={{
               fontSize: 10,
-              color: "#9ca3af",
+              color: "var(--text-muted)",
               marginTop: 6,
             }}
           >

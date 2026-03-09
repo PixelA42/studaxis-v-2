@@ -13,7 +13,7 @@ from typing import Tuple
 
 # Model name: prefer env, fallback to shared constant, then default
 _OLLAMA_MODEL_ENV = "OLLAMA_MODEL"
-_DEFAULT_MODEL = "llama3.2:3b"
+_DEFAULT_MODEL = "llama3.2:3b"  # fallback only; model_config picks by RAM (e.g. 7b for 16GB)
 
 
 def _get_model_name() -> str:

@@ -16,8 +16,10 @@ from typing import Optional
 
 # Models by RAM threshold (only one is ever selected per machine)
 MODEL_LOW_RAM = "llama3.2:3b-instruct-q2_K"   # ~1.1 GB, for RAM < 6 GB
-MODEL_HIGH_RAM = "llama3.2:3b-instruct-q4_K_M"  # ~1.8 GB, for RAM >= 6 GB
-RAM_THRESHOLD_GB = 6.0
+MODEL_MID_RAM = "llama3.2:3b-instruct-q4_K_M"  # ~1.8 GB, for 6–14 GB
+MODEL_HIGH_RAM = "llama3.2:7b"                 # ~4–5 GB, for 14+ GB (e.g. 16 GB)
+RAM_THRESHOLD_GB = 6.0   # below this use low-RAM 3b
+RAM_HIGH_GB = 14.0       # 14+ GB → use 7B model
 
 # Module-level cache after get_best_model() or load_config()
 _selected_model: Optional[str] = None
@@ -51,7 +53,8 @@ def get_best_model(force_refresh: bool = False) -> str:
     Select the best model for this machine's RAM and persist to config.
 
     - RAM < 6 GB  → llama3.2:3b-instruct-q2_K (~1.1 GB)
-    - RAM >= 6 GB → llama3.2:3b-instruct-q4_K_M (~1.8 GB)
+    - 6–14 GB    → llama3.2:3b-instruct-q4_K_M (~1.8 GB)
+    - RAM >= 14 GB (e.g. 16 GB) → llama3.2:7b (~4–5 GB, better quality)
 
     Env override: STUDAXIS_OLLAMA_MODEL or OLLAMA_MODEL skips hardware selection.
     Returns the selected model name. Called at backend startup.
@@ -73,13 +76,19 @@ def get_best_model(force_refresh: bool = False) -> str:
     except Exception:
         pass
 
-    model = MODEL_HIGH_RAM if ram_gb >= RAM_THRESHOLD_GB else MODEL_LOW_RAM
+    if ram_gb >= RAM_HIGH_GB:
+        model = MODEL_HIGH_RAM   # 7B/8B for 14+ GB (e.g. 16 GB)
+    elif ram_gb >= RAM_THRESHOLD_GB:
+        model = MODEL_MID_RAM    # 7B for 6–14 GB
+    else:
+        model = MODEL_LOW_RAM
     _selected_model = model
 
     config = {
         "model": model,
         "ram_gb": round(ram_gb, 2),
         "ram_threshold_gb": RAM_THRESHOLD_GB,
+        "ram_high_gb": RAM_HIGH_GB,
     }
 
     for path_fn in (_config_path, _fallback_config_path):

@@ -115,6 +115,18 @@
   /* Card depth — soft drop shadow, 16px radius */
   --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
   --card-radius: 16px;
+  
+  /* Light mode theme variables */
+  --bg-base: #F1F5F9;
+  --bg-card: #ffffff;
+  --bg-input: #f8fafc;
+  --bg-hover: #f3f4f6;
+  --bg-secondary: #f8fafc;
+  --border-color: #e8edf5;
+  --text-primary: #0d1b2a;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
 :root,
@@ -131,6 +143,18 @@
   --warn: #f59e0b;
   --sidebar-width: 260px;
   --sidebar-width-collapsed: 80px;
+  
+  /* Dark mode theme variables */
+  --bg-base: #0f1117;
+  --bg-card: #1a1d27;
+  --bg-input: #22263a;
+  --bg-hover: #252836;
+  --bg-secondary: #1a1d27;
+  --border-color: #2e3347;
+  --text-primary: #f0f4f8;
+  --text-secondary: #8b92a9;
+  --text-muted: #555d7a;
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* Sidebar — fixed to viewport, never scrolls with page content */
@@ -157,6 +181,18 @@
   --text-primary: #000000;
   --text-muted: rgba(0, 0, 0, 0.75);
   --text-subtle: rgba(0, 0, 0, 0.55);
+  
+  /* Light mode theme variables */
+  --bg-base: #F1F5F9;
+  --bg-card: #ffffff;
+  --bg-input: #f8fafc;
+  --bg-hover: #f3f4f6;
+  --bg-secondary: #f8fafc;
+  --border-color: #e8edf5;
+  --text-primary: #0d1b2a;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
 @layer base {
@@ -210,6 +246,21 @@
 }
 
 @layer components {
+  /* Input placeholder colors for dark mode */
+  input::placeholder,
+  textarea::placeholder,
+  select::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+  }
+  
+  [data-theme="dark"] input::placeholder,
+  [data-theme="dark"] textarea::placeholder,
+  [data-theme="dark"] select::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+  }
+
   /* Back to Dashboard button — Thermal Vitreous color scheme, high visibility */
   .chrome-back-btn {
     display: inline-flex;

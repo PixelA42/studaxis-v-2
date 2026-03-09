@@ -47,18 +47,18 @@ function renderNotes(text: string) {
   return text.split("\n").map((line, i) => {
     if (!line.trim()) return <div key={i} style={{ height: 10 }} />;
     if (line.startsWith("#### "))
-      return <p key={i} style={{ fontWeight: 700, fontSize: 13, color: "#0d1b2a", marginBottom: 2 }}>{line.replace("#### ", "")}</p>;
+      return <p key={i} style={{ fontWeight: 700, fontSize: 13, color: "var(--text-primary)", marginBottom: 2 }}>{line.replace("#### ", "")}</p>;
     if (line.startsWith("### "))
-      return <p key={i} style={{ fontWeight: 800, fontSize: 14, color: "#0d1b2a", marginTop: 12, marginBottom: 4 }}>{line.replace("### ", "")}</p>;
+      return <p key={i} style={{ fontWeight: 800, fontSize: 14, color: "var(--text-primary)", marginTop: 12, marginBottom: 4 }}>{line.replace("### ", "")}</p>;
     if (line.startsWith("## "))
-      return <p key={i} style={{ fontWeight: 900, fontSize: 16, color: "#0d1b2a", marginTop: 16, marginBottom: 6, borderBottom: "1.5px solid #e8edf5", paddingBottom: 4 }}>{line.replace("## ", "")}</p>;
+      return <p key={i} style={{ fontWeight: 900, fontSize: 16, color: "var(--text-primary)", marginTop: 16, marginBottom: 6, borderBottom: "1.5px solid var(--border-color)", paddingBottom: 4 }}>{line.replace("## ", "")}</p>;
     if (line.startsWith("# "))
-      return <p key={i} style={{ fontWeight: 900, fontSize: 18, color: "#0d1b2a", marginTop: 16, marginBottom: 8 }}>{line.replace("# ", "")}</p>;
+      return <p key={i} style={{ fontWeight: 900, fontSize: 18, color: "var(--text-primary)", marginTop: 16, marginBottom: 8 }}>{line.replace("# ", "")}</p>;
     if (line.startsWith("* ") || line.startsWith("- "))
-      return <div key={i} style={{ display: "flex", gap: 8, marginBottom: 3, paddingLeft: 8 }}><span style={{ color: "#FA5C5C", fontWeight: 700, flexShrink: 0 }}>•</span><span style={{ fontSize: 13, color: "#374151", lineHeight: 1.7 }}>{line.replace(/^[\*\-] /, "")}</span></div>;
+      return <div key={i} style={{ display: "flex", gap: 8, marginBottom: 3, paddingLeft: 8 }}><span style={{ color: "#FA5C5C", fontWeight: 700, flexShrink: 0 }}>•</span><span style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.7 }}>{line.replace(/^[\*\-] /, "")}</span></div>;
     if (line.startsWith("**") && line.endsWith("**"))
-      return <p key={i} style={{ fontWeight: 700, fontSize: 13, color: "#0d1b2a", marginBottom: 3 }}>{line.replace(/\*\*/g, "")}</p>;
-    return <p key={i} style={{ fontSize: 13, color: "#374151", lineHeight: 1.75, marginBottom: 3 }}>{line}</p>;
+      return <p key={i} style={{ fontWeight: 700, fontSize: 13, color: "var(--text-primary)", marginBottom: 3 }}>{line.replace(/\*\*/g, "")}</p>;
+    return <p key={i} style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.75, marginBottom: 3 }}>{line}</p>;
   });
 }
 
@@ -395,8 +395,8 @@ export function NotesGeneratorPage() {
                   <div
                     className="notes-output-rendered"
                     style={{
-                      background: "#f8fafc",
-                      border: "1.5px solid #e8edf5",
+                      background: "var(--bg-input)",
+                      border: "1.5px solid var(--border-color)",
                       borderRadius: 12,
                       padding: "20px 24px",
                       maxHeight: 480,

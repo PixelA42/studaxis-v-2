@@ -39,5 +39,12 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=port,
         reload=True,
-        reload_dirs=[str(BACKEND), str(ROOT)],
+        reload_dirs=[str(BACKEND)],
+        reload_excludes=[
+            "*studaxis-vtwo-env*",
+            "*node_modules*",
+            "*__pycache__*",
+            "*.pyc",
+            "*.pyo",
+        ],
     )

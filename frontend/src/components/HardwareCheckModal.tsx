@@ -169,11 +169,11 @@ export function HardwareCheckModal({ onContinue, specs: apiSpecs }: HardwareChec
       <div className="relative">
         <h2
           className="text-xl font-semibold mb-1"
-          style={{ color: "#0F172A" }}
+          style={{ color: "var(--text-primary)" }}
         >
           Checking your laptop
         </h2>
-        <p className="text-sm mb-4" style={{ color: "#64748B" }}>
+        <p className="text-sm mb-4" style={{ color: "var(--text-secondary)" }}>
           Studaxis needs minimal hardware to run the AI tutor offline.
         </p>
 
@@ -207,8 +207,8 @@ export function HardwareCheckModal({ onContinue, specs: apiSpecs }: HardwareChec
                 <StatusIcon status={c.status} />
               </div>
               <div className="flex-1 min-w-0">
-                <span className="font-medium" style={{ color: "#0F172A" }}>{c.label}</span>
-                <span className="text-sm ml-2" style={{ color: "#64748B" }}>
+                <span className="font-medium" style={{ color: "var(--text-primary)" }}>{c.label}</span>
+                <span className="text-sm ml-2" style={{ color: "var(--text-secondary)" }}>
                   {c.value} / {c.threshold}
                 </span>
               </div>
@@ -245,7 +245,7 @@ export function HardwareCheckModal({ onContinue, specs: apiSpecs }: HardwareChec
             className="flex-1 px-5 py-2.5 rounded-xl font-medium text-center transition-colors border"
             style={{
               borderColor: "rgba(226,232,240,0.9)",
-              color: "#64748B",
+              color: "var(--text-secondary)",
             }}
           >
             Learn More

@@ -286,7 +286,7 @@ function InsightCard({
         style={{
           fontSize: "17px",
           fontWeight: 800,
-          color: "#0d1b2a",
+          color: "var(--text-primary)",
           letterSpacing: "-0.4px",
           marginBottom: "7px",
           lineHeight: 1.25,
@@ -466,7 +466,7 @@ export function InsightsPage() {
               style={{
                 fontSize: "22px",
                 fontWeight: 900,
-                color: "#0d1b2a",
+                color: "var(--text-primary)",
                 letterSpacing: "-0.5px",
                 lineHeight: 1.2,
               }}
@@ -500,8 +500,8 @@ export function InsightsPage() {
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
-                background: "#fff",
-                border: "1.5px solid #e5e7eb",
+                background: "var(--bg-card)",
+                border: "1.5px solid var(--border-color)",
                 borderRadius: "10px",
                 padding: "7px 14px",
               }}
@@ -549,7 +549,7 @@ export function InsightsPage() {
                   <div
                     style={{
                       height: "7px",
-                      background: "#f1f3f8",
+                      background: "var(--bg-hover)",
                       borderRadius: "10px",
                       overflow: "hidden",
                     }}
@@ -715,8 +715,8 @@ export function InsightsPage() {
                       <Tooltip
                         cursor={{ fill: "rgba(0,168,232,0.06)", radius: 6 }}
                         contentStyle={{
-                          background: "#fff",
-                          border: "1px solid #e5e7eb",
+                          background: "var(--bg-card)",
+                          border: "1px solid var(--border-color)",
                           borderRadius: "10px",
                           fontSize: 12,
                         }}
@@ -769,7 +769,7 @@ export function InsightsPage() {
                           display: "flex",
                           alignItems: "center",
                           gap: "7px",
-                          background: "#fff",
+                          background: "var(--bg-card)",
                           border: `1.5px solid ${item.color}30`,
                           borderRadius: "10px",
                           padding: "8px 14px",
@@ -794,8 +794,8 @@ export function InsightsPage() {
         <div className="insight-card-anim">
           <div
             style={{
-              background: "#fff",
-              border: "1.5px solid #e5e7eb",
+              background: "var(--bg-card)",
+              border: "1.5px solid var(--border-color)",
               borderRadius: "18px",
               overflow: "hidden",
               boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
@@ -825,7 +825,7 @@ export function InsightsPage() {
                   style={{
                     fontSize: "15px",
                     fontWeight: 800,
-                    color: "#0d1b2a",
+                    color: "var(--text-primary)",
                     letterSpacing: "-0.3px",
                   }}
                 >
@@ -836,8 +836,8 @@ export function InsightsPage() {
                 style={{
                   fontSize: "11px",
                   fontWeight: 600,
-                  color: "#9ca3af",
-                  background: "#f8f9fc",
+                  color: "var(--text-muted)",
+                  background: "var(--bg-input)",
                   borderRadius: "8px",
                   padding: "4px 10px",
                   border: "1px solid #e5e7eb",
@@ -878,7 +878,7 @@ export function InsightsPage() {
                     style={{
                       flex: 1,
                       minWidth: "100px",
-                      background: "#f8f9fc",
+                      background: "var(--bg-input)",
                       borderRadius: "12px",
                       padding: "12px 16px",
                       border: "1px solid #f1f3f8",

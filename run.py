@@ -178,7 +178,15 @@ def main() -> None:
     }
     if not IS_FROZEN:
         kwargs["reload"] = True
-        kwargs["reload_dirs"] = [str(ROOT / "backend"), str(ROOT)]
+        # Watch only backend so the venv (e.g. studaxis-vtwo-env) is never watched
+        kwargs["reload_dirs"] = [str(ROOT / "backend")]
+        kwargs["reload_excludes"] = [
+            "*studaxis-vtwo-env*",
+            "*node_modules*",
+            "*__pycache__*",
+            "*.pyc",
+            "*.pyo",
+        ]
     uvicorn.run("main:app", **kwargs)
 
 

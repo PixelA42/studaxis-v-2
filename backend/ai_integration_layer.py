@@ -290,6 +290,8 @@ class AIEngine:
       request(task_type, user_input, context_data, ...)
     """
 
+    _rag_failed_once = False  # log RAG init failure only once
+
     def __init__(self, base_path: str = ".", config: Optional[AIConfig] = None) -> None:
         self.base_path = base_path
         self.config = config or AIConfig()
@@ -310,6 +312,8 @@ class AIEngine:
         """Lazily import ai_chat components. Returns True if RAG is available."""
         if self._rag_ready:
             return True
+        if getattr(self.__class__, "_rag_failed_once", False):
+            return False
         try:
             from ai_chat.main import (
                 get_retriever,
@@ -328,6 +332,7 @@ class AIEngine:
             self._rag_ready = True
             return True
         except Exception as exc:
+            self.__class__._rag_failed_once = True
             print(f"[ai_engine] RAG init failed (falling back to plain Ollama): {exc}")
             return False
 
