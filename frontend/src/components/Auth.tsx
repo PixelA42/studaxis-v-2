@@ -200,7 +200,10 @@ export function Auth() {
       <div className="relative z-10 w-full max-w-md">
         <div className="solid-card rounded-2xl p-8 text-center shadow-soft">
           <div className="logo-container">
-            <img src="/studaxis-logo.png" alt="" className="circular-logo" aria-hidden />
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+              <circle cx="24" cy="24" r="22" stroke="#4F8CFF" strokeWidth="4" fill="#EAF4FF"/>
+              <text x="24" y="28" textAnchor="middle" fontSize="16" fill="#4F8CFF" fontWeight="bold">AI</text>
+            </svg>
           </div>
 
           {mode === "signup" ? (

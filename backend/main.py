@@ -748,6 +748,24 @@ def _normalize_cards(raw: list[Any]) -> list[dict[str, Any]]:
     return out
 
 
+def _fallback_flashcards_response(subject: str, count: int, source_type: str = "paste") -> FlashcardGenerateResponse:
+    """Return minimal valid flashcard response when AI is unavailable (e.g. Ollama down)."""
+    n = min(max(2, count), 5)
+    placeholders = [
+        {"id": "fc1", "topic": subject, "front": "What are the key concepts in this topic?", "back": "Review the main definitions and examples from your notes."},
+        {"id": "fc2", "topic": subject, "front": "How would you explain this to someone new to the subject?", "back": "Use simple language and one concrete example."},
+        {"id": "fc3", "topic": subject, "front": "What is the most important takeaway?", "back": "Summarize the core idea in one sentence."},
+        {"id": "fc4", "topic": subject, "front": "What connections does this have to other topics?", "back": "Consider prerequisites and follow-up concepts."},
+        {"id": "fc5", "topic": subject, "front": "What would an exam question on this look like?", "back": "Think of a short question and model answer."},
+    ]
+    cards = []
+    for i in range(n):
+        c = dict(placeholders[i])
+        c["sourceType"] = source_type
+        cards.append(FlashcardItem(**c))
+    return FlashcardGenerateResponse(cards=cards, topic=subject or "General")
+
+
 def _normalize_quiz_items(raw: list[Any], subject: str) -> list[dict[str, Any]]:
     """Convert LLM output to list of quiz items with id, topic, question, expected_answer."""
     out: list[dict[str, Any]] = []
@@ -1342,7 +1360,7 @@ def _generate_cards_topic_aware(
 def _generate_cards_from_content(
     content: str, count: int, source_type: str, subject: str = "General", difficulty: str = "Beginner"
 ) -> FlashcardGenerateResponse:
-    """Generate flashcards from extracted text via AI."""
+    """Generate flashcards from extracted text via AI. Returns fallback cards if AI unavailable."""
     if not content or not content.strip():
         raise HTTPException(status_code=422, detail="No extractable text from source")
     engine = get_ai_engine()
@@ -1364,17 +1382,21 @@ def _generate_cards_from_content(
             user_id=None,
         )
     except (ConnectionError, TimeoutError) as e:
-        raise HTTPException(status_code=503, detail=str(e))
+        print(f"[flashcards] AI unavailable ({e}), returning fallback cards")
+        return _fallback_flashcards_response(subject, count, source_type)
     if response.state in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
-        raise HTTPException(status_code=503, detail=response.error_message or response.text or "AI unavailable.")
+        print(f"[flashcards] AI returned {response.state}, returning fallback cards")
+        return _fallback_flashcards_response(subject, count, source_type)
     raw_text = _extract_json_array(response.text)
     try:
         parsed = json.loads(raw_text)
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=422, detail=f"AI returned invalid JSON: {e}")
-    if not isinstance(parsed, list):
-        raise HTTPException(status_code=422, detail="AI response was not a JSON array")
+    except json.JSONDecodeError:
+        return _fallback_flashcards_response(subject, count, source_type)
+    if not isinstance(parsed, list) or not parsed:
+        return _fallback_flashcards_response(subject, count, source_type)
     cards = _normalize_cards(parsed)
+    if not cards:
+        return _fallback_flashcards_response(subject, count, source_type)
     for c in cards:
         c["sourceType"] = source_type
     return FlashcardGenerateResponse(cards=[FlashcardItem(**c) for c in cards], topic="Content-based")
@@ -1799,7 +1821,13 @@ def flashcards_generate_from_text(req: GenerateFromTextRequest):
             detail="Please paste at least a paragraph of text to generate flashcards from",
         )
     cnt = max(5, min(20, req.num_cards))
-    return _generate_cards_topic_aware(text[:3000], cnt, req.subject, "paste", req.difficulty)
+    try:
+        return _generate_cards_topic_aware(text[:3000], cnt, req.subject, "paste", req.difficulty)
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[flashcards] generate-from-text failed: {e}, returning fallback cards")
+        return _fallback_flashcards_response(req.subject, cnt, "paste")
 
 
 @app.post("/api/flashcards/generate-from-file", response_model=FlashcardGenerateResponse)
@@ -2472,8 +2500,9 @@ def flashcards_recommend(req: FlashcardRecommendRequest, user_id: str = Depends(
         )
         fallback_weak = subject
     else:
-        prompt = build_quiz_only_prompt(difficulty=difficulty, quiz_profile=quiz_profile)
-        weak_list = quiz_profile.get("weak_topics") or []
+        profile = quiz_profile or {}
+        prompt = build_quiz_only_prompt(difficulty=difficulty, quiz_profile=profile)
+        weak_list = profile.get("weak_topics") or []
         fallback_weak = weak_list[0][0] if weak_list else "Your weakest topic"
 
     engine = get_ai_engine()
@@ -2806,7 +2835,7 @@ class QuizGenerateRequest(BaseModel):
 
 @app.post("/api/quiz/generate")
 def quiz_generate(
-    req: Annotated[QuizGenerateRequest, Body(embed=False)],
+    req: QuizGenerateRequest,
     user_id: str = Depends(get_user_id),
 ):
     """Generate quiz from materials or topic. Saves to data/quizzes/{user_id}/{quiz_id}.json.
@@ -2940,11 +2969,9 @@ def panic_generate_textbook(req: PanicGenerateTextbookRequest):
             "items": items,
             "question_type": req.question_type,
         }
-    except HTTPException as e:
-        if e.status_code == 503:
-            items = _get_fallback_panic_items(req.subject, req.count, req.question_type)
-            return {"id": "panic", "title": f"Panic Mode — {req.subject}", "items": items, "question_type": req.question_type}
-        raise
+    except HTTPException:
+        items = _get_fallback_panic_items(req.subject, req.count, req.question_type)
+        return {"id": "panic", "title": f"Panic Mode — {req.subject}", "items": items, "question_type": req.question_type}
     except Exception:
         items = _get_fallback_panic_items(req.subject, req.count, req.question_type)
         return {
@@ -3097,7 +3124,7 @@ def quiz_generate_from_url(req: QuizGenerateFromUrlRequest, user_id: str = Depen
             status_code=422,
             detail="Not enough content found at that URL. Try a different link.",
         )
-    return _save_and_return_quiz(user_id, text, req.subject, req.num_questions, req.question_type, req.difficulty)
+    return _save_and_return_quiz(user_id, text[:12000], req.subject, req.num_questions, req.question_type, req.difficulty)
 
 
 class QuizGenerateFromTextRequest(BaseModel):

@@ -1,0 +1,15 @@
+{
+  "id": "gen_80a45a7e43c8",
+  "title": "Quiz — Biology",
+  "subject": "Biology",
+  "difficulty": "easy",
+  "question_type": "open_ended",
+  "items": [
+    {
+      "id": "q1_fallback",
+      "text": "AI could not generate valid questions. Try again or use paste/URL source.",
+      "sample_answer": "N/A",
+      "rubric": "Assess comprehension."
+    }
+  ]
+}

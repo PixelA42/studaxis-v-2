@@ -38,7 +38,10 @@ export function LoginPage() {
       <div className="relative z-10 w-full max-w-md">
         <div className="glass-panel rounded-2xl border border-glass-border p-8 text-center">
           <div className="logo-container">
-            <img src="/studaxis-logo.png" alt="" className="circular-logo" aria-hidden />
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+              <circle cx="24" cy="24" r="22" stroke="#4F8CFF" strokeWidth="4" fill="#EAF4FF"/>
+              <text x="24" y="28" textAnchor="middle" fontSize="16" fill="#4F8CFF" fontWeight="bold">AI</text>
+            </svg>
           </div>
           <h1 className="text-xl font-semibold text-primary">Welcome back</h1>
           <p className="text-sm text-primary/70 mt-1">

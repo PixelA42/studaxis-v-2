@@ -97,9 +97,25 @@ export function Sidebar() {
         <span className={`text-xs transition-transform ${collapsed ? "rotate-180" : ""}`}>‹</span>
       </button>
 
-      <div className={`flex-shrink-0 p-5 border-b border-glass-border ${collapsed ? "flex justify-center" : ""}`}>
+      <div
+        className={`flex-shrink-0 p-5 border-b border-glass-border ${collapsed ? "flex justify-center" : ""}`}
+        style={{ marginTop: "auto" }}
+      >
         <div className="flex items-center gap-3 w-full">
-          <img src="/studaxis-logo.png" alt="" className="circular-logo circular-logo--sm flex-shrink-0" aria-hidden />
+          <div className="logo-container">
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 48 48"
+              fill="none"
+              aria-hidden="true"
+            >
+              <circle cx="24" cy="24" r="22" stroke="#4F8CFF" strokeWidth="4" fill="#EAF4FF" />
+              <text x="24" y="28" textAnchor="middle" fontSize="16" fill="#4F8CFF" fontWeight="bold">
+                AI
+              </text>
+            </svg>
+          </div>
           {!collapsed && (
             <span className="font-bold text-heading-dark truncate flex-1">Studaxis</span>
           )}

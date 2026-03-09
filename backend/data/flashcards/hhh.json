@@ -1,119 +1,202 @@
 {
   "decks": [
     {
-      "id": "deck_beebfc601560",
+      "id": "deck_1773069036667_hgixgda",
+      "title": "Programmable Logic Devices",
+      "subject": "Programmable Logic Devices",
+      "created_at": "2026-03-09",
+      "cards": [
+        {
+          "id": "6ebac09c",
+          "front": "Can a Programmable Logic Device implement a logic function that is unknown at the time of its manufacture?",
+          "back": "No, it can only implement a logic function that is known at the time of its manufacture",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Programmable Logic Devices",
+          "sourceType": [
+            "file"
+          ],
+          "question": "Can a Programmable Logic Device implement a logic function that is unknown at the time of its manufacture?",
+          "answer": "No, it can only implement a logic function that is known at the time of its manufacture",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "01145fc5",
+          "front": "What are the two main components of a Programmable Logic Device (PLD)?",
+          "back": "An AND array and an OR array.",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "AND array",
+          "sourceType": [
+            "file"
+          ],
+          "question": "What are the two main components of a Programmable Logic Device (PLD)?",
+          "answer": "An AND array and an OR array.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "874e53f4",
+          "front": "What are the main components of a PLD?",
+          "back": "An AND array and an OR array to provide an AND-OR sum of products implementation.",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "AND array",
+          "sourceType": [
+            "file"
+          ],
+          "question": "What are the main components of a PLD?",
+          "answer": "An AND array and an OR array to provide an AND-OR sum of products implementation.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "5fecc869",
+          "front": "What are the main components of a Programmable Logic Device (PLD)?",
+          "back": "A PLD is an integrated circuit with programmable gates divided into an AND array and an OR array",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "OR array",
+          "sourceType": [
+            "file"
+          ],
+          "question": "What are the main components of a Programmable Logic Device (PLD)?",
+          "answer": "A PLD is an integrated circuit with programmable gates divided into an AND array and an OR array",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "41c9b624",
+          "front": "What are the primary components of a PLD?",
+          "back": "An AND array and an OR array",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "OR array",
+          "sourceType": [
+            "file"
+          ],
+          "question": "What are the primary components of a PLD?",
+          "answer": "An AND array and an OR array",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "8faa3154",
+          "front": "How does a PROM differ from a ROM?",
+          "back": "A PROM is programmable but read-only, whereas a ROM is read-only and permanent binary information must be specified by the designer",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "PROM",
+          "sourceType": [
+            "file"
+          ],
+          "question": "How does a PROM differ from a ROM?",
+          "answer": "A PROM is programmable but read-only, whereas a ROM is read-only and permanent binary information must be specified by the designer",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "7eda043d",
+          "front": "How are Boolean functions implemented in PROMs?",
+          "back": "using s or ICs electrically",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "PROM",
+          "sourceType": [
+            "file"
+          ],
+          "question": "How are Boolean functions implemented in PROMs?",
+          "answer": "using s or ICs electrically",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "f9dd40c9",
+          "front": "What is the main purpose of using Programmable Read Only Memory (PROM) in Programmable Logic Devices (PLDs)?",
+          "back": "To store permanent binary information that must be specified by the designer, which is then embedded in the unit to form the required interconnection pattern",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Programmable Read Only Memory",
+          "sourceType": [
+            "file"
+          ],
+          "question": "What is the main purpose of using Programmable Read Only Memory (PROM) in Programmable Logic Devices (PLDs)?",
+          "answer": "To store permanent binary information that must be specified by the designer, which is then embedded in the unit to form the required interconnection pattern",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "b55d339d",
+          "front": "What happens to the stored data in a PROM when it is powered off?",
+          "back": "The data is lost forever, as PROMs are read-only memory devices",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Programmable Read Only Memory",
+          "sourceType": [
+            "file"
+          ],
+          "question": "What happens to the stored data in a PROM when it is powered off?",
+          "answer": "The data is lost forever, as PROMs are read-only memory devices",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "22ba8d5d",
+          "front": "How are minterms generated in a PROM, given that the inputs of AND gates are fixed and non-programmable?",
+          "back": "Minterms are generated by using an nx2n decoder to implement 2n product terms",
+          "ease": "medium",
+          "next_review": "2026-03-09T15:10:36.665Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Sum of minterms",
+          "sourceType": [
+            "file"
+          ],
+          "question": "How are minterms generated in a PROM, given that the inputs of AND gates are fixed and non-programmable?",
+          "answer": "Minterms are generated by using an nx2n decoder to implement 2n product terms",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        }
+      ],
+      "easy_count": 0,
+      "hard_count": 0,
+      "mastered": false
+    },
+    {
+      "id": "deck_8ee1400a81f9",
       "title": "All Cards",
       "subject": "General",
       "created_at": "2026-03-09",
       "cards": [
-        {
-          "id": "72977b73",
-          "front": "Why are units used to express the result of a measurement?",
-          "back": "Units are used to express the result of a measurement because they provide a reference standard for comparison and help to ensure accuracy and consistency.",
-          "ease": "hard",
-          "next_review": "2026-03-10T11:20:24.199Z",
-          "review_count": 0,
-          "mastered": false,
-          "topic": "SI Base Units",
-          "sourceType": [
-            "textbook"
-          ],
-          "question": "Why are units used to express the result of a measurement?",
-          "answer": "Units are used to express the result of a measurement because they provide a reference standard for comparison and help to ensure accuracy and consistency.",
-          "interval": 1,
-          "repetitions": 0,
-          "ease_factor": 2.5
-        },
-        {
-          "id": "601a8c5d",
-          "front": "What are the fundamental or base units?",
-          "back": "They are the units that cannot be expressed as a combination of other units.",
-          "ease": "easy",
-          "next_review": "2026-03-10T11:20:24.721Z",
-          "review_count": 0,
-          "mastered": false,
-          "topic": "Measurement of Physical Quantities",
-          "sourceType": [
-            "textbook"
-          ],
-          "question": "What are the fundamental or base units?",
-          "answer": "They are the units that cannot be expressed as a combination of other units.",
-          "interval": 1,
-          "repetitions": 1,
-          "ease_factor": 2.5
-        },
-        {
-          "id": "769a9ef3",
-          "front": "Why are there only a limited number of units needed to express all physical quantities?",
-          "back": "Physical quantities are inter-related with one another, so only a limited number of units are necessary.",
-          "ease": "hard",
-          "next_review": "2026-03-10T11:20:25.230Z",
-          "review_count": 0,
-          "mastered": false,
-          "topic": "Derived Units",
-          "sourceType": [
-            "textbook"
-          ],
-          "question": "Why are there only a limited number of units needed to express all physical quantities?",
-          "answer": "Physical quantities are inter-related with one another, so only a limited number of units are necessary.",
-          "interval": 1,
-          "repetitions": 0,
-          "ease_factor": 2.5
-        },
-        {
-          "id": "50e1bce8",
-          "front": "In what year was the International System of Units (SI) developed by the Bureau International des Poids et mesures (BIPM)?",
-          "back": "1971",
-          "ease": "easy",
-          "next_review": "2026-03-10T11:20:25.618Z",
-          "review_count": 0,
-          "mastered": false,
-          "topic": "International System of Units",
-          "sourceType": [
-            "textbook"
-          ],
-          "question": "In what year was the International System of Units (SI) developed by the Bureau International des Poids et mesures (BIPM)?",
-          "answer": "1971",
-          "interval": 1,
-          "repetitions": 1,
-          "ease_factor": 2.5
-        },
-        {
-          "id": "6b47ece7",
-          "front": "Which of the three fundamental units in the SI system is defined as the unit of time?",
-          "back": "Second",
-          "ease": "easy",
-          "next_review": "2026-03-10T11:20:25.890Z",
-          "review_count": 0,
-          "mastered": false,
-          "topic": "Significant Figures",
-          "sourceType": [
-            "textbook"
-          ],
-          "question": "Which of the three fundamental units in the SI system is defined as the unit of time?",
-          "answer": "Second",
-          "interval": 1,
-          "repetitions": 1,
-          "ease_factor": 2.5
-        },
-        {
-          "id": "ac7c6362",
-          "front": "What are the three basic units in the International System of Units (SI)?",
-          "back": "metre, kilogram and second respectively",
-          "ease": "easy",
-          "next_review": "2026-03-10T11:20:23.310Z",
-          "review_count": 0,
-          "mastered": false,
-          "topic": "Significant Figures",
-          "sourceType": [
-            "textbook"
-          ],
-          "question": "What are the three basic units in the International System of Units (SI)?",
-          "answer": "metre, kilogram and second respectively",
-          "interval": 1,
-          "repetitions": 1,
-          "ease_factor": 2.5
-        },
         {
           "id": "7b1c97c1",
           "front": "What are the units of the fundamental or base quantities called?",

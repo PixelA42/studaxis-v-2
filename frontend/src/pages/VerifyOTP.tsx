@@ -124,7 +124,7 @@ export function VerifyOTP() {
       <div className="relative z-10 w-full max-w-md">
         <div className="solid-card rounded-2xl p-8 text-center shadow-soft">
           <div className="logo-container">
-            <img src="/studaxis-logo.png" alt="" className="circular-logo" aria-hidden />
+            <img src="frontend\public\studaxis-logo.png" alt="" className="circular-logo" aria-hidden />
           </div>
           <h1 className="text-xl font-semibold text-primary">Verify your email</h1>
           <p className="text-sm text-muted mt-1">

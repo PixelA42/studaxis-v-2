@@ -1230,7 +1230,7 @@ export function OnboardingFlow({
                 )}
                 <div style={{ fontSize: "32px", marginBottom: "10px", display: "flex", justifyContent: "center" }}>
                   {r.id === "student" ? (
-                    <img src="/studaxis-logo.png" alt="" className="circular-logo" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} aria-hidden />
+                    <img src="frontend\public\studaxis-logo.png" alt="" className="circular-logo" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} aria-hidden />
                   ) : (
                     r.emoji
                   )}
@@ -1578,7 +1578,7 @@ export function OnboardingFlow({
                     overflow: "hidden",
                   }}
                 >
-                  <img src="/studaxis-logo.png" alt="" className="circular-logo" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover" }} aria-hidden />
+                  <img src="frontend\public\studaxis-logo.png" alt="" className="circular-logo" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover" }} aria-hidden />
                 </div>
               </div>
               <h2 style={{ ...headStyle, textAlign: "center", fontSize: "22px" }}>
