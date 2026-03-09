@@ -256,6 +256,85 @@ Resources:
       LogGroupName: !Sub /aws/lambda/studaxis-quiz-generation-${Environment}
       RetentionInDays: 7
 
+  # ═════════════════════════════════════════════════════════════════════════
+  # TEACHERS DYNAMODB TABLE (for Lambda auth)
+  # ═════════════════════════════════════════════════════════════════════════
+
+  TeachersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub studaxis-teachers-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: classCode
+          AttributeType: S
+      KeySchema:
+        - AttributeName: classCode
+          KeyType: HASH
+
+  # ═════════════════════════════════════════════════════════════════════════
+  # TEACHER AUTH LAMBDA (API Gateway → DynamoDB)
+  # ═════════════════════════════════════════════════════════════════════════
+
+  TeacherAuthRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub studaxis-teacher-auth-${Environment}-sam
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: TeachersReadOnly
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                Resource:
+                  - !GetAtt TeachersTable.Arn
+
+  TeacherAuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub studaxis-teacher-auth-${Environment}
+      Description: Teacher login by classCode; returns JWT
+      Handler: handler.lambda_handler
+      Runtime: python3.11
+      MemorySize: 256
+      Timeout: 10
+      Role: !GetAtt TeacherAuthRole.Arn
+      CodeUri: teacher_auth/
+      Events:
+        TeacherAuth:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TeacherApi
+            Path: /auth
+            Method: POST
+        TeacherAuthApiPath:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TeacherApi
+            Path: /api/teacher/auth
+            Method: POST
+      Environment:
+        Variables:
+          TEACHERS_TABLE_NAME: !Ref TeachersTable
+          LOG_LEVEL: DEBUG
+
+  TeacherAuthLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/studaxis-teacher-auth-${Environment}
+      RetentionInDays: 7
+
 Outputs:
   OfflineSyncFunctionArn:
     Description: ARN of the Offline Sync Lambda
@@ -278,8 +357,16 @@ Outputs:
     Value: !Sub https://${AppSyncSimulator}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
 
   TeacherApiEndpoint:
-    Description: Teacher API Gateway endpoint (quiz generation)
+    Description: Teacher API Gateway endpoint (quiz generation + auth)
     Value: !Sub https://${TeacherApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+
+  TeachersTableName:
+    Description: DynamoDB table for teachers (classCode PK)
+    Value: !Ref TeachersTable
+
+  TeacherAuthFunctionArn:
+    Description: ARN of Teacher Auth Lambda
+    Value: !GetAtt TeacherAuthFunction.Arn
 
   QuizGenerationFunctionArn:
     Description: ARN of the Quiz Generation Lambda

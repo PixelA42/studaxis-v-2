@@ -3315,6 +3315,81 @@ def teacher_onboard(req: TeacherOnboardRequest):
     return {"ok": True, "classCode": cc}
 
 
+@app.get("/api/teacher/lookup")
+def teacher_lookup(classCode: str = ""):
+    """
+    Look up teacher by class code. Public endpoint (no auth).
+    Used by teacher dashboard Login when returning teachers sign in.
+    Returns 404 if class code not found.
+    """
+    cc = (classCode or "").strip()
+    if not cc or len(cc) < 3:
+        raise HTTPException(status_code=400, detail="classCode is required (min 3 chars)")
+    teacher = _load_teacher(cc)
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Class code not found")
+    return teacher
+
+
+class TeacherAuthRequest(BaseModel):
+    """Login payload from teacher dashboard UI. Matches exact fields: classCode (required), teacherId (optional)."""
+    classCode: str = Field(..., min_length=3, description="Class code e.g. CS101, PHYS11A")
+    teacherId: str | None = Field(default=None, description="Optional, for verification/offline fallback")
+
+
+def _create_teacher_jwt(class_code: str, teacher_id: str) -> str:
+    """Create JWT for authenticated teacher. Uses same secret as auth_routes for consistency."""
+    import jwt
+    from auth_routes import JWT_ALGORITHM, JWT_EXPIRY_HOURS
+    from auth_routes import JWT_SECRET
+    from datetime import timedelta
+    payload = {
+        "sub": class_code,
+        "classCode": class_code,
+        "teacherId": teacher_id,
+        "role": "teacher",
+        "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRY_HOURS),
+        "iat": datetime.now(timezone.utc),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+@app.post("/api/teacher/auth")
+def teacher_auth(req: TeacherAuthRequest):
+    """
+    Authenticate teacher by class code. Verifies classCode exists in teacher store.
+    Returns JWT + teacher object. Matches Login UI fields: classCode (required), teacherId (optional).
+    """
+    cc = (req.classCode or "").strip().upper()
+    if len(cc) < 3:
+        raise HTTPException(status_code=400, detail="classCode is required (min 3 chars)")
+    teacher = _load_teacher(cc)
+    if not teacher:
+        raise HTTPException(status_code=401, detail="Class code not found")
+    teacher_id = teacher.get("teacherId") or teacher.get("classCode") or cc
+    if req.teacherId and req.teacherId.strip():
+        tid = req.teacherId.strip()
+        if teacher.get("email", "").lower() == tid.lower() or teacher.get("teacherId") == tid:
+            teacher_id = tid
+        else:
+            teacher_id = tid
+    token = _create_teacher_jwt(cc, teacher_id)
+    teacher_response = {
+        "teacherId": teacher_id,
+        "name": teacher.get("name", ""),
+        "email": teacher.get("email", ""),
+        "subject": teacher.get("subject", ""),
+        "grade": teacher.get("grade", ""),
+        "school": teacher.get("school", ""),
+        "city": teacher.get("city", ""),
+        "board": teacher.get("board", ""),
+        "className": teacher.get("className", ""),
+        "classCode": teacher.get("classCode", cc),
+        "numStudents": teacher.get("numStudents", ""),
+    }
+    return {"access_token": token, "token_type": "bearer", "teacher": teacher_response}
+
+
 class TeacherAssignQuizRequest(BaseModel):
     class_code: str = Field(..., min_length=1)
     quiz_id: str = Field(..., min_length=1)

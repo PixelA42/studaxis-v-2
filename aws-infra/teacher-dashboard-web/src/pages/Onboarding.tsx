@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Icon } from '../components/icons/Icon';
 import type { Teacher } from '../context/TeacherContext';
-import { postTeacherOnboard } from '../lib/teacherApi';
+import { postTeacherOnboard, teacherLogin } from '../lib/teacherApi';
 import '../styles/onboarding.css';
 
 const ONBOARD_STEPS = [
@@ -13,7 +13,7 @@ const ONBOARD_STEPS = [
 ];
 
 interface OnboardingProps {
-  onComplete: (data: Teacher) => void;
+  onComplete: (data: Teacher, options?: { token?: string }) => void;
   /** Optional "Sign In" link for returning teachers (e.g. <Link to="/login">Sign In →</Link>) */
   signInLink?: React.ReactNode;
 }
@@ -33,6 +33,7 @@ export function Onboarding({ onComplete, signInLink }: OnboardingProps) {
     numStudents: '',
   });
   const [loading, setLoading] = useState(false);
+  const [backendError, setBackendError] = useState<string | null>(null);
   const classCode = useRef(Math.random().toString(36).slice(2, 8).toUpperCase());
 
   const update = (k: keyof Teacher, v: string) => setData((p) => ({ ...p, [k]: v }));
@@ -42,10 +43,11 @@ export function Onboarding({ onComplete, signInLink }: OnboardingProps) {
   }, []);
 
   const next = async () => {
+    setBackendError(null);
     if (step === ONBOARD_STEPS.length - 2) {
       setLoading(true);
       try {
-        await postTeacherOnboard({
+        const result = await postTeacherOnboard({
           name: data.name || '',
           email: data.email || '',
           subject: data.subject || '',
@@ -57,14 +59,24 @@ export function Onboarding({ onComplete, signInLink }: OnboardingProps) {
           classCode: data.classCode || classCode.current,
           numStudents: data.numStudents || '',
         });
+        if (!result.ok) {
+          setBackendError('Backend unavailable — your data will be saved locally. You can still use the dashboard.');
+        }
       } catch (e) {
+        setBackendError('Could not sync to backend — your data will be saved locally. Check VITE_TEACHER_BACKEND_URL if you need cloud sync.');
         console.warn('Backend teacher onboard failed (using local only):', e);
       }
-      await new Promise((r) => setTimeout(r, 800));
+      await new Promise((r) => setTimeout(r, 600));
       setLoading(false);
       setStep((s) => s + 1);
     } else if (step === ONBOARD_STEPS.length - 1) {
-      onComplete(data as Teacher);
+      const teacherData = data as Teacher;
+      try {
+        const res = await teacherLogin(teacherData.classCode || classCode.current, teacherData.email);
+        onComplete(res.teacher, { token: res.access_token });
+      } catch {
+        onComplete(teacherData);
+      }
     } else {
       setStep((s) => s + 1);
     }
@@ -133,6 +145,12 @@ export function Onboarding({ onComplete, signInLink }: OnboardingProps) {
           </div>
         </div>
 
+        {backendError && (
+          <div className="notif-banner notif-info" style={{ marginTop: 16 }}>
+            <div className="notif-banner-icon">ℹ️</div>
+            <div className="notif-banner-text">{backendError}</div>
+          </div>
+        )}
         <p className="onboarding-footer">
           🔒 Your data syncs via AWS AppSync · Encrypted at rest via DynamoDB
         </p>

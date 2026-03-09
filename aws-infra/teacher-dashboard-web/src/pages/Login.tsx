@@ -2,22 +2,11 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/icons/Icon';
 import type { Teacher } from '../context/TeacherContext';
+import { teacherLogin } from '../lib/teacherApi';
 import '../styles/onboarding.css';
 
-const DEFAULT_TEACHER: Omit<Teacher, 'classCode' | 'teacherId'> = {
-  name: '',
-  email: '',
-  subject: 'Physics',
-  grade: 'Grade 10',
-  school: '',
-  city: '',
-  board: 'CBSE',
-  className: '',
-  numStudents: '',
-};
-
 interface LoginProps {
-  onComplete: (data: Teacher) => void;
+  onComplete: (data: Teacher, options?: { token?: string }) => void;
 }
 
 export function Login({ onComplete }: LoginProps) {
@@ -26,29 +15,25 @@ export function Login({ onComplete }: LoginProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const tid = teacherId.trim();
+    const tid = teacherId.trim() || undefined;
     const code = classCode.trim().toUpperCase();
-    if (!tid) {
-      setError('Please enter your Teacher ID.');
-      return;
-    }
     if (!code || code.length < 3) {
-      setError('Please enter a valid Class Code (e.g., CS101).');
+      setError('Please enter a valid Class Code (e.g., CS101, ABC123).');
       return;
     }
     setLoading(true);
-    const teacher: Teacher = {
-      ...DEFAULT_TEACHER,
-      teacherId: tid,
-      name: tid,
-      className: code,
-      classCode: code,
-    };
-    onComplete(teacher);
-    setLoading(false);
+    try {
+      const res = await teacherLogin(code, tid);
+      onComplete(res.teacher, { token: res.access_token });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Login failed';
+      setError(msg || 'Class code not found. Complete setup first if you\'re a new teacher.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -66,17 +51,6 @@ export function Login({ onComplete }: LoginProps) {
             <p>Enter your credentials to access the teacher dashboard.</p>
             <div className="onboard-form" style={{ marginTop: 16 }}>
               <div>
-                <label className="label">Teacher ID</label>
-                <input
-                  className="input"
-                  placeholder="e.g. T001, priya.sharma"
-                  value={teacherId}
-                  onChange={(e) => setTeacherId(e.target.value)}
-                  autoComplete="username"
-                  disabled={loading}
-                />
-              </div>
-              <div>
                 <label className="label">Class Code</label>
                 <input
                   className="input"
@@ -88,6 +62,20 @@ export function Login({ onComplete }: LoginProps) {
                 />
                 <p className="onboard-class-code-hint" style={{ marginTop: 6 }}>
                   Share this code with students · They enter it in Settings → Class Code
+                </p>
+              </div>
+              <div>
+                <label className="label">Teacher ID (optional, for offline sign-in)</label>
+                <input
+                  className="input"
+                  placeholder="e.g. T001, priya.sharma"
+                  value={teacherId}
+                  onChange={(e) => setTeacherId(e.target.value)}
+                  autoComplete="username"
+                  disabled={loading}
+                />
+                <p className="onboard-class-code-hint" style={{ marginTop: 6 }}>
+                  Only needed when backend is unavailable — we load your profile from the server by class code.
                 </p>
               </div>
               {error && (

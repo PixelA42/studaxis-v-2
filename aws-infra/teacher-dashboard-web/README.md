@@ -10,7 +10,12 @@ Cloud-based Teacher Dashboard UI for the Studaxis EdTech platform. Runs on AWS A
 4. **First Class** — Class name, expected students, class code (auto-generated)
 5. **Done** — Summary, next steps
 
-On completion, data is persisted locally and optionally to backend when `VITE_TEACHER_BACKEND_URL` is set (`POST /api/teacher/onboard`).
+On completion, data is persisted locally and to backend when `VITE_TEACHER_BACKEND_URL` is set:
+- **POST /api/teacher/auth** — Authenticate by Class Code (+ optional Teacher ID). Returns JWT.
+- **POST /api/teacher/onboard** — Register teacher + create first class
+- **GET /api/teacher/lookup?classCode=XXX** — Fetch teacher by class code (legacy)
+
+After login, the JWT is stored in localStorage and sent via `Authorization: Bearer <token>` on all teacher API requests.
 
 ## Features
 
@@ -27,6 +32,13 @@ On completion, data is persisted locally and optionally to backend when `VITE_TE
 npm install
 npm run dev
 ```
+
+## Backend connection
+
+Set `VITE_TEACHER_BACKEND_URL` to your FastAPI backend (e.g. `http://localhost:6782`) to enable:
+- Onboarding sync: teacher profile + class saved to backend
+- Login: POST `/api/teacher/auth` with `{ classCode, teacherId? }` → returns JWT + teacher
+- Seed a test teacher: `python scripts/seed_teacher.py --backend http://localhost:6782`
 
 ## Build for Amplify
 
