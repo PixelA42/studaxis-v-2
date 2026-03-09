@@ -1,13 +1,15 @@
-﻿"""
+"""
 FastAPI dependencies for auth-protected routes.
 get_current_user: extracts Bearer token, decodes JWT, returns User from DB.
+When STUDAXIS_TEST=1, X-Test-User header is accepted as user_id for endpoint testing.
 """
 from __future__ import annotations
 
+import os
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -18,9 +20,12 @@ security = HTTPBearer(auto_error=False)
 
 
 def get_user_id(
+    http_request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security)],
 ) -> str:
-    """Extract username from JWT as user_id. Raises 401 if no/invalid token."""
+    """Extract username from JWT as user_id. When STUDAXIS_TEST=1, X-Test-User header is accepted for testing."""
+    if os.environ.get("STUDAXIS_TEST") and http_request.headers.get("X-Test-User"):
+        return (http_request.headers.get("X-Test-User") or "").strip() or "testuser"
     if credentials is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
     try:

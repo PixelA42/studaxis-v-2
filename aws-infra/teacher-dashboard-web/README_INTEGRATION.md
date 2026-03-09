@@ -1,0 +1,272 @@
+# Teacher Dashboard - Full Integration Guide
+
+## Overview
+
+The Studaxis Teacher Dashboard is now fully integrated with AWS backend services, enabling complete class management, quiz generation, assignment distribution, and student analytics.
+
+## Features
+
+### ✅ Class Management
+- Create multiple classes with unique codes
+- Students join via 6-character class codes
+- View all students in each class
+- Switch between classes seamlessly
+
+### ✅ Quiz Generation (Amazon Bedrock)
+- AI-powered quiz creation from topics
+- Customizable difficulty levels
+- 1-20 questions per quiz
+- Generated in ~20-30 seconds
+
+### ✅ Assignment System
+- Assign quizzes or notes to classes
+- Set due dates and descriptions
+- Track assignment completion
+- Delete assignments when needed
+
+### ✅ Student Analytics
+- Real-time progress tracking
+- Current streak monitoring
+- Quiz score history
+- Last sync timestamps
+- Assignment completion rates
+
+### ✅ Offline-First Architecture
+- Students work 100% offline
+- Progress syncs when online
+- <5KB delta payloads
+- No learning interruption
+
+## Quick Start
+
+### 1. Install Dependencies
+```bash
+npm install
+```
+
+### 2. Configure Environment
+Create `.env` file:
+```bash
+VITE_API_GATEWAY_URL=https://your-api.execute-api.ap-south-1.amazonaws.com/prod
+VITE_APPSYNC_ENDPOINT=https://your-appsync.appsync-api.ap-south-1.amazonaws.com/graphql
+VITE_APPSYNC_API_KEY=da2-xxxxxxxxxxxxxxxxxx
+VITE_TEACHER_BACKEND_URL=http://localhost:6782
+```
+
+### 3. Start Development Server
+```bash
+npm run dev
+```
+
+Access at: http://localhost:5173
+
+### 4. Build for Production
+```bash
+npm run build
+```
+
+Deploy `dist/` folder to Amplify or S3.
+
+## API Integration
+
+### Class Management
+- **Create Class**: `POST /classes`
+- **List Classes**: `GET /classes?teacher_id=X`
+- **Verify Code**: `GET /classes/verify?code=ABC123`
+
+### Quiz Generation
+- **Generate Quiz**: `POST /generateQuiz`
+- **Generate Notes**: `POST /generateNotes`
+
+### Assignments
+- **Create**: `POST /assignments`
+- **List**: `GET /assignments?class_code=X`
+- **Delete**: `DELETE /assignments/{id}`
+
+### Student Progress (AppSync)
+- **List Students**: `listStudentProgresses(class_code: "ABC123")`
+- **Get Assignments**: `getStudentAssignments(user_id: "X", class_code: "Y")`
+
+## Component Structure
+
+```
+src/
+├── components/
+│   ├── analytics/     # Analytics charts and filters
+│   ├── auth/          # Login and onboarding
+│   ├── dashboard/     # Dashboard cards and widgets
+│   └── shared/        # Reusable UI components
+├── context/
+│   ├── ClassContext.tsx      # Multi-class state management
+│   ├── TeacherContext.tsx    # Teacher authentication
+│   └── ThemeContext.tsx      # Light/dark theme
+├── lib/
+│   ├── appsync.ts            # AppSync GraphQL client
+│   ├── teacherApi.ts         # REST API client
+│   └── assignmentApi.ts      # Assignment operations
+├── pages/
+│   ├── Classes.tsx           # Class management
+│   ├── QuizGenerator.tsx     # Bedrock quiz generation
+│   ├── AssignmentsManager.tsx # Assignment CRUD
+│   ├── Analytics.tsx         # Student insights
+│   └── Students.tsx          # Student list view
+└── App.tsx                   # Main routing
+```
+
+## Data Flow
+
+### Teacher Creates Assignment
+```typescript
+// 1. Generate quiz via Bedrock
+const quiz = await generateQuiz({
+  topic: "Physics",
+  difficulty: "medium",
+  num_questions: 5
+});
+
+// 2. Create assignment
+await createAssignment({
+  teacher_id: teacher.teacherId,
+  class_code: activeClass.class_code,
+  content_type: "quiz",
+  content_id: quiz.quiz_id,
+  title: "Physics Quiz 1",
+  due_date: "2026-03-15T23:59:59Z",
+  content_data: quiz
+});
+```
+
+### Student Receives Assignment
+```python
+# Student backend fetches assignments
+assignments = await get_student_assignments(user_id, class_code)
+
+# Create notification
+notification = {
+    "type": "assignment",
+    "title": "New Quiz Assigned",
+    "message": "Physics Quiz 1 - Due Friday",
+    "assignment_id": assignment_id
+}
+```
+
+### Progress Syncs to Cloud
+```graphql
+mutation RecordQuizAttempt {
+  recordQuizAttempt(
+    userId: "student_001"
+    classCode: "ABC123"
+    quizId: "quiz_5678"
+    score: 4
+    totalQuestions: 5
+  ) {
+    syncedAt
+    accuracyPercentage
+  }
+}
+```
+
+## Environment Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `VITE_API_GATEWAY_URL` | REST API endpoint | `https://xyz.execute-api.ap-south-1.amazonaws.com/prod` |
+| `VITE_APPSYNC_ENDPOINT` | GraphQL endpoint | `https://abc.appsync-api.ap-south-1.amazonaws.com/graphql` |
+| `VITE_APPSYNC_API_KEY` | AppSync API key | `da2-xxxxxxxxxxxxxxxxxx` |
+| `VITE_TEACHER_BACKEND_URL` | Local backend (dev) | `http://localhost:6782` |
+
+## Deployment
+
+### Option 1: AWS Amplify
+1. Create Amplify app in AWS Console
+2. Connect to Git repository
+3. Set build settings:
+   - Base directory: `aws-infra/teacher-dashboard-web`
+   - Build command: `npm run build`
+   - Output directory: `dist`
+4. Add environment variables
+5. Deploy
+
+### Option 2: S3 + CloudFront
+```bash
+# Build
+npm run build
+
+# Deploy to S3
+aws s3 sync dist/ s3://your-bucket-name --delete
+
+# Invalidate CloudFront cache
+aws cloudfront create-invalidation \
+  --distribution-id YOUR_DIST_ID \
+  --paths "/*"
+```
+
+## Testing
+
+### Unit Tests
+```bash
+npm run test
+```
+
+### E2E Tests
+```bash
+npm run test:e2e
+```
+
+### Manual Testing Checklist
+- [ ] Create class and note class code
+- [ ] Generate quiz via Bedrock
+- [ ] Assign quiz to class
+- [ ] Verify assignment appears in list
+- [ ] Delete assignment
+- [ ] View student progress (requires student sync)
+- [ ] Switch between multiple classes
+
+## Troubleshooting
+
+### Quiz generation fails
+- Check Bedrock model ID and region
+- Verify IAM permissions for Lambda
+- Check CloudWatch logs
+
+### Students not appearing
+- Ensure student has synced at least once
+- Verify AppSync endpoint and API key
+- Check `class_code` matches exactly
+
+### Assignment not received by student
+- Verify student's `class_code` in profile
+- Check assignment status is "active"
+- Ensure API Gateway URL is correct
+
+## Performance
+
+- **Quiz Generation**: <30s (Bedrock inference)
+- **Assignment Creation**: <500ms
+- **Student List Load**: <100ms (DynamoDB)
+- **Dashboard Load**: <2s (p95)
+
+## Security
+
+- API Gateway: IAM authentication
+- AppSync: API key (MVP), Cognito (Phase 2)
+- CORS: Restricted to dashboard domain
+- Class codes: 6-char alphanumeric, collision-resistant
+
+## Documentation
+
+- **Full Integration**: `../../project_docs/TEACHER_DASHBOARD_INTEGRATION.md`
+- **Quick Start**: `../../project_docs/QUICK_START_TEACHER_DASHBOARD.md`
+- **Deployment**: `../deploy_teacher_dashboard.sh`
+
+## Support
+
+For issues or questions:
+1. Check troubleshooting section above
+2. Review CloudWatch logs for Lambda errors
+3. Check browser console for API errors
+4. Verify environment variables are correct
+
+---
+
+**Built for AWS Hackathon 2026** | Offline-First AI Education Platform

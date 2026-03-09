@@ -1,0 +1,21 @@
+{
+  "id": "gen_fef5198a8d75",
+  "title": "Quiz — Physics",
+  "subject": "Physics",
+  "difficulty": "medium",
+  "question_type": "mcq",
+  "items": [
+    {
+      "id": "q1_fallback",
+      "text": "AI could not generate valid questions. Try again or use paste/URL source.",
+      "options": [
+        "Try again",
+        "Use pasted text",
+        "Use a URL",
+        "Skip"
+      ],
+      "correct": 0,
+      "explanation": "Generation failed; please retry."
+    }
+  ]
+}

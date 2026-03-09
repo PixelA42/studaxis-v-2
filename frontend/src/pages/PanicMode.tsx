@@ -1402,6 +1402,8 @@ function ExamScreen({
   );
 }
 
+const PANIC_EXAM_STORAGE_KEY = "panic_exam";
+
 /* ═══ Root controller ═══ */
 export function PanicModePage() {
   const { setExamActive } = usePanicExam();
@@ -1423,6 +1425,53 @@ export function PanicModePage() {
   const [recommendationText, setRecommendationText] = useState<string | null>(null);
   const [setupLoading, setSetupLoading] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
+
+  // Restore exam from localStorage on mount (session persists across refresh)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PANIC_EXAM_STORAGE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw) as { quiz?: unknown; phase?: string; answers?: Record<string, string>; durationMinutes?: number };
+      const q = data?.quiz as { id?: string; title?: string; items?: unknown[]; question_type?: string } | undefined;
+      if (q?.id && Array.isArray(q.items) && q.items.length > 0) {
+        setQuiz({ id: q.id, title: q.title ?? "Panic Mode", items: q.items as QuizItem[], question_type: q.question_type === "mcq" ? "mcq" : "open_ended" });
+        if (data.phase === "exam" && typeof data.answers === "object" && data.answers !== null) {
+          setPhase("exam");
+          setAnswers(data.answers);
+          setExamActive(true);
+        } else if (data.phase === "lobby") {
+          setPhase("lobby");
+        }
+        if (typeof data.durationMinutes === "number") setDurationMinutes(data.durationMinutes);
+      }
+    } catch {
+      // ignore invalid stored data
+    } finally {
+      setLoading(false);
+    }
+  }, [setExamActive]);
+
+  // Persist exam to localStorage whenever quiz or phase/answers change (so refresh restores session)
+  useEffect(() => {
+    if (!quiz || phase === "setup" || phase === "results") {
+      if (phase === "results") {
+        try {
+          localStorage.removeItem(PANIC_EXAM_STORAGE_KEY);
+        } catch {
+          // ignore
+        }
+      }
+      return;
+    }
+    try {
+      localStorage.setItem(
+        PANIC_EXAM_STORAGE_KEY,
+        JSON.stringify({ quiz, phase, answers, durationMinutes })
+      );
+    } catch {
+      // ignore quota or parse errors
+    }
+  }, [quiz, phase, answers, durationMinutes]);
 
   // Fix: if quiz is null, always reset phase to setup (guards against stale phase from any source)
   useEffect(() => {

@@ -10,6 +10,7 @@ type Mutation {
   recordQuizAttempt(classCode: String, completedAtLocal: String, deviceId: String, difficulty: String, quizId: String!, score: Int!, subject: String, totalQuestions: Int!, userId: String!): QuizAttemptSyncResponse
   updateStreak(classCode: String, currentStreak: Int!, userId: String!): StreakSyncResponse
   updateStudentProgress(input: UpdateStudentProgressInput!): StudentProgress
+  createAssignment(input: CreateAssignmentInput!): Assignment
 }
 
 type OfflineContent {
@@ -28,6 +29,7 @@ type Query {
   listQuizzes: [QuizMeta]
   getStudentProgress(user_id: ID!): StudentProgress
   listStudentProgresses(class_code: String, filter: TableStudentProgressFilterInput, limit: Int, nextToken: String): StudentProgressConnection
+  getStudentAssignments(user_id: String!, class_code: String!): AssignmentConnection
 }
 
 type PresignedUrlResponse {
@@ -76,10 +78,32 @@ type StudentProgressConnection {
   nextToken: String
 }
 
+type Assignment {
+  assignment_id: ID!
+  teacher_id: String!
+  class_code: String!
+  content_type: String!
+  content_id: String!
+  title: String!
+  description: String
+  due_date: String
+  created_at: String!
+  status: String!
+  completed: Boolean
+  completed_at: String
+  content_data: AWSJSON
+}
+
+type AssignmentConnection {
+  items: [Assignment]
+  nextToken: String
+}
+
 type Subscription {
   onCreateStudentProgress(current_streak: Int, device_id: String, last_quiz_date: String, last_sync_timestamp: String, user_id: ID): StudentProgress @aws_subscribe(mutations : ["createStudentProgress"])
   onDeleteStudentProgress(current_streak: Int, device_id: String, last_quiz_date: String, last_sync_timestamp: String, user_id: ID): StudentProgress @aws_subscribe(mutations : ["deleteStudentProgress"])
   onUpdateStudentProgress(current_streak: Int, device_id: String, last_quiz_date: String, last_sync_timestamp: String, user_id: ID): StudentProgress @aws_subscribe(mutations : ["updateStudentProgress"])
+  onNewAssignment(class_code: String, user_id: String): Assignment @aws_subscribe(mutations : ["createAssignment"])
 }
 
 input CreateStudentProgressInput {
@@ -179,4 +203,15 @@ input UpdateStudentProgressInput {
   last_quiz_date: String
   last_sync_timestamp: String
   user_id: ID!
+}
+
+input CreateAssignmentInput {
+  teacher_id: String!
+  class_code: String!
+  content_type: String!
+  content_id: String!
+  title: String!
+  description: String
+  due_date: String
+  content_data: AWSJSON
 }

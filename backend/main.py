@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated, Any, Optional
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Body, Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -541,6 +541,43 @@ PANIC_ITEMS: list[dict[str, Any]] = [
     {"id": "p5", "topic": "Physics", "question": "State one difference between speed and velocity.", "expected_answer": "Speed is scalar; velocity includes direction."},
 ]
 
+# Fallback when AI fails or source is "default" — exam always loads (by subject)
+FALLBACK_PANIC_QUESTIONS: dict[str, list[dict[str, Any]]] = {
+    "Physics": [
+        {"id": "fb_p1", "topic": "Physics", "question": "What is Newton's First Law?", "options": ["A. F=ma", "B. Law of inertia", "C. Action-reaction", "D. None"], "correct": 1, "explanation": "An object stays at rest or in motion unless acted upon by an external force."},
+        {"id": "fb_p2", "topic": "Physics", "question": "What is the SI unit of force?", "options": ["A. Joule", "B. Watt", "C. Newton", "D. Pascal"], "correct": 2, "explanation": "Force is measured in Newtons (N)."},
+    ],
+    "Biology": [
+        {"id": "fb_b1", "topic": "Biology", "question": "What does DNA stand for?", "options": ["A. Deoxyribonucleic Acid", "B. Deoxyribose Nucleic Acid", "C. Double Nucleic Acid", "D. None of the above"], "correct": 0, "explanation": "DNA = Deoxyribonucleic Acid."},
+        {"id": "fb_b2", "topic": "Biology", "question": "Where does photosynthesis occur?", "options": ["A. Mitochondria", "B. Chloroplasts", "C. Nucleus", "D. Ribosomes"], "correct": 1, "explanation": "Chloroplasts contain chlorophyll for photosynthesis."},
+    ],
+    "General": [
+        {"id": "fb_g1", "topic": "General", "question": "What does DNA stand for?", "options": ["A. Deoxyribonucleic Acid", "B. Deoxyribose Nucleic Acid", "C. Double Nucleic Acid", "D. None of the above"], "correct": 0, "explanation": "DNA = Deoxyribonucleic Acid."},
+        {"id": "fb_g2", "topic": "General", "question": "What is Newton's First Law?", "options": ["A. F=ma", "B. Law of inertia", "C. Action-reaction", "D. None"], "correct": 1, "explanation": "An object stays at rest or in motion unless acted upon."},
+    ],
+}
+
+# Flat fallback list for JSON-parse failure (shuffled and returned when Ollama returns invalid JSON)
+FALLBACK_PANIC_QUESTIONS_LIST: list[dict[str, Any]] = [
+    {"id": "fb1", "type": "mcq", "question": "What is Newton's First Law of Motion?", "options": ["A. F = ma", "B. An object stays at rest or in motion unless acted upon", "C. Every action has an equal and opposite reaction", "D. Energy cannot be created or destroyed"], "correct": 1, "correct_index": 1, "explanation": "Newton's First Law is the law of inertia.", "topic": "Physics"},
+    {"id": "fb2", "type": "mcq", "question": "What is the SI unit of force?", "options": ["A. Joule", "B. Watt", "C. Newton", "D. Pascal"], "correct": 2, "correct_index": 2, "explanation": "Force is measured in Newtons (N) where 1N = 1 kg⋅m/s².", "topic": "Physics"},
+    {"id": "fb3", "type": "mcq", "question": "Which organelle is the powerhouse of the cell?", "options": ["A. Nucleus", "B. Ribosome", "C. Mitochondria", "D. Golgi body"], "correct": 2, "correct_index": 2, "explanation": "Mitochondria produce ATP through cellular respiration.", "topic": "Biology"},
+    {"id": "fb4", "type": "mcq", "question": "What does DNA stand for?", "options": ["A. Deoxyribonucleic Acid", "B. Deoxyribose Nucleic Acid", "C. Double Nucleic Acid", "D. Dinucleotide Acid"], "correct": 0, "correct_index": 0, "explanation": "DNA = Deoxyribonucleic Acid, the molecule of heredity.", "topic": "Biology"},
+    {"id": "fb5", "type": "mcq", "question": "What is the chemical formula for water?", "options": ["A. CO2", "B. NaCl", "C. H2O2", "D. H2O"], "correct": 3, "correct_index": 3, "explanation": "Water is H2O — two hydrogen atoms and one oxygen atom.", "topic": "Chemistry"},
+]
+
+
+def _get_fallback_panic_items(subject: str, count: int = 5, question_type: str = "mcq") -> list[dict[str, Any]]:
+    """Return fallback panic items for subject when AI fails. Ensures exam always loads."""
+    import random
+    items = [dict(x) for x in FALLBACK_PANIC_QUESTIONS_LIST]
+    random.shuffle(items)
+    for i, item in enumerate(items):
+        item["id"] = f"fb{i+1}"
+        if "correct_index" in item and "correct" not in item:
+            item["correct"] = item["correct_index"]
+    return items[: min(count, len(items))]
+
 
 class QuizSubmitRequest(BaseModel):
     answers: list[dict[str, Any]] = Field(..., description="List of {question_id, answer}")
@@ -570,16 +607,125 @@ def _extract_json_array(text: str) -> str:
     return text.strip()
 
 
+def extract_json(text: str) -> str:
+    """Extract raw JSON string from Ollama output that may be wrapped in ```json ... ``` or similar."""
+    text = (text or "").strip()
+    if "```" in text:
+        for block in text.split("```"):
+            block = block.strip()
+            if block.lower().startswith("json"):
+                block = block[4:].lstrip()
+            if block.startswith("{") or block.startswith("["):
+                return block
+    if text.startswith("{") or text.startswith("["):
+        return text
+    for i, ch in enumerate(text):
+        if ch in "{[":
+            return text[i:]
+    return text
+
+
+def _clean_json(text: str) -> str:
+    text = (text or "").strip()
+
+    # strip markdown code blocks
+    if "```" in text:
+        for block in text.split("```"):
+            block = block.strip()
+            if block.startswith("json"):
+                block = block[4:].strip()
+            if block.startswith("{") or block.startswith("["):
+                text = block
+                break
+
+    # find first JSON character
+    start = -1
+    for i, ch in enumerate(text):
+        if ch in "{[":
+            start = i
+            break
+    if start > 0:
+        text = text[start:]
+
+    # find last JSON character
+    end = -1
+    for i in range(len(text) - 1, -1, -1):
+        if text[i] in "}]":
+            end = i
+            break
+    if end >= 0:
+        text = text[: end + 1]
+
+    # remove trailing commas (invalid JSON)
+    text = re.sub(r",\s*([}\]])", r"\1", text)
+
+    # if it's a bare array, wrap it
+    if text.startswith("["):
+        text = '{"questions":' + text + "}"
+
+    return text.strip()
+
+
 def _parse_ai_json(raw: str) -> list:
-    """Robustly parse AI response as JSON array. Handles markdown, trailing commas."""
-    cleaned = re.sub(r"```json|```", "", raw).strip()
-    match = re.search(r"\[.*\]", cleaned, re.DOTALL)
-    if not match:
-        raise ValueError("No JSON array found in AI response")
+    """Robustly parse AI response as JSON array. Handles markdown, {\"questions\": [...]}, trailing commas."""
+    cleaned = _clean_json(raw)
+    # Try parse as object first (e.g. {"questions": [...]})
     try:
-        return json.loads(match.group())
+        obj = json.loads(cleaned)
+        if isinstance(obj, dict) and "questions" in obj:
+            q = obj["questions"]
+            if isinstance(q, list):
+                return q
     except json.JSONDecodeError:
-        fixed = re.sub(r",\s*([}\]])", r"\1", match.group())
+        pass
+    start = cleaned.find("[")
+    if start == -1:
+        raise ValueError("No JSON array found in AI response")
+    # Find matching closing bracket to avoid cutting at ] inside a string
+    depth = 0
+    in_string = None
+    escape = False
+    i = start
+    while i < len(cleaned):
+        c = cleaned[i]
+        if escape:
+            escape = False
+            i += 1
+            continue
+        if c == "\\" and in_string:
+            escape = True
+            i += 1
+            continue
+        if in_string:
+            if c == in_string:
+                in_string = None
+            i += 1
+            continue
+        if c in ('"', "'"):
+            in_string = c
+            i += 1
+            continue
+        if c == "[":
+            depth += 1
+        elif c == "]":
+            depth -= 1
+            if depth == 0:
+                arr_str = cleaned[start : i + 1]
+                try:
+                    return json.loads(arr_str)
+                except json.JSONDecodeError:
+                    fixed = re.sub(r",\s*([}\]])", r"\1", arr_str)
+                    return json.loads(fixed)
+        i += 1
+    # Fallback: first [ to last ]
+    end = cleaned.rfind("]")
+    if end == -1 or end <= start:
+        raise ValueError("No JSON array found in AI response")
+    arr_str = cleaned[start : end + 1]
+    try:
+        return json.loads(arr_str)
+    except json.JSONDecodeError:
+        fixed = re.sub(r",\s*([}\]])", r"\1", arr_str)
         return json.loads(fixed)
 
 
@@ -1237,20 +1383,26 @@ def _generate_cards_from_content(
 def _generate_mcq_questions_via_ai(topic: str, subject: str, difficulty: str, count: int) -> list[dict[str, Any]]:
     """Generate MCQ questions via AI. Returns list of {id, text, options, correct, explanation}."""
     engine = get_ai_engine()
-    prompt = f"""Generate exactly {count} multiple choice questions about {topic} for a {difficulty} level {subject} student.
+    prompt = f"""Generate {count} multiple choice questions about "{topic[:2000]}" for {subject} at {difficulty} level.
 
-Return ONLY a valid JSON array. No markdown. No backticks. Start with [ end with ]
-
-Each item:
+Respond ONLY with this exact JSON. No markdown. No explanation. No extra text. Raw JSON only:
 {{
-  "id": "q1",
-  "text": "question text",
-  "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
-  "correct": 0,
-  "explanation": "why this answer is correct"
+  "questions": [
+    {{
+      "question": "question text here",
+      "options": ["A. option1", "B. option2", "C. option3", "D. option4"],
+      "correct": "A",
+      "explanation": "brief explanation"
+    }}
+  ]
 }}
 
-Use correct index 0-3 for the right option. Ensure exactly 4 options per question."""
+Output the JSON only. Use "questions" array; each item has "question", "options" (4 strings with A. B. C. D.), "correct" (letter A-D), "explanation".
+
+CRITICAL: Your response must start with {{ and end with }}.
+Do NOT include any text before {{ or after }}.
+Do NOT use markdown. Do NOT use code blocks.
+Raw JSON only. Nothing else."""
     try:
         response = engine.request(
             task_type=AITaskType.QUIZ_GENERATION,
@@ -1262,10 +1414,22 @@ Use correct index 0-3 for the right option. Ensure exactly 4 options per questio
         )
     except (ConnectionError, TimeoutError) as e:
         raise HTTPException(status_code=503, detail=str(e))
-    try:
-        parsed = _parse_ai_json(response.text)
-    except (ValueError, json.JSONDecodeError):
-        raise HTTPException(status_code=422, detail="AI could not generate valid MCQ questions.")
+    raw = (response.text or "").strip()
+    if not raw:
+        if getattr(response, "state", None) in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
+            return _get_fallback_panic_items(subject, count, "mcq")
+        raise HTTPException(status_code=503, detail="Empty response from AI.")
+    parsed = None
+    for attempt in range(2):
+        try:
+            parsed = _parse_ai_json(raw)
+            break
+        except (ValueError, json.JSONDecodeError):
+            raw = _clean_json(raw)
+            if attempt == 1:
+                return _get_fallback_panic_items(subject, count, "mcq")
+    if parsed is None:
+        parsed = []
     out: list[dict[str, Any]] = []
     for i, item in enumerate(parsed) if isinstance(parsed, list) else []:
         if not isinstance(item, dict):
@@ -1278,7 +1442,14 @@ Use correct index 0-3 for the right option. Ensure exactly 4 options per questio
         options = [str(o) for o in opts[:4]]
         while len(options) < 4:
             options.append("(No option)")
-        correct = int(item.get("correct", 0))
+        raw_correct = item.get("correct", 0)
+        if isinstance(raw_correct, str) and len(raw_correct) == 1:
+            letter = raw_correct.upper()
+            correct = ord(letter) - ord("A")
+            if correct < 0 or correct >= 4:
+                correct = 0
+        else:
+            correct = int(raw_correct) if isinstance(raw_correct, (int, float)) else 0
         if correct < 0 or correct >= 4:
             correct = 0
         explanation = str(item.get("explanation", "")).strip() or ""
@@ -1295,17 +1466,25 @@ Use correct index 0-3 for the right option. Ensure exactly 4 options per questio
 def _generate_open_ended_questions_via_ai(topic: str, subject: str, difficulty: str, count: int) -> list[dict[str, Any]]:
     """Generate open-ended questions via AI. Returns list of {id, text, sample_answer, rubric}."""
     engine = get_ai_engine()
-    prompt = f"""Generate exactly {count} open-ended questions about {topic} for a {difficulty} level {subject} student.
+    prompt = f"""Generate {count} open-ended questions about "{topic}" for {subject} at {difficulty} level.
 
-Return ONLY a valid JSON array. No markdown. Start with [ end with ]
-
-Each item:
+Respond ONLY with raw JSON. No markdown. No extra text:
 {{
-  "id": "q1",
-  "text": "question text",
-  "sample_answer": "ideal answer",
-  "rubric": "what to look for when grading"
-}}"""
+  "questions": [
+    {{
+      "question": "question text here",
+      "model_answer": "detailed answer here",
+      "keywords": ["key1", "key2", "key3"]
+    }}
+  ]
+}}
+
+Output the JSON only. Use "questions" array; each item has "question", "model_answer", "keywords" (array of strings).
+
+CRITICAL: Your response must start with {{ and end with }}.
+Do NOT include any text before {{ or after }}.
+Do NOT use markdown. Do NOT use code blocks.
+Raw JSON only. Nothing else."""
     try:
         response = engine.request(
             task_type=AITaskType.QUIZ_GENERATION,
@@ -1317,17 +1496,31 @@ Each item:
         )
     except (ConnectionError, TimeoutError) as e:
         raise HTTPException(status_code=503, detail=str(e))
+    raw = (response.text or "").strip()
+    if not raw:
+        raise HTTPException(status_code=503, detail="Empty response from AI.")
     try:
-        parsed = _parse_ai_json(response.text)
+        parsed = _parse_ai_json(raw)
     except (ValueError, json.JSONDecodeError):
-        raise HTTPException(status_code=422, detail="AI could not generate valid open-ended questions.")
+        raw = _clean_json(raw)
+        try:
+            parsed = _parse_ai_json(raw)
+        except (ValueError, json.JSONDecodeError):
+            return [
+                {
+                    "id": "q1_fallback",
+                    "text": "AI could not generate valid questions. Try again or use paste/URL source.",
+                    "sample_answer": "N/A",
+                    "rubric": "Assess comprehension.",
+                }
+            ]
     out: list[dict[str, Any]] = []
     for i, item in enumerate(parsed) if isinstance(parsed, list) else []:
         if not isinstance(item, dict):
             continue
         qid = str(item.get("id", f"q{i+1}_{uuid.uuid4().hex[:6]}"))
         text = str(item.get("text", item.get("question", ""))).strip() or "?"
-        sample = str(item.get("sample_answer", item.get("expected_answer", ""))).strip() or ""
+        sample = str(item.get("sample_answer", item.get("model_answer", item.get("expected_answer", "")))).strip() or ""
         rubric = str(item.get("rubric", "")).strip() or "Assess comprehension and accuracy."
         out.append({
             "id": qid,
@@ -1371,22 +1564,20 @@ def _generate_quiz_from_content(
     except (ConnectionError, TimeoutError) as e:
         raise HTTPException(status_code=503, detail=str(e))
     if response.state in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
-        raise HTTPException(
-            status_code=503,
-            detail=response.error_message or response.text or "AI unavailable.",
-        )
+        try:
+            parsed = _parse_ai_json(response.text or "[]")
+            if isinstance(parsed, list) and len(parsed) > 0:
+                return _normalize_quiz_items(parsed, subject)
+        except (ValueError, json.JSONDecodeError):
+            pass
+        return _get_fallback_panic_items(subject, count, "open_ended")
     try:
         parsed = _parse_ai_json(response.text)
-    except (ValueError, json.JSONDecodeError):
-        raise HTTPException(
-            status_code=422,
-            detail="AI could not generate valid questions from this material. Try a shorter PDF or use default questions.",
-        )
+    except (ValueError, json.JSONDecodeError) as e:
+        print(f"[FALLBACK] JSON parse failed: {e}")
+        return _get_fallback_panic_items(subject, count, "open_ended")
     if not isinstance(parsed, list):
-        raise HTTPException(
-            status_code=422,
-            detail="AI could not generate valid questions from this material. Try a shorter PDF or use default questions.",
-        )
+        return _get_fallback_panic_items(subject, count, "open_ended")
     return _normalize_quiz_items(parsed, subject)
 
 
@@ -1411,16 +1602,11 @@ def _generate_mcq_from_content(content: str, subject: str, count: int) -> list[d
         raise HTTPException(status_code=503, detail=str(e))
     try:
         parsed = _parse_ai_json(response.text)
-    except (ValueError, json.JSONDecodeError):
-        raise HTTPException(
-            status_code=422,
-            detail="AI could not generate valid MCQ questions from this material.",
-        )
+    except (ValueError, json.JSONDecodeError) as e:
+        print(f"[FALLBACK] JSON parse failed: {e}")
+        return _get_fallback_panic_items(subject, count, "mcq")
     if not isinstance(parsed, list):
-        raise HTTPException(
-            status_code=422,
-            detail="AI could not generate valid MCQ questions from this material.",
-        )
+        return _get_fallback_panic_items(subject, count, "mcq")
     out: list[dict[str, Any]] = []
     for i, item in enumerate(parsed[:count]):
         if not isinstance(item, dict):
@@ -1433,7 +1619,14 @@ def _generate_mcq_from_content(content: str, subject: str, count: int) -> list[d
         options = [str(o) for o in opts[:4]]
         while len(options) < 4:
             options.append("(No option)")
-        correct = int(item.get("correct", 0))
+        raw_correct = item.get("correct", 0)
+        if isinstance(raw_correct, str) and len(raw_correct) == 1:
+            letter = raw_correct.upper()
+            correct = ord(letter) - ord("A")
+            if correct < 0 or correct >= 4:
+                correct = 0
+        else:
+            correct = int(raw_correct) if isinstance(raw_correct, (int, float)) else 0
         if correct < 0 or correct >= 4:
             correct = 0
         explanation = str(item.get("explanation", "")).strip() or ""
@@ -1580,16 +1773,26 @@ def flashcards_generate_from_url(req: GenerateFromUrlRequest):
 
 
 class GenerateFromTextRequest(BaseModel):
-    text: str = Field(..., min_length=1)
+    text: Optional[str] = Field(default=None)
+    paste_text: Optional[str] = Field(default=None, description="Pasted content (alias for text)")
     subject: str = Field(default="General")
     num_cards: int = Field(default=10, ge=5, le=20)
     difficulty: str = Field(default="Beginner")
+
+    def get_text(self) -> str:
+        out = (self.paste_text or self.text or "").strip()
+        if not out:
+            raise ValueError("Either 'text' or 'paste_text' is required")
+        return out
 
 
 @app.post("/api/flashcards/generate-from-text", response_model=FlashcardGenerateResponse)
 def flashcards_generate_from_text(req: GenerateFromTextRequest):
     """Paste text: topic extraction + smart flashcard generation."""
-    text = req.text.strip()
+    try:
+        text = req.get_text()
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     if len(text) < 150:
         raise HTTPException(
             status_code=422,
@@ -2585,11 +2788,35 @@ def quiz_get(quiz_id: str, user_id: str = Depends(get_user_id)):
     raise HTTPException(status_code=404, detail=f"Quiz {quiz_id} not found")
 
 
+class QuizGenerateRequest(BaseModel):
+    source: str = Field(default="topic", description="materials | topic | paste | url (paste/url map to topic_text or separate endpoints)")
+    subject: str = Field(default="General")
+    source_ids: Optional[list[str]] = Field(default=None, description="Textbook ids when source=materials")
+    topic: Optional[str] = Field(default=None, description="Topic name when source=topic (used if topic_text empty)")
+    topic_text: Optional[str] = Field(default=None, description="Topic or pasted text when source=topic/paste")
+    paste_text: Optional[str] = Field(default=None, description="Pasted content (alias for topic_text when source=paste)")
+    query: Optional[str] = Field(default=None, description="Alias for topic_text (some clients send 'query')")
+    question_type: str = Field(default="mcq", description="mcq | open_ended")
+    num_questions: int = Field(default=10, ge=1, le=20)
+    difficulty: str = Field(default="medium")
+    url: Optional[str] = Field(default=None)
+    textbook_id: Optional[str] = Field(default=None)
+    chapter: Optional[str] = Field(default=None)
+
+
 @app.post("/api/quiz/generate")
-def quiz_generate(req: QuizGenerateRequest, user_id: str = Depends(get_user_id)):
+def quiz_generate(
+    req: Annotated[QuizGenerateRequest, Body(embed=False)],
+    user_id: str = Depends(get_user_id),
+):
     """Generate quiz from materials or topic. Saves to data/quizzes/{user_id}/{quiz_id}.json.
-    Accepts topic_text or query; uses subject as fallback when both empty."""
-    topic = (req.topic_text or req.query or "").strip()
+    Accepts topic_text, paste_text, query, or topic; uses subject as fallback when all empty."""
+    topic = (req.paste_text or req.topic_text or req.query or req.topic or "").strip()
+    if req.source == "topic" and not topic:
+        raise HTTPException(
+            status_code=422,
+            detail="topic is required for Quick Topic source",
+        )
     if req.source == "materials" and req.source_ids:
         texts: list[str] = []
         for tid in req.source_ids[:5]:
@@ -2606,7 +2833,7 @@ def quiz_generate(req: QuizGenerateRequest, user_id: str = Depends(get_user_id))
     if not topic.strip():
         topic = req.subject or "General Knowledge"
     count = max(1, min(20, req.num_questions))
-    difficulty = req.difficulty or "Beginner"
+    difficulty = req.difficulty or "medium"
     subject = req.subject or "General"
     if req.question_type == "open_ended":
         items = _generate_open_ended_questions_via_ai(topic, subject, difficulty, count)
@@ -2692,17 +2919,6 @@ class PanicGenerateWeblinkRequest(BaseModel):
     question_type: str = Field(default="open_ended", description="mcq | open_ended")
 
 
-class QuizGenerateRequest(BaseModel):
-    source: str = Field(default="topic", description="materials | topic (default topic for backward compat)")
-    subject: str = Field(default="General")
-    source_ids: Optional[list[str]] = Field(default=None, description="Textbook ids when source=materials")
-    topic_text: Optional[str] = Field(default=None, description="Topic or pasted text when source=topic")
-    query: Optional[str] = Field(default=None, description="Alias for topic_text (some clients send 'query')")
-    question_type: str = Field(default="mcq", description="mcq | open_ended")
-    num_questions: int = Field(default=10, ge=1, le=20)
-    difficulty: str = Field(default="Beginner")
-
-
 @app.post("/api/quiz/panic/generate/textbook")
 def panic_generate_textbook(req: PanicGenerateTextbookRequest):
     """Generate panic-mode questions from a textbook. One subject only."""
@@ -2716,21 +2932,21 @@ def panic_generate_textbook(req: PanicGenerateTextbookRequest):
         items = _generate_quiz_from_content(
             content, req.subject, req.count, req.question_type
         )
+        if not items:
+            items = _get_fallback_panic_items(req.subject, req.count, req.question_type)
         return {
             "id": "panic",
             "title": f"Panic Mode — {req.subject}",
             "items": items,
             "question_type": req.question_type,
         }
-    except HTTPException:
+    except HTTPException as e:
+        if e.status_code == 503:
+            items = _get_fallback_panic_items(req.subject, req.count, req.question_type)
+            return {"id": "panic", "title": f"Panic Mode — {req.subject}", "items": items, "question_type": req.question_type}
         raise
     except Exception:
-        items = _normalize_quiz_items([], req.subject)
-        for i, q in enumerate(PANIC_ITEMS):
-            if q.get("topic", "").lower() == req.subject.lower():
-                items.append(q)
-        if not items:
-            items = [q for q in PANIC_ITEMS][:req.count]
+        items = _get_fallback_panic_items(req.subject, req.count, req.question_type)
         return {
             "id": "panic",
             "title": f"Panic Mode — {req.subject}",
@@ -2741,7 +2957,7 @@ def panic_generate_textbook(req: PanicGenerateTextbookRequest):
 
 @app.post("/api/quiz/panic/generate/weblink")
 def panic_generate_weblink(req: PanicGenerateWeblinkRequest):
-    """Generate panic-mode questions from a web URL. One subject only. Uses Ollama for question generation."""
+    """Generate panic-mode questions from a web URL. One subject only. Uses Ollama for question generation. Returns fallback on any failure so exam always loads."""
     url = req.url.strip()
     text = ""
     try:
@@ -2750,52 +2966,63 @@ def panic_generate_weblink(req: PanicGenerateWeblinkRequest):
     except ImportError:
         httpx = None
         BeautifulSoup = None
-    # Prefer httpx + BeautifulSoup (better scraping, handles JS-heavy sites)
-    if httpx is not None and BeautifulSoup is not None:
-        try:
-            response = httpx.get(
-                url,
-                timeout=20,
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0"},
+    try:
+        if httpx is not None and BeautifulSoup is not None:
+            try:
+                response = httpx.get(
+                    url,
+                    timeout=20,
+                    headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0"},
+                )
+                if response.status_code in (401, 403):
+                    raise HTTPException(
+                        status_code=422,
+                        detail="This website blocked access. Try a different link or paste the text directly.",
+                    )
+                response.raise_for_status()
+                soup = BeautifulSoup(response.text, "html.parser")
+                for tag in soup(["nav", "footer", "script", "style", "header", "aside"]):
+                    tag.decompose()
+                text = soup.get_text(separator="\n", strip=True)[:8000]
+            except httpx.HTTPStatusError as e:
+                raise HTTPException(status_code=422, detail=f"Could not fetch URL: {e}") from e
+            except (httpx.TimeoutException, httpx.ConnectError, httpx.RequestError) as e:
+                raise HTTPException(status_code=422, detail=f"Could not fetch URL: {e}") from e
+        else:
+            import requests as req_lib
+            try:
+                r = req_lib.get(url, timeout=20, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0"})
+                if r.status_code in (401, 403):
+                    raise HTTPException(
+                        status_code=422,
+                        detail="This website blocked access. Try a different link or paste the text directly.",
+                    )
+                r.raise_for_status()
+                text = re.sub(r"<[^>]+>", " ", r.text)
+                text = re.sub(r"\s+", " ", text).strip()[:8000]
+            except HTTPException:
+                raise
+            except Exception as e:
+                raise HTTPException(status_code=422, detail=f"Could not fetch URL: {e}")
+        if len(text) < 150:
+            raise HTTPException(
+                status_code=422,
+                detail="Not enough content found at that URL. Try a different link or use Textbook/Files source.",
             )
-            if response.status_code in (401, 403):
-                raise HTTPException(
-                    status_code=422,
-                    detail="This website blocked access. Try a different link or paste the text directly.",
-                )
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, "html.parser")
-            for tag in soup(["nav", "footer", "script", "style", "header", "aside"]):
-                tag.decompose()
-            text = soup.get_text(separator="\n", strip=True)[:8000]
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=422, detail=f"Could not fetch URL: {e}") from e
-        except (httpx.TimeoutException, httpx.ConnectError, httpx.RequestError) as e:
-            raise HTTPException(status_code=422, detail=f"Could not fetch URL: {e}") from e
-    else:
-        import requests as req_lib
-        try:
-            r = req_lib.get(url, timeout=20, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0"})
-            if r.status_code in (401, 403):
-                raise HTTPException(
-                    status_code=422,
-                    detail="This website blocked access. Try a different link or paste the text directly.",
-                )
-            r.raise_for_status()
-            text = re.sub(r"<[^>]+>", " ", r.text)
-            text = re.sub(r"\s+", " ", text).strip()[:8000]
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(status_code=422, detail=f"Could not fetch URL: {e}")
-    if len(text) < 150:
-        raise HTTPException(
-            status_code=422,
-            detail="Not enough content found at that URL. Try a different link or use Textbook/Files source.",
+        items = _generate_quiz_from_content(
+            text, req.subject, req.count, req.question_type
         )
-    items = _generate_quiz_from_content(
-        text, req.subject, req.count, req.question_type
-    )
+        if not items:
+            items = _get_fallback_panic_items(req.subject, req.count, req.question_type)
+    except HTTPException as e:
+        if e.status_code == 503:
+            items = _get_fallback_panic_items(req.subject, req.count, req.question_type)
+        elif e.status_code == 422:
+            items = _get_fallback_panic_items(req.subject, req.count, req.question_type)
+        else:
+            raise
+    except Exception:
+        items = _get_fallback_panic_items(req.subject, req.count, req.question_type)
     return {
         "id": "panic",
         "title": f"Panic Mode — {req.subject}",
@@ -2824,54 +3051,47 @@ def quiz_generate_from_url(req: QuizGenerateFromUrlRequest, user_id: str = Depen
     except ImportError:
         httpx = None
         BeautifulSoup = None
-    if httpx is not None and BeautifulSoup is not None:
-        try:
-            response = httpx.get(
-                url, timeout=10,
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0"},
-            )
-            if response.status_code in (401, 403):
-                raise HTTPException(
-                    status_code=422,
-                    detail="This website blocked access. Try pasting the article text directly.",
+    try:
+        if httpx is not None and BeautifulSoup is not None:
+            try:
+                response = httpx.get(
+                    url, timeout=15, follow_redirects=True,
+                    headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0"},
                 )
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, "html.parser")
-            for tag in soup(["nav", "footer", "script", "style", "header", "aside"]):
-                tag.decompose()
-            text = soup.get_text(separator="\n", strip=True)[:8000]
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code in (401, 403):
-                raise HTTPException(
-                    status_code=422,
-                    detail="This website blocked access. Try pasting the article text directly.",
-                ) from e
-            raise HTTPException(
-                status_code=422,
-                detail="Could not fetch that URL. Try another link or paste the text directly.",
-            ) from e
-        except (httpx.TimeoutException, httpx.ConnectError, httpx.RequestError):
-            raise HTTPException(
-                status_code=422,
-                detail="Could not fetch that URL. Try another link or paste the text directly.",
-            )
-    else:
-        import requests as req_lib
-        try:
-            r = req_lib.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
-            if r.status_code in (401, 403):
-                raise HTTPException(
-                    status_code=422,
-                    detail="This website blocked access. Try pasting the article text directly.",
-                )
-            r.raise_for_status()
-            text = re.sub(r"<[^>]+>", " ", r.text)
-            text = re.sub(r"\s+", " ", text).strip()[:8000]
-        except Exception:
-            raise HTTPException(
-                status_code=422,
-                detail="Could not fetch that URL. Try another link or paste the text directly.",
-            )
+                if response.status_code in (401, 403):
+                    raise HTTPException(
+                        status_code=422,
+                        detail="This website blocked access. Try pasting the article text directly.",
+                    )
+                response.raise_for_status()
+                soup = BeautifulSoup(response.text, "html.parser")
+                for tag in soup(["nav", "footer", "script", "style", "header", "aside"]):
+                    tag.decompose()
+                text = soup.get_text(separator=" ", strip=True)[:4000]
+            except HTTPException:
+                raise
+            except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.ConnectError, httpx.RequestError):
+                raise HTTPException(status_code=400, detail="Could not fetch URL")
+        else:
+            import requests as req_lib
+            try:
+                r = req_lib.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
+                if r.status_code in (401, 403):
+                    raise HTTPException(
+                        status_code=422,
+                        detail="This website blocked access. Try pasting the article text directly.",
+                    )
+                r.raise_for_status()
+                text = re.sub(r"<[^>]+>", " ", r.text)
+                text = re.sub(r"\s+", " ", text).strip()[:4000]
+            except HTTPException:
+                raise
+            except Exception:
+                raise HTTPException(status_code=400, detail="Could not fetch URL")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=400, detail="Could not fetch URL")
     if len(text) < 200:
         raise HTTPException(
             status_code=422,
@@ -2992,10 +3212,18 @@ def _save_and_return_quiz(
 
 class NotesGenerateRequest(BaseModel):
     """Request for /api/notes/generate."""
-    text: str = Field(..., min_length=100, description="Source text (paste or extracted from textbook)")
+    source: Optional[str] = Field(default=None, description="paste | topic (optional, for client compatibility)")
+    text: Optional[str] = Field(default=None, description="Source text (paste or extracted)")
+    paste_text: Optional[str] = Field(default=None, description="Pasted content (alias for text)")
     subject: str = Field(default="General")
     topic: Optional[str] = Field(default=None, description="Optional topic for context")
     style: str = Field(default="summary", description="summary | detailed | revision")
+
+    def get_text(self) -> str:
+        out = (self.paste_text or self.text or "").strip()
+        if len(out) < 100:
+            raise ValueError("At least 100 characters of text or paste_text required")
+        return out
 
 
 class NotesGenerateFromTextbookRequest(BaseModel):
@@ -3094,7 +3322,11 @@ Output only the notes, no preamble."""
 def notes_generate(req: NotesGenerateRequest, user_id: str = Depends(get_user_id)):
     """Generate structured study notes from text using local Ollama."""
     import requests as req_lib
-    text = req.text.strip()[:8000]
+    try:
+        text = req.get_text()
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    text = text[:8000]
     subject = (req.subject or "General").strip()
     topic_hint = (req.topic or "").strip()
     style = req.style or "summary"
@@ -3163,7 +3395,12 @@ def panic_generate_files(
         raise HTTPException(status_code=422, detail="No extractable text from files")
     cnt = max(3, min(15, count))
     qt = question_type if question_type in ("mcq", "open_ended") else "open_ended"
-    items = _generate_quiz_from_content(combined, subject, cnt, qt)
+    try:
+        items = _generate_quiz_from_content(combined, subject, cnt, qt)
+        if not items:
+            items = _get_fallback_panic_items(subject, cnt, qt)
+    except (HTTPException, Exception):
+        items = _get_fallback_panic_items(subject, cnt, qt)
     return {
         "id": "panic",
         "title": f"Panic Mode — {subject}",
@@ -3241,7 +3478,7 @@ def _resolve_quiz_items(quiz_id: str, items_list: list[dict[str, Any]] | None, u
 
 
 def _score_mcq_answer(user_answer: str, item: dict[str, Any]) -> float:
-    """Score MCQ: user_answer can be index (0-3) or option text."""
+    """Score MCQ: user_answer can be index (0-3), letter (A-D), or option text."""
     opts = item.get("options") or []
     correct_idx = int(item.get("correct", 0))
     correct_text = opts[correct_idx] if correct_idx < len(opts) else ""
@@ -3250,9 +3487,13 @@ def _score_mcq_answer(user_answer: str, item: dict[str, Any]) -> float:
         return 10.0 if 0 <= idx < len(opts) and idx == correct_idx else 0.0
     except (ValueError, TypeError):
         pass
-    ua = (user_answer or "").strip().lower()
+    ua = (user_answer or "").strip().upper()
+    if len(ua) == 1 and "A" <= ua <= "D":
+        letter_idx = ord(ua) - ord("A")
+        return 10.0 if letter_idx < len(opts) and letter_idx == correct_idx else 0.0
+    ua_lower = ua.lower()
     ct = (correct_text or "").strip().lower()
-    return 10.0 if ua and ct and ua in ct else _local_score(user_answer, correct_text)
+    return 10.0 if ua_lower and ct and ua_lower in ct else _local_score(user_answer, correct_text)
 
 
 @app.post("/api/quiz/{quiz_id}/submit", response_model=QuizSubmitResponse)

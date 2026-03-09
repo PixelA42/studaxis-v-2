@@ -735,6 +735,10 @@ class AIEngine:
                     '"correct": 0, "explanation": "why this answer is correct"}. '
                     "Use correct index 0-3 for the right option. "
                     "Generate the JSON array now."
+                    "\n\nCRITICAL: Your response must start with { and end with }."
+                    "\nDo NOT include any text before { or after }."
+                    "\nDo NOT use markdown. Do NOT use code blocks."
+                    "\nRaw JSON only. Nothing else."
                 )
             return (
                 f"Generate {count} open-ended exam questions for the subject: {subject}. "
@@ -745,6 +749,10 @@ class AIEngine:
                 "Each question must follow this exact schema: "
                 "{'id': string, 'topic': string, 'question': string, 'expected_answer': string}. "
                 'Format: [{"id": "q1", "topic": "' + subject + '", "question": "...", "expected_answer": "..."}, ...]'
+                "\n\nCRITICAL: Your response must start with { and end with }."
+                "\nDo NOT include any text before { or after }."
+                "\nDo NOT use markdown. Do NOT use code blocks."
+                "\nRaw JSON only. Nothing else."
             )
         if task_type == AITaskType.STUDY_RECOMMENDATION:
             topic = context_data.get("topic", "[topic unknown]")

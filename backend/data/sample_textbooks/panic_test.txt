@@ -1,0 +1,1 @@
+Newton's First Law: An object at rest stays at rest and an object in motion stays in motion unless acted upon by an external force (inertia). Newton's Second Law: F = ma. Newton's Third Law: For every action there is an equal and opposite reaction. Momentum p = mv. SI unit of force is Newton (N).
