@@ -1,6 +1,6 @@
 {
   "user_id": "",
-  "last_sync_timestamp": "2026-03-09T12:06:39.947114+00:00",
+  "last_sync_timestamp": "2026-03-09T16:09:32.670730+00:00",
   "streak": {
     "current": 2,
     "longest": 2,
@@ -21,7 +21,7 @@
   "flashcard_stats": {
     "total_reviewed": 6,
     "mastered": 0,
-    "due_for_review": 0,
+    "due_for_review": 10,
     "cards": {
       "1": {
         "ease": "hard",

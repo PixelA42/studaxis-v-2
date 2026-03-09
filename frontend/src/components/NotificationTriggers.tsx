@@ -7,7 +7,7 @@ import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotification } from "../contexts/NotificationContext";
-import { getUserStats } from "../services/api";
+import { getUserStats, postSync } from "../services/api";
 import { flushSyncQueue } from "../services/syncQueue";
 
 const STORAGE_WELCOME = "studaxis_last_welcome_date";
@@ -91,7 +91,15 @@ export function NotificationTriggers() {
           message: "Syncing…",
           tag: "sync",
         });
-        flushSyncQueue();
+        (async () => {
+          await flushSyncQueue();
+          try {
+            await postSync();
+            window.dispatchEvent(new Event("sync-queue-updated"));
+          } catch {
+            // postSync may fail; queue will retry later
+          }
+        })();
       }
     }
     prevStatus.current = connectivityStatus;

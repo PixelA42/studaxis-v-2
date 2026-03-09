@@ -1435,12 +1435,10 @@ Raw JSON only. Nothing else."""
             user_id=None,
         )
     except (ConnectionError, TimeoutError) as e:
-        raise HTTPException(status_code=503, detail=str(e))
+        return _get_fallback_panic_items(subject, count, "mcq")
     raw = (response.text or "").strip()
-    if not raw:
-        if getattr(response, "state", None) in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
-            return _get_fallback_panic_items(subject, count, "mcq")
-        raise HTTPException(status_code=503, detail="Empty response from AI.")
+    if not raw or getattr(response, "state", None) in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
+        return _get_fallback_panic_items(subject, count, "mcq")
     parsed = None
     for attempt in range(2):
         try:
@@ -1482,6 +1480,8 @@ Raw JSON only. Nothing else."""
             "correct": correct,
             "explanation": explanation,
         })
+    if not out:
+        return _get_fallback_panic_items(subject, count, "mcq")
     return out[:count]
 
 
@@ -1517,10 +1517,24 @@ Raw JSON only. Nothing else."""
             user_id=None,
         )
     except (ConnectionError, TimeoutError) as e:
-        raise HTTPException(status_code=503, detail=str(e))
+        return [
+            {
+                "id": "q1_fallback",
+                "text": "AI could not generate valid questions. Try again or use paste/URL source.",
+                "sample_answer": "N/A",
+                "rubric": "Assess comprehension.",
+            }
+        ]
     raw = (response.text or "").strip()
-    if not raw:
-        raise HTTPException(status_code=503, detail="Empty response from AI.")
+    if not raw or getattr(response, "state", None) in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
+        return [
+            {
+                "id": "q1_fallback",
+                "text": "AI could not generate valid questions. Try again or use paste/URL source.",
+                "sample_answer": "N/A",
+                "rubric": "Assess comprehension.",
+            }
+        ]
     try:
         parsed = _parse_ai_json(raw)
     except (ValueError, json.JSONDecodeError):
@@ -1584,7 +1598,7 @@ def _generate_quiz_from_content(
             user_id=None,
         )
     except (ConnectionError, TimeoutError) as e:
-        raise HTTPException(status_code=503, detail=str(e))
+        return _get_fallback_panic_items(subject, count, "open_ended")
     if response.state in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
         try:
             parsed = _parse_ai_json(response.text or "[]")
@@ -1621,7 +1635,9 @@ def _generate_mcq_from_content(content: str, subject: str, count: int) -> list[d
             user_id=None,
         )
     except (ConnectionError, TimeoutError) as e:
-        raise HTTPException(status_code=503, detail=str(e))
+        return _get_fallback_panic_items(subject, count, "mcq")
+    if not (response.text or "").strip() or getattr(response, "state", None) in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
+        return _get_fallback_panic_items(subject, count, "mcq")
     try:
         parsed = _parse_ai_json(response.text)
     except (ValueError, json.JSONDecodeError) as e:
@@ -1661,6 +1677,8 @@ def _generate_mcq_from_content(content: str, subject: str, count: int) -> list[d
             "correct": correct,
             "explanation": explanation,
         })
+    if not out:
+        return _get_fallback_panic_items(subject, count, "mcq")
     return out[:count]
 
 
@@ -1938,16 +1956,19 @@ def flashcards_generate(req: FlashcardGenerateRequest):
     """
     Generate a deck of flashcards from a topic or chapter name using local AI.
     Returns a list of cards (id, topic, front, back) for the React UI to store or display.
+    Returns fallback cards when AI is unavailable.
     """
+    topic = req.topic_or_chapter.strip() or "General"
+    count = max(5, min(20, req.count))
     engine = get_ai_engine()
     try:
         response = engine.request(
             task_type=AITaskType.FLASHCARD_GENERATION,
-            user_input=req.topic_or_chapter.strip(),
+            user_input=topic,
             context_data={
                 "input_type": req.input_type,
-                "topic_or_chapter": req.topic_or_chapter.strip(),
-                "count": req.count,
+                "topic_or_chapter": topic,
+                "count": count,
                 "subject": "General",
                 "difficulty": "Beginner",
                 "source_content": None,
@@ -1957,36 +1978,28 @@ def flashcards_generate(req: FlashcardGenerateRequest):
             user_id=req.user_id,
         )
     except (ConnectionError, TimeoutError) as e:
-        raise HTTPException(status_code=503, detail=str(e))
+        print(f"[flashcards] generate AI unavailable ({e}), returning fallback cards")
+        return _fallback_flashcards_response("General", count, "topic")
 
-    # AI fallback/error (e.g. Ollama not running) returns plain text, not JSON
     if response.state in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
-        raise HTTPException(
-            status_code=503,
-            detail=response.error_message or response.text or "AI unavailable.",
-        )
+        print(f"[flashcards] generate AI returned {response.state}, returning fallback cards")
+        return _fallback_flashcards_response("General", count, "topic")
 
     raw_text = _extract_json_array(response.text)
     try:
         parsed = json.loads(raw_text)
-    except json.JSONDecodeError as e:
-        raise HTTPException(
-            status_code=422,
-            detail=f"AI returned invalid JSON: {e}. Model may have added extra text.",
-        )
-    if not isinstance(parsed, list):
-        raise HTTPException(status_code=422, detail="AI response was not a JSON array of cards.")
-
+    except json.JSONDecodeError:
+        return _fallback_flashcards_response("General", count, "topic")
+    if not isinstance(parsed, list) or not parsed:
+        return _fallback_flashcards_response("General", count, "topic")
     cards = _normalize_cards(parsed)
     if not cards:
-        raise HTTPException(
-            status_code=422,
-            detail="AI returned no valid flashcards. Try a different topic or count.",
-        )
-
+        return _fallback_flashcards_response("General", count, "topic")
+    for c in cards:
+        c["sourceType"] = "topic"
     return FlashcardGenerateResponse(
         cards=[FlashcardItem(**c) for c in cards],
-        topic=req.topic_or_chapter.strip(),
+        topic=topic,
     )
 
 

@@ -4,9 +4,10 @@ interface EmptyStateProps {
   title: string;
   description?: string;
   className?: string;
+  action?: React.ReactNode;
 }
 
-export function EmptyState({ icon = '📋', title, description, className = '' }: EmptyStateProps) {
+export function EmptyState({ icon = '📋', title, description, className = '', action }: EmptyStateProps) {
   return (
     <div
       className={`empty-state ${className}`}
@@ -18,6 +19,7 @@ export function EmptyState({ icon = '📋', title, description, className = '' }
       </span>
       <h3 className="empty-state__title">{title}</h3>
       {description && <p className="empty-state__description">{description}</p>}
+      {action && <div className="empty-state__action" style={{ marginTop: 16 }}>{action}</div>}
     </div>
   );
 }

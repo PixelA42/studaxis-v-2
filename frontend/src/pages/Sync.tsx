@@ -36,7 +36,7 @@ export function SyncPage() {
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   const loadStatus = () => {
-    if (connectivityStatus !== "online") {
+    if (connectivityStatus === "offline") {
       setLoading(false);
       return;
     }
@@ -56,6 +56,14 @@ export function SyncPage() {
 
   useEffect(() => {
     loadStatus();
+  }, [connectivityStatus]);
+
+  useEffect(() => {
+    const onQueueUpdated = () => {
+      if (connectivityStatus === "online") loadStatus();
+    };
+    window.addEventListener("sync-queue-updated", onQueueUpdated);
+    return () => window.removeEventListener("sync-queue-updated", onQueueUpdated);
   }, [connectivityStatus]);
 
   const handleSyncNow = async () => {
@@ -164,7 +172,7 @@ export function SyncPage() {
               )}
             </button>
             {isOffline && (
-              <p className="text-sm text-primary/60">Data will sync when online.</p>
+              <p className="text-sm text-amber-400/90 font-medium">Sync paused. Data will sync when you're back online.</p>
             )}
           </div>
           )}

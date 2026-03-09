@@ -8,22 +8,22 @@
     "milestone_next": 7
   },
   "quiz_stats": {
-    "total_attempted": 42,
-    "total_correct": 14,
+    "total_attempted": 51,
+    "total_correct": 17,
     "average_score": 5.0,
     "last_quiz_date": null,
     "by_topic": {
       "Physics": {
-        "attempts": 14,
+        "attempts": 17,
         "avg_score": 0.0
       },
       "Biology": {
-        "attempts": 14,
+        "attempts": 17,
         "avg_score": 10.0
       }
     },
-    "total_score_sum": 140.0,
-    "total_max_sum": 280.0,
+    "total_score_sum": 170.0,
+    "total_max_sum": 340.0,
     "average_percent": 50,
     "last_score": 50
   },
