@@ -249,7 +249,12 @@ function Setup({
         });
       }
     } catch (err) {
-      setError?.(err instanceof Error ? err.message : "Load failed.");
+      const msg = err instanceof Error ? err.message : "Load failed.";
+      const friendly =
+        msg.toLowerCase().includes("abort") || msg.toLowerCase().includes("signal")
+          ? "Request timed out. Generating questions via AI can take 1–2 minutes — please try again. Ensure Ollama is running on localhost:11434."
+          : msg;
+      setError?.(friendly);
     } finally {
       setLoading?.(false);
     }

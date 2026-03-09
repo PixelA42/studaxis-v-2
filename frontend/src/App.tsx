@@ -29,6 +29,7 @@ const FlashcardsPage = lazy(() => import("./pages/Flashcards").then((m) => ({ de
 const QuizPage = lazy(() => import("./pages/Quiz").then((m) => ({ default: m.QuizPage })));
 const QuizTakePage = lazy(() => import("./pages/QuizTake").then((m) => ({ default: m.QuizTakePage })));
 const TextbooksPage = lazy(() => import("./pages/Textbooks").then((m) => ({ default: m.TextbooksPage })));
+const NotesGeneratorPage = lazy(() => import("./pages/NotesGenerator").then((m) => ({ default: m.NotesGeneratorPage })));
 const SettingsPage = lazy(() => import("./pages/Settings").then((m) => ({ default: m.SettingsPage })));
 const PanicModePage = lazy(() => import("./pages/PanicMode").then((m) => ({ default: m.PanicModePage })));
 const InsightsPage = lazy(() => import("./pages/Insights").then((m) => ({ default: m.InsightsPage })));
@@ -97,6 +98,7 @@ function AppRoutes() {
           <Route path="/quiz" element={<QuizPage />} />
           <Route path="/quiz/:id" element={<QuizTakePage />} />
           <Route path="/textbooks" element={<TextbooksPage />} />
+          <Route path="/notes-generator" element={<NotesGeneratorPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/panic-mode" element={<PanicModePage />} />
           <Route path="/insights" element={<InsightsPage />} />
@@ -132,9 +134,18 @@ export default function App() {
         width: "100vw",
         overflow: "hidden",
         display: "flex",
+        flexDirection: "column",
       }}
     >
-      <AuthProvider>
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          width: "100%",
+        }}
+      >
+        <AuthProvider>
         <AppStateProvider>
           <ThemeProvider>
             <FlashcardDeckProvider>
@@ -152,6 +163,7 @@ export default function App() {
           </ThemeProvider>
         </AppStateProvider>
       </AuthProvider>
+      </div>
     </div>
   );
 }

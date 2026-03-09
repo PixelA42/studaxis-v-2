@@ -163,7 +163,7 @@ export function Auth() {
     } catch (err) {
       if (err instanceof RequiresOTPError) {
         try {
-          await postRequestOtp({ email: err.email, password: loginPassword });
+          await postRequestOtp({ email: err.email });
           navigate("/verify-otp", { replace: true, state: { email: err.email } });
         } catch (otpErr) {
           setError(otpErr instanceof Error ? otpErr.message : "Failed to send OTP.");

@@ -16,7 +16,10 @@ export function setUnauthorizedHandler(handler: (() => void) | null): void {
 
 const API_TIMEOUT_MS = 25000; // Offline-first: avoid infinite spinners when backend unreachable
 
-async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
+/** Timeout for AI/LLM operations (panic quiz gen, etc). Ollama can take 60–90s. */
+const API_TIMEOUT_LONG_MS = 120000;
+
+async function apiFetch(path: string, options: RequestInit = {}, timeoutMs?: number): Promise<Response> {
   const url = `${API_BASE}${path}`;
   const isFormData = options.body instanceof FormData;
   const headers = new Headers(options.headers as HeadersInit);
@@ -24,7 +27,8 @@ async function apiFetch(path: string, options: RequestInit = {}): Promise<Respon
   const token = localStorage.getItem(STORAGE_TOKEN);
   if (token) headers.set("Authorization", `Bearer ${token}`);
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  const t = timeoutMs ?? API_TIMEOUT_MS;
+  const timeoutId = setTimeout(() => controller.abort(), t);
   const res = await fetch(url, { ...options, headers, signal: controller.signal }).finally(() =>
     clearTimeout(timeoutId)
   );
@@ -46,8 +50,8 @@ export class RequiresOTPError extends Error {
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await apiFetch(path, options);
+async function request<T>(path: string, options: RequestInit = {}, timeoutMs?: number): Promise<T> {
+  const res = await apiFetch(path, options, timeoutMs);
   if (!res.ok) {
     const raw = await res.text();
     let message = raw || `API error ${res.status}`;
@@ -60,7 +64,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       } else if (Array.isArray(json.detail) && json.detail.length > 0) {
         const first = json.detail[0];
         const msg = first?.msg ?? first?.loc?.join(" ") ?? JSON.stringify(json.detail);
-        message = typeof msg === "string" ? msg : JSON.stringify(msg);
+        const loc = first?.loc?.filter((x): x is string => typeof x === "string");
+        const fieldPart = loc && loc.length > 0 ? loc.join(", ") + ": " : "";
+        message = typeof msg === "string" ? fieldPart + msg : JSON.stringify(msg);
       } else if (json.detail && typeof json.detail === "object" && "requires_otp" in json.detail) {
         const d = json.detail as { message?: string; requires_otp?: boolean; email?: string };
         message = d.message ?? message;
@@ -477,17 +483,10 @@ export async function verifyEmail(token: string): Promise<{ message: string }> {
 }
 
 /** Request OTP for existing user. POST /api/auth/request-otp */
-export async function postRequestOtp(params: {
-  email: string;
-  password?: string;
-}): Promise<{ message: string }> {
-  const body: { email: string; password?: string } = {
-    email: params.email.trim().toLowerCase(),
-  };
-  if (params.password !== undefined) body.password = params.password;
+export async function postRequestOtp(params: { email: string }): Promise<{ message: string }> {
   return request<{ message: string }>("/api/auth/request-otp", {
     method: "POST",
-    body: JSON.stringify(body),
+    body: JSON.stringify({ email: params.email.trim().toLowerCase() }),
   });
 }
 
@@ -517,7 +516,6 @@ export interface CompleteOnboardingRequest {
   role: "student" | "teacher";
   mode?: "solo" | "teacher_linked" | "teacher_linked_provisional";
   class_code?: string | null;
-  class_id?: string | null;
   subjects?: string | null;
   grade?: string | null;
 }
@@ -547,6 +545,20 @@ export async function getHealth(): Promise<HealthResponse> {
  */
 export async function checkOllamaPing(): Promise<{ ok: boolean }> {
   return request<{ ok: boolean }>("/api/ollama/ping");
+}
+
+/** Response from GET /api/ollama/models — available models for offline notes generation */
+export interface OllamaModelsResponse {
+  models: string[];
+  configured: string;
+  available: boolean;
+}
+
+/**
+ * Get available Ollama models. Used to show status in Notes Generator (offline-first).
+ */
+export async function getOllamaModels(): Promise<OllamaModelsResponse> {
+  return request<OllamaModelsResponse>("/api/ollama/models");
 }
 
 /** Response from GET /api/textbooks */
@@ -801,6 +813,47 @@ export async function generateFlashcardsFromTextbook(params: {
       textbook_id: params.textbook_id,
       chapter: params.chapter ?? null,
       count: params.count,
+    }),
+  });
+}
+
+/**
+ * Generate structured study notes from text (local AI).
+ * Calls POST /api/notes/generate.
+ */
+export async function generateNotes(params: {
+  text: string;
+  subject?: string;
+  topic?: string;
+  style?: "summary" | "detailed" | "revision";
+}): Promise<{ generated_text: string; subject: string; topic?: string }> {
+  return request("/api/notes/generate", {
+    method: "POST",
+    body: JSON.stringify({
+      text: params.text.trim(),
+      subject: params.subject ?? "General",
+      topic: params.topic ?? null,
+      style: params.style ?? "summary",
+    }),
+  });
+}
+
+/**
+ * Generate notes from a textbook by id (filename in sample_textbooks).
+ */
+export async function generateNotesFromTextbook(params: {
+  textbook_id: string;
+  subject?: string;
+  topic?: string;
+  style?: "summary" | "detailed" | "revision";
+}): Promise<{ generated_text: string; subject: string; topic?: string }> {
+  return request("/api/notes/generate/textbook", {
+    method: "POST",
+    body: JSON.stringify({
+      textbook_id: params.textbook_id,
+      subject: params.subject ?? "General",
+      topic: params.topic ?? null,
+      style: params.style ?? "summary",
     }),
   });
 }
@@ -1164,9 +1217,18 @@ export async function postQuizGenerate(params: {
   num_questions: number;
   difficulty: string;
 }): Promise<{ id: string; title: string; items: QuizItem[]; subject: string; difficulty: string; question_type: string }> {
+  const body = {
+    source: params.source,
+    subject: params.subject ?? "General",
+    source_ids: params.source_ids ?? null,
+    topic_text: params.topic_text != null ? params.topic_text : null,
+    question_type: params.question_type ?? "mcq",
+    num_questions: params.num_questions ?? 10,
+    difficulty: params.difficulty ?? "Beginner",
+  };
   return request("/api/quiz/generate", {
     method: "POST",
-    body: JSON.stringify(params),
+    body: JSON.stringify(body),
   });
 }
 
@@ -1179,9 +1241,17 @@ export async function postQuizGenerateFromUrl(params: {
   question_type: "mcq" | "open_ended";
   difficulty: string;
 }): Promise<{ id: string; title: string; items: QuizItem[]; subject: string; difficulty: string; question_type: string }> {
+  const body = {
+    url: params.url,
+    subject: params.subject ?? "General",
+    topic_text: params.topic_text != null ? params.topic_text : null,
+    num_questions: params.num_questions ?? 10,
+    question_type: params.question_type ?? "mcq",
+    difficulty: params.difficulty ?? "Beginner",
+  };
   return request("/api/quiz/generate-from-url", {
     method: "POST",
-    body: JSON.stringify(params),
+    body: JSON.stringify(body),
   });
 }
 
@@ -1194,9 +1264,17 @@ export async function postQuizGenerateFromText(params: {
   question_type: "mcq" | "open_ended";
   difficulty: string;
 }): Promise<{ id: string; title: string; items: QuizItem[]; subject: string; difficulty: string; question_type: string }> {
+  const body = {
+    text: params.text,
+    subject: params.subject ?? "General",
+    topic_text: params.topic_text != null ? params.topic_text : null,
+    num_questions: params.num_questions ?? 10,
+    question_type: params.question_type ?? "mcq",
+    difficulty: params.difficulty ?? "Beginner",
+  };
   return request("/api/quiz/generate-from-text", {
     method: "POST",
-    body: JSON.stringify(params),
+    body: JSON.stringify(body),
   });
 }
 
@@ -1210,12 +1288,12 @@ export async function postQuizGenerateFromFile(params: {
   difficulty: string;
 }): Promise<{ id: string; title: string; items: QuizItem[]; subject: string; difficulty: string; question_type: string }> {
   const form = new FormData();
-  form.append("file", params.file);
-  form.append("subject", params.subject);
-  if (params.topic_text) form.append("topic_text", params.topic_text);
-  form.append("num_questions", String(params.num_questions));
-  form.append("question_type", params.question_type);
-  form.append("difficulty", params.difficulty);
+  form.append("file", params.file, params.file.name);
+  form.append("subject", params.subject ?? "General");
+  form.append("topic_text", params.topic_text ?? "");
+  form.append("num_questions", String(params.num_questions ?? 10));
+  form.append("question_type", params.question_type ?? "mcq");
+  form.append("difficulty", params.difficulty ?? "Beginner");
   const res = await apiFetch("/api/quiz/generate-from-file", {
     method: "POST",
     body: form,
@@ -1224,8 +1302,15 @@ export async function postQuizGenerateFromFile(params: {
     const raw = await res.text();
     let message = raw || `API error ${res.status}`;
     try {
-      const json = JSON.parse(raw) as { detail?: string };
-      if (typeof json.detail === "string") message = json.detail;
+      const json = JSON.parse(raw) as { detail?: string | Array<{ loc?: (string | number)[]; msg?: string }> };
+      if (typeof json.detail === "string") {
+        message = json.detail;
+      } else if (Array.isArray(json.detail) && json.detail.length > 0) {
+        const first = json.detail[0];
+        const loc = first?.loc?.filter((x): x is string => typeof x === "string").join(", ");
+        const msg = first?.msg ?? "";
+        message = loc ? `${loc}: ${msg}` : msg;
+      }
     } catch {
       // keep raw
     }
@@ -1302,7 +1387,7 @@ export async function postAssignmentComplete(params: {
   });
 }
 
-/** Generate panic-mode questions from textbook. One subject only. */
+/** Generate panic-mode questions from textbook. One subject only. Uses long timeout (Ollama can take 60–90s). */
 export async function generatePanicQuizFromTextbook(params: {
   subject: string;
   textbook_id: string;
@@ -1321,11 +1406,12 @@ export async function generatePanicQuizFromTextbook(params: {
         count: params.count ?? 5,
         question_type: params.question_type ?? "open_ended",
       }),
-    }
+    },
+    API_TIMEOUT_LONG_MS
   );
 }
 
-/** Generate panic-mode questions from web URL. One subject only. */
+/** Generate panic-mode questions from web URL. One subject only. Uses long timeout (Ollama can take 60–90s). */
 export async function generatePanicQuizFromWeblink(params: {
   subject: string;
   url: string;
@@ -1342,11 +1428,12 @@ export async function generatePanicQuizFromWeblink(params: {
         count: params.count ?? 5,
         question_type: params.question_type ?? "open_ended",
       }),
-    }
+    },
+    API_TIMEOUT_LONG_MS
   );
 }
 
-/** Generate panic-mode questions from uploaded files. One subject only. */
+/** Generate panic-mode questions from uploaded files. One subject only. Uses long timeout (Ollama can take 60–90s). */
 export async function generatePanicQuizFromFiles(params: {
   subject: string;
   files: File[];
@@ -1358,10 +1445,7 @@ export async function generatePanicQuizFromFiles(params: {
   form.append("count", String(params.count ?? 5));
   form.append("question_type", params.question_type ?? "open_ended");
   params.files.forEach((f) => form.append("files", f));
-  const res = await apiFetch("/api/quiz/panic/generate/files", {
-    method: "POST",
-    body: form,
-  });
+  const res = await apiFetch("/api/quiz/panic/generate/files", { method: "POST", body: form }, API_TIMEOUT_LONG_MS);
   if (!res.ok) {
     const raw = await res.text();
     let message = raw || `API error ${res.status}`;

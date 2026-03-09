@@ -1,17 +1,125 @@
 {
   "decks": [
     {
-      "id": "deck_b130a1fc08d6",
+      "id": "deck_400475b777ef",
       "title": "All Cards",
       "subject": "General",
-      "created_at": "2026-03-08",
+      "created_at": "2026-03-09",
       "cards": [
         {
           "id": "72977b73",
           "front": "Why are units used to express the result of a measurement?",
           "back": "Units are used to express the result of a measurement because they provide a reference standard for comparison and help to ensure accuracy and consistency.",
-          "ease": "medium",
-          "next_review": "2026-03-08T13:09:16.415Z",
+          "ease": "hard",
+          "next_review": "2026-03-10T11:20:24.199Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "SI Base Units",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "Why are units used to express the result of a measurement?",
+          "answer": "Units are used to express the result of a measurement because they provide a reference standard for comparison and help to ensure accuracy and consistency.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "601a8c5d",
+          "front": "What are the fundamental or base units?",
+          "back": "They are the units that cannot be expressed as a combination of other units.",
+          "ease": "easy",
+          "next_review": "2026-03-10T11:20:24.721Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Measurement of Physical Quantities",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What are the fundamental or base units?",
+          "answer": "They are the units that cannot be expressed as a combination of other units.",
+          "interval": 1,
+          "repetitions": 1,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "769a9ef3",
+          "front": "Why are there only a limited number of units needed to express all physical quantities?",
+          "back": "Physical quantities are inter-related with one another, so only a limited number of units are necessary.",
+          "ease": "hard",
+          "next_review": "2026-03-10T11:20:25.230Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Derived Units",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "Why are there only a limited number of units needed to express all physical quantities?",
+          "answer": "Physical quantities are inter-related with one another, so only a limited number of units are necessary.",
+          "interval": 1,
+          "repetitions": 0,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "50e1bce8",
+          "front": "In what year was the International System of Units (SI) developed by the Bureau International des Poids et mesures (BIPM)?",
+          "back": "1971",
+          "ease": "easy",
+          "next_review": "2026-03-10T11:20:25.618Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "International System of Units",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "In what year was the International System of Units (SI) developed by the Bureau International des Poids et mesures (BIPM)?",
+          "answer": "1971",
+          "interval": 1,
+          "repetitions": 1,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "6b47ece7",
+          "front": "Which of the three fundamental units in the SI system is defined as the unit of time?",
+          "back": "Second",
+          "ease": "easy",
+          "next_review": "2026-03-10T11:20:25.890Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Significant Figures",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "Which of the three fundamental units in the SI system is defined as the unit of time?",
+          "answer": "Second",
+          "interval": 1,
+          "repetitions": 1,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "ac7c6362",
+          "front": "What are the three basic units in the International System of Units (SI)?",
+          "back": "metre, kilogram and second respectively",
+          "ease": "easy",
+          "next_review": "2026-03-10T11:20:23.310Z",
+          "review_count": 0,
+          "mastered": false,
+          "topic": "Significant Figures",
+          "sourceType": [
+            "textbook"
+          ],
+          "question": "What are the three basic units in the International System of Units (SI)?",
+          "answer": "metre, kilogram and second respectively",
+          "interval": 1,
+          "repetitions": 1,
+          "ease_factor": 2.5
+        },
+        {
+          "id": "72977b73",
+          "front": "Why are units used to express the result of a measurement?",
+          "back": "Units are used to express the result of a measurement because they provide a reference standard for comparison and help to ensure accuracy and consistency.",
+          "ease": "hard",
+          "next_review": "2026-03-10T11:20:24.199Z",
           "review_count": 0,
           "mastered": false,
           "topic": "SI Base Units",
@@ -46,8 +154,8 @@
           "id": "601a8c5d",
           "front": "What are the fundamental or base units?",
           "back": "They are the units that cannot be expressed as a combination of other units.",
-          "ease": "medium",
-          "next_review": "2026-03-08T13:09:16.415Z",
+          "ease": "easy",
+          "next_review": "2026-03-10T11:20:24.721Z",
           "review_count": 0,
           "mastered": false,
           "topic": "Measurement of Physical Quantities",
@@ -57,7 +165,7 @@
           "question": "What are the fundamental or base units?",
           "answer": "They are the units that cannot be expressed as a combination of other units.",
           "interval": 1,
-          "repetitions": 0,
+          "repetitions": 1,
           "ease_factor": 2.5
         },
         {
@@ -82,8 +190,8 @@
           "id": "769a9ef3",
           "front": "Why are there only a limited number of units needed to express all physical quantities?",
           "back": "Physical quantities are inter-related with one another, so only a limited number of units are necessary.",
-          "ease": "medium",
-          "next_review": "2026-03-08T13:09:16.415Z",
+          "ease": "hard",
+          "next_review": "2026-03-10T11:20:25.230Z",
           "review_count": 0,
           "mastered": false,
           "topic": "Derived Units",
@@ -118,8 +226,8 @@
           "id": "50e1bce8",
           "front": "In what year was the International System of Units (SI) developed by the Bureau International des Poids et mesures (BIPM)?",
           "back": "1971",
-          "ease": "medium",
-          "next_review": "2026-03-08T13:09:16.415Z",
+          "ease": "easy",
+          "next_review": "2026-03-10T11:20:25.618Z",
           "review_count": 0,
           "mastered": false,
           "topic": "International System of Units",
@@ -129,7 +237,7 @@
           "question": "In what year was the International System of Units (SI) developed by the Bureau International des Poids et mesures (BIPM)?",
           "answer": "1971",
           "interval": 1,
-          "repetitions": 0,
+          "repetitions": 1,
           "ease_factor": 2.5
         },
         {
@@ -154,8 +262,8 @@
           "id": "6b47ece7",
           "front": "Which of the three fundamental units in the SI system is defined as the unit of time?",
           "back": "Second",
-          "ease": "medium",
-          "next_review": "2026-03-08T13:09:16.415Z",
+          "ease": "easy",
+          "next_review": "2026-03-10T11:20:25.890Z",
           "review_count": 0,
           "mastered": false,
           "topic": "Significant Figures",
@@ -165,15 +273,15 @@
           "question": "Which of the three fundamental units in the SI system is defined as the unit of time?",
           "answer": "Second",
           "interval": 1,
-          "repetitions": 0,
+          "repetitions": 1,
           "ease_factor": 2.5
         },
         {
           "id": "ac7c6362",
           "front": "What are the three basic units in the International System of Units (SI)?",
           "back": "metre, kilogram and second respectively",
-          "ease": "medium",
-          "next_review": "2026-03-08T13:09:16.415Z",
+          "ease": "easy",
+          "next_review": "2026-03-10T11:20:23.310Z",
           "review_count": 0,
           "mastered": false,
           "topic": "Significant Figures",
@@ -183,7 +291,7 @@
           "question": "What are the three basic units in the International System of Units (SI)?",
           "answer": "metre, kilogram and second respectively",
           "interval": 1,
-          "repetitions": 0,
+          "repetitions": 1,
           "ease_factor": 2.5
         }
       ]

@@ -127,5 +127,21 @@
     "retries": 0,
     "retry_count": 2,
     "last_error": "AWS sync not configured for this type"
+  },
+  {
+    "id": "sync_1773055227.78652",
+    "type": "flashcard_create",
+    "mutation_type": "flashcard_create",
+    "payload": {
+      "userId": "hhh",
+      "deckId": "1773055227473",
+      "title": "SI Base Units",
+      "subject": "SI Base Units"
+    },
+    "created_at": "2026-03-09T11:20:27.786520+00:00",
+    "queued_at": "2026-03-09T11:20:27.786520+00:00",
+    "retries": 0,
+    "retry_count": 0,
+    "last_error": ""
   }
 ]

@@ -21,7 +21,7 @@
   "flashcard_stats": {
     "total_reviewed": 2,
     "mastered": 0,
-    "due_for_review": 10,
+    "due_for_review": 4,
     "cards": {
       "1": {
         "ease": "hard",
@@ -67,7 +67,7 @@
     "theme": "light",
     "language": "English",
     "sync_enabled": true,
-    "subject": "chemistry",
+    "subject": "math",
     "grade": "Grade 10"
   },
   "hardware_info": {}

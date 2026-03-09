@@ -704,7 +704,7 @@ export function OnboardingFlow({
       }
       setRequestingOtp(true);
       try {
-        await postRequestOtp({ email: e.trim(), password: p });
+        await postRequestOtp({ email: e.trim() });
         setStep("otp");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to send OTP.");

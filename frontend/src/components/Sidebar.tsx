@@ -27,6 +27,7 @@ const navSections: {
       { to: "/flashcards", label: "Flashcards", icon: Icons.cards },
       { to: "/quiz", label: "Quiz", icon: Icons.quiz },
       { to: "/textbooks", label: "Textbooks", icon: Icons.book },
+      { to: "/notes-generator", label: "Notes Generator", icon: Icons.notes },
     ],
   },
   {

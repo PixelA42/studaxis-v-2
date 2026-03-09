@@ -416,15 +416,18 @@ export function QuizPage() {
             )}
 
             <div className="quiz-home__field">
-              <label>Topic or concept</label>
+              <label>Topic or concept (optional)</label>
               <input
                 type="text"
                 className="quiz-home__input"
                 placeholder="e.g. Photosynthesis, Newton's Laws, World War II..."
                 value={topicInput}
                 onChange={(e) => { setTopicInput(e.target.value); setGenError(null); }}
-                required
+                aria-describedby="quiz-topic-hint"
               />
+              <p id="quiz-topic-hint" className="quiz-home__hint" style={{ fontSize: 12, color: "var(--primary-60)", marginTop: 4 }}>
+                Required only for Quick Topic. Optional when using Textbook, Web Link, or File.
+              </p>
             </div>
             <div className="quiz-home__field">
               <label>Subject</label>

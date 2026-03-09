@@ -9,6 +9,7 @@ const STORAGE_NEEDS_REVIEW = "studaxis_needs_review";
 const STORAGE_QUIZ_HISTORY = "studaxis_quiz_history";
 const STORAGE_ASSIGNMENTS = "studaxis_assignments";
 const STORAGE_SYNC_QUEUE = "studaxis_sync_queue";
+const STORAGE_GENERATED_NOTES = "studaxis_generated_notes";
 
 export interface SyncQueueItem {
   id: string;
@@ -223,4 +224,40 @@ export function incrementSyncRetries(id: string): void {
     i.id === id ? { ...i, retries: i.retries + 1 } : i
   );
   saveSyncQueue(queue);
+}
+
+// ——— Generated Notes (offline save) ———
+
+export interface SavedNote {
+  id: string;
+  title: string;
+  content: string;
+  subject: string;
+  topic?: string;
+  style: string;
+  saved_at: string;
+}
+
+const MAX_SAVED_NOTES = 50;
+
+export function loadSavedNotesFromStorage(): SavedNote[] {
+  const data = loadJson<SavedNote[]>(STORAGE_GENERATED_NOTES, []);
+  return Array.isArray(data) ? data : [];
+}
+
+export function saveNoteToStorage(note: Omit<SavedNote, "id" | "saved_at">): SavedNote {
+  const notes = loadSavedNotesFromStorage();
+  const saved: SavedNote = {
+    ...note,
+    id: `note_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+    saved_at: new Date().toISOString(),
+  };
+  const updated = [saved, ...notes].slice(0, MAX_SAVED_NOTES);
+  saveJson(STORAGE_GENERATED_NOTES, updated);
+  return saved;
+}
+
+export function deleteSavedNote(id: string): void {
+  const notes = loadSavedNotesFromStorage().filter((n) => n.id !== id);
+  saveJson(STORAGE_GENERATED_NOTES, notes);
 }

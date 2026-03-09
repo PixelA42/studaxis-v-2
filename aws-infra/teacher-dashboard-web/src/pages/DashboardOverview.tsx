@@ -118,7 +118,7 @@ export function DashboardOverview() {
           </div>
         </div>
         <div className="logo-container">
-            <img src="/studaxis-logo.png" alt="" className="circular-logo overview-welcome-emoji" aria-hidden="true" />
+            <img src="./studaxis-logo.png" alt="" className="circular-logo overview-welcome-emoji" aria-hidden="true" />
           </div>
       </div>
 

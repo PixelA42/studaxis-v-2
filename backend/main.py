@@ -656,6 +656,33 @@ def ollama_ping():
         return {"ok": False, "message": "AI is warming up. Ensure Ollama is running."}
 
 
+def _get_ollama_available_models() -> list[str]:
+    """Fetch available model names from Ollama /api/tags. Returns empty list if Ollama unreachable."""
+    import requests
+    base = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
+    try:
+        r = requests.get(f"{base}/api/tags", timeout=5)
+        if r.status_code != 200:
+            return []
+        data = r.json()
+        models = data.get("models", [])
+        return [m.get("name", "") for m in models if m.get("name")]
+    except Exception:
+        return []
+
+
+# Fallback models to try when configured model returns 404 (not found)
+_OLLAMA_FALLBACK_MODELS = ["llama3.2:3b-instruct", "llama3:3b", "llama3.2:3b", "mistral", "llama2"]
+
+
+@app.get("/api/ollama/models")
+def ollama_models():
+    """Return available Ollama models. Used for offline-first notes generation status."""
+    models = _get_ollama_available_models()
+    configured = get_best_model()
+    return {"models": models, "configured": configured, "available": configured in models or any(m.startswith(configured.split(":")[0]) for m in models)}
+
+
 # ---------------------------------------------------------------------------
 # Hardware (Phase 8 — HardwareValidator)
 # ---------------------------------------------------------------------------
@@ -2708,16 +2735,58 @@ def panic_generate_textbook(req: PanicGenerateTextbookRequest):
 
 @app.post("/api/quiz/panic/generate/weblink")
 def panic_generate_weblink(req: PanicGenerateWeblinkRequest):
-    """Generate panic-mode questions from a web URL. One subject only."""
-    import requests as req_lib
+    """Generate panic-mode questions from a web URL. One subject only. Uses Ollama for question generation."""
+    url = req.url.strip()
+    text = ""
     try:
-        r = req_lib.get(req.url.strip(), timeout=15, headers={"User-Agent": "Studaxis/1.0"})
-        r.raise_for_status()
-        html = r.text
-    except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Could not fetch URL: {e}")
-    text = re.sub(r"<[^>]+>", " ", html)
-    text = re.sub(r"\s+", " ", text).strip()
+        import httpx
+        from bs4 import BeautifulSoup
+    except ImportError:
+        httpx = None
+        BeautifulSoup = None
+    # Prefer httpx + BeautifulSoup (better scraping, handles JS-heavy sites)
+    if httpx is not None and BeautifulSoup is not None:
+        try:
+            response = httpx.get(
+                url,
+                timeout=20,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0"},
+            )
+            if response.status_code in (401, 403):
+                raise HTTPException(
+                    status_code=422,
+                    detail="This website blocked access. Try a different link or paste the text directly.",
+                )
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, "html.parser")
+            for tag in soup(["nav", "footer", "script", "style", "header", "aside"]):
+                tag.decompose()
+            text = soup.get_text(separator="\n", strip=True)[:8000]
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=422, detail=f"Could not fetch URL: {e}") from e
+        except (httpx.TimeoutException, httpx.ConnectError, httpx.RequestError) as e:
+            raise HTTPException(status_code=422, detail=f"Could not fetch URL: {e}") from e
+    else:
+        import requests as req_lib
+        try:
+            r = req_lib.get(url, timeout=20, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0"})
+            if r.status_code in (401, 403):
+                raise HTTPException(
+                    status_code=422,
+                    detail="This website blocked access. Try a different link or paste the text directly.",
+                )
+            r.raise_for_status()
+            text = re.sub(r"<[^>]+>", " ", r.text)
+            text = re.sub(r"\s+", " ", text).strip()[:8000]
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=422, detail=f"Could not fetch URL: {e}")
+    if len(text) < 150:
+        raise HTTPException(
+            status_code=422,
+            detail="Not enough content found at that URL. Try a different link or use Textbook/Files source.",
+        )
     items = _generate_quiz_from_content(
         text, req.subject, req.count, req.question_type
     )
@@ -2908,6 +2977,147 @@ def _save_and_return_quiz(
     path = _quiz_file(user_id, quiz_id)
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     return {"id": quiz_id, "title": payload["title"], "items": items, "subject": subj, "difficulty": difficulty, "question_type": question_type}
+
+
+# ---------------------------------------------------------------------------
+# Notes Generator (student-facing — generate study notes from text/textbook)
+# ---------------------------------------------------------------------------
+
+
+class NotesGenerateRequest(BaseModel):
+    """Request for /api/notes/generate."""
+    text: str = Field(..., min_length=100, description="Source text (paste or extracted from textbook)")
+    subject: str = Field(default="General")
+    topic: Optional[str] = Field(default=None, description="Optional topic for context")
+    style: str = Field(default="summary", description="summary | detailed | revision")
+
+
+class NotesGenerateFromTextbookRequest(BaseModel):
+    """Request for /api/notes/generate/textbook."""
+    textbook_id: str = Field(..., description="Textbook filename in sample_textbooks")
+    subject: str = Field(default="General")
+    topic: Optional[str] = Field(default=None)
+    style: str = Field(default="summary")
+
+
+def _call_ollama_generate(ollama_url: str, model: str, prompt: str, req_lib) -> str:
+    """Call Ollama /api/generate. Returns response text. Raises on error."""
+    resp = req_lib.post(
+        ollama_url,
+        json={"model": model, "prompt": prompt, "stream": False, "options": {"temperature": 0.5, "num_predict": 2048}},
+        timeout=90,
+    )
+    resp.raise_for_status()
+    raw = (resp.json().get("response") or "").strip()
+    if not raw:
+        raise ValueError("AI returned empty response")
+    return raw
+
+
+def _generate_notes_impl(text: str, subject: str, topic_hint: str, style: str) -> dict[str, Any]:
+    """Shared notes generation logic. Returns {generated_text, subject, topic}.
+    Uses local Ollama only — fully offline. Tries configured model first, then fallbacks on 404."""
+    import requests as req_lib
+    style_prompt = {
+        "summary": "concise bullet-point summary with key terms in **bold**",
+        "detailed": "detailed notes with headings (##), bullets, and key terms",
+        "revision": "revision-style notes: short definitions, formulas, and exam tips",
+    }.get(style, "concise bullet-point summary")
+    prompt = f"""You are a study assistant. Convert the following {subject} content into structured study notes.
+
+Format: Use Markdown.
+- Use ## for main headings
+- Use bullets (- or *) for lists
+- Use **key term** for important terms to remember
+- Keep it clear and scannable
+
+Style: {style_prompt}
+
+Content to convert:
+---
+{text}
+---
+
+Output only the notes, no preamble."""
+
+    _ollama_base = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
+    _ollama_url = f"{_ollama_base}/api/generate"
+    model = get_best_model()
+
+    # Build list of models to try: configured first, then available, then fallbacks
+    available = _get_ollama_available_models()
+    models_to_try = [model]
+    for m in available:
+        if m and m not in models_to_try:
+            models_to_try.append(m)
+    for m in _OLLAMA_FALLBACK_MODELS:
+        if m not in models_to_try:
+            models_to_try.append(m)
+
+    last_error: Optional[str] = None
+    for try_model in models_to_try:
+        try:
+            raw = _call_ollama_generate(_ollama_url, try_model, prompt, req_lib)
+            return {"generated_text": raw, "subject": subject, "topic": topic_hint or None}
+        except req_lib.exceptions.HTTPError as e:
+            if e.response is not None and e.response.status_code == 404:
+                last_error = f"Model '{try_model}' not found. Run: ollama pull {try_model}"
+                continue
+            last_error = str(e)
+            break
+        except req_lib.exceptions.ConnectionError:
+            last_error = "Ollama not running. Start with: ollama serve"
+            break
+        except req_lib.exceptions.Timeout:
+            last_error = "AI inference timed out. Try again or use a smaller model."
+            break
+        except ValueError as ve:
+            last_error = str(ve)
+            break
+        except req_lib.exceptions.RequestException as e:
+            last_error = str(e)
+            break
+
+    raise HTTPException(
+        status_code=503,
+        detail=last_error or "Could not generate notes. Ensure Ollama is running (ollama serve) and a model is installed (ollama pull llama3.2:3b-instruct).",
+    )
+
+
+@app.post("/api/notes/generate")
+def notes_generate(req: NotesGenerateRequest, user_id: str = Depends(get_user_id)):
+    """Generate structured study notes from text using local Ollama."""
+    import requests as req_lib
+    text = req.text.strip()[:8000]
+    subject = (req.subject or "General").strip()
+    topic_hint = (req.topic or "").strip()
+    style = req.style or "summary"
+    try:
+        return _generate_notes_impl(text, subject, topic_hint, style)
+    except req_lib.exceptions.RequestException as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+
+@app.post("/api/notes/generate/textbook")
+def notes_generate_from_textbook(req: NotesGenerateFromTextbookRequest, user_id: str = Depends(get_user_id)):
+    """Generate notes from a textbook file."""
+    import requests as req_lib
+    path = SAMPLE_TEXTBOOKS_DIR / req.textbook_id
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail=f"Textbook '{req.textbook_id}' not found")
+    try:
+        content = _extract_text_from_file(path)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Could not extract text: {e}")
+    if not content or len(content.strip()) < 100:
+        raise HTTPException(status_code=422, detail="Textbook has insufficient text (min 100 chars)")
+    subject = (req.subject or "General").strip()
+    topic_hint = (req.topic or "").strip()
+    style = req.style or "summary"
+    try:
+        return _generate_notes_impl(content.strip()[:8000], subject, topic_hint, style)
+    except req_lib.exceptions.RequestException as e:
+        raise HTTPException(status_code=503, detail=str(e))
 
 
 @app.post("/api/quiz/panic/generate/files")

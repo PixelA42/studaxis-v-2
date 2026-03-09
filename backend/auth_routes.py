@@ -8,38 +8,31 @@ Auth API routes: signup, login, JWT generation.
 
 from __future__ import annotations
 
-import logging
 import os
 import re
 import secrets
-import time
-from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
 from auth_utils import hash_password, verify_password
+from class_verify import ClassVerifyUnavailableError, verify_class_code
 from database import User, get_db, init_db
 from email_service import send_otp_email, send_verification_email
 from profile_store import UserProfile, load_profile, save_profile, load_profile_for_user, save_profile_for_user
 
 # JWT config (must be before dependencies import to avoid circular import)
 JWT_SECRET = os.environ.get("STUDAXIS_JWT_SECRET", "studaxis-dev-secret-change-in-prod")
-if JWT_SECRET == "studaxis-dev-secret-change-in-prod":
-    logging.getLogger("studaxis.auth").warning(
-        "STUDAXIS_JWT_SECRET not set; using dev fallback. Set it in production."
-    )
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_HOURS = 24 * 7  # 7 days
 VERIFICATION_EXPIRY_HOURS = 24  # Email verification token
 
-# OTP storage: email -> { code, expires_at, attempts }
+# OTP storage: email -> { code, expires_at }
 _otp_store: dict = {}
 OTP_EXPIRY_MINUTES = 5
-OTP_MAX_ATTEMPTS = 5
 
 # Validation patterns
 USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9_]{3,20}$")
@@ -81,7 +74,6 @@ class AuthResponse(BaseModel):
 
 class RequestOTPRequest(BaseModel):
     email: EmailStr
-    password: str | None = None  # Required for login flow; omit for resend when OTP already sent
 
 
 class OTPVerify(BaseModel):
@@ -98,47 +90,8 @@ class OnboardingData(BaseModel):
     role: str = Field(..., pattern="^(student|teacher)$")
     mode: str = Field(default="solo", pattern="^(solo|teacher_linked|teacher_linked_provisional)$")
     class_code: str | None = None
-    class_id: str | None = None
     subjects: str | None = None
     grade: str | None = None
-
-
-# ---------------------------------------------------------------------------
-# Rate limiting (auth endpoints — prevent brute force)
-# ---------------------------------------------------------------------------
-_RATE_WINDOW_SEC = 60
-_RATE_MAX_REQUESTS = 10
-_rate_store: dict[str, list[float]] = defaultdict(list)
-_otp_request_per_email: dict[str, list[float]] = defaultdict(list)
-_OTP_REQUEST_COOLDOWN_SEC = 30  # Min 1 OTP request per email per 30 seconds
-
-
-def _check_rate_limit(request: Request) -> None:
-    """Raise 429 if IP exceeds rate limit. In-memory; resets on restart."""
-    client_ip = request.client.host if request.client else "unknown"
-    now = time.time()
-    window_start = now - _RATE_WINDOW_SEC
-    _rate_store[client_ip] = [t for t in _rate_store[client_ip] if t > window_start]
-    if len(_rate_store[client_ip]) >= _RATE_MAX_REQUESTS:
-        raise HTTPException(
-            status_code=429,
-            detail="Too many requests. Please try again in a minute.",
-        )
-    _rate_store[client_ip].append(now)
-
-
-def _check_otp_request_cooldown(email: str) -> None:
-    """Prevent OTP bombing: max 1 request per email per minute."""
-    key = email.strip().lower()
-    now = time.time()
-    window_start = now - _OTP_REQUEST_COOLDOWN_SEC
-    _otp_request_per_email[key] = [t for t in _otp_request_per_email[key] if t > window_start]
-    if _otp_request_per_email[key]:
-        raise HTTPException(
-            status_code=429,
-            detail="Please wait before requesting another OTP. Check your email or try again in a minute.",
-        )
-    _otp_request_per_email[key].append(now)
 
 
 # ---------------------------------------------------------------------------
@@ -207,7 +160,7 @@ def _generate_and_send_otp(email: str) -> None:
     """Generate secure 6-digit OTP, store with 5 min expiry, send via email."""
     code = str(secrets.randbelow(900000) + 100000)
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRY_MINUTES)
-    _otp_store[email.strip().lower()] = {"code": code, "expires_at": expires_at, "attempts": 0}
+    _otp_store[email.strip().lower()] = {"code": code, "expires_at": expires_at}
     _send_otp_email(email, code)
 
 
@@ -218,12 +171,10 @@ def _generate_and_send_otp(email: str) -> None:
 
 @router.post("/signup", response_model=AuthResponse)
 def signup(
-    request: Request,
     req: SignupRequest,
     background_tasks: BackgroundTasks,
     db: Annotated[Session, Depends(get_db)],
 ):
-    _check_rate_limit(request)
     """
     Register a new user. Validates username (alphanumeric + underscore, 3–20 chars)
     and password (8+ chars, 1 upper, 1 lower, 1 digit, 1 special).
@@ -272,17 +223,14 @@ def signup(
     )
 
 
-@router.post("/login")
+@router.post("/login", response_model=AuthResponse)
 def login(
-    request: Request,
     req: LoginRequest,
     db: Annotated[Session, Depends(get_db)],
 ):
     """
     Authenticate by username or email + password. Returns JWT on success.
-    If account is not verified, returns 403 with requires_otp and email for OTP flow.
     """
-    _check_rate_limit(request)
     identifier = req.username_or_email.strip()
     is_email = "@" in identifier
 
@@ -295,16 +243,6 @@ def login(
         raise HTTPException(
             status_code=401,
             detail="Invalid username/email or password.",
-        )
-
-    if not user.is_verified:
-        raise HTTPException(
-            status_code=403,
-            detail={
-                "message": "Email not verified. Please verify with the OTP sent to your email.",
-                "requires_otp": True,
-                "email": user.email,
-            },
         )
 
     token = _create_jwt(user.id, user.username)
@@ -335,67 +273,34 @@ def check_email(
 @router.post("/request-otp")
 @router.post("/send-otp")
 def request_otp(
-    request: Request,
     body: RequestOTPRequest,
     db: Annotated[Session, Depends(get_db)],
 ):
-    """
-    Request OTP for existing user.
-    - Login flow: pass password to verify before sending OTP.
-    - Resend flow: omit password when OTP already sent (active OTP must exist).
-    """
-    _check_rate_limit(request)
+    """Request OTP for existing user. Checks email exists, generates and sends OTP via email."""
     email = body.email.strip().lower()
     user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(status_code=404, detail="No user found with this email.")
-    stored = _otp_store.get(email)
-    has_active_otp = stored and datetime.now(timezone.utc) <= stored.get("expires_at", datetime.min.replace(tzinfo=timezone.utc))
-    if body.password is not None:
-        if not verify_password(body.password, user.hashed_password):
-            raise HTTPException(status_code=401, detail="Invalid password.")
-    elif not has_active_otp:
-        raise HTTPException(
-            status_code=400,
-            detail="Password required for first OTP request. For resend, use the OTP screen (OTP must be active).",
-        )
-    _check_otp_request_cooldown(email)
     _generate_and_send_otp(email)
     return {"message": "OTP sent"}
 
 
 @router.post("/verify-otp")
 def verify_otp(
-    request: Request,
     body: OTPVerify,
     db: Annotated[Session, Depends(get_db)],
 ):
-    """Verify OTP, mark user as verified, return access_token. Limited attempts to prevent brute force."""
-    _check_rate_limit(request)
+    """Verify OTP, mark user as verified, return access_token."""
     email = body.email.strip().lower()
     stored = _otp_store.get(email)
     if not stored:
-        raise HTTPException(status_code=400, detail="No OTP found for this email. Request a new one.")
+        raise HTTPException(status_code=400, detail="No OTP found for this email.")
     if datetime.now(timezone.utc) > stored["expires_at"]:
-        del _otp_store[email]
-        raise HTTPException(status_code=410, detail="OTP expired. Please request a new one.")
-    attempts = stored.get("attempts", 0)
-    if attempts >= OTP_MAX_ATTEMPTS:
-        del _otp_store[email]
-        raise HTTPException(
-            status_code=429,
-            detail=f"Too many failed attempts. Please request a new OTP.",
-        )
-    otp_clean = body.otp.replace(" ", "").strip()
+        raise HTTPException(status_code=410, detail="OTP expired.")
     DEV_BYPASS = os.getenv("ENV", "dev") == "dev"
-    if stored["code"] != otp_clean:
-        if not (DEV_BYPASS and otp_clean == "000000"):
-            stored["attempts"] = attempts + 1
-            remaining = OTP_MAX_ATTEMPTS - stored["attempts"]
-            raise HTTPException(
-                status_code=400,
-                detail=f"Incorrect OTP. {remaining} attempt(s) remaining.",
-            )
+    if stored["code"] != body.otp:
+        if not (DEV_BYPASS and body.otp == "000000"):
+            raise HTTPException(status_code=400, detail="Incorrect OTP.")
     # Remove OTP after successful use (one-time)
     del _otp_store[email]
     user = db.query(User).filter(User.email == email).first()
@@ -404,9 +309,7 @@ def verify_otp(
     user.is_verified = True
     db.commit()
     token = _create_jwt(user.id, user.username)
-    p = load_profile_for_user(user.username)
-    if not p:
-        p = load_profile()
+    p = load_profile()
     onboarding_complete = p.onboarding_complete if p else False
     return {
         "access_token": token,
@@ -450,19 +353,75 @@ def verify_email(
     return {"message": "Email verified successfully. You can now sign in."}
 
 
+def _resolve_class_code(class_code: str | None) -> tuple[str | None, str | None, str]:
+    """
+    Resolve class_code to class_id via DynamoDB.
+    Returns (class_id, class_code_normalized, profile_mode).
+    - If class_code provided and valid: (class_id, code, "teacher_linked")
+    - If class_code invalid: raises HTTPException 404
+    - If no class_code: (None, None, "solo")
+    """
+    if not class_code or not class_code.strip():
+        return None, None, "solo"
+
+    try:
+        result = verify_class_code(class_code)
+    except ClassVerifyUnavailableError as e:
+        raise HTTPException(
+            status_code=503,
+            detail="Class verification is not configured. Contact your administrator.",
+        ) from e
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).exception("Class verification failed: %s", e)
+        raise HTTPException(
+            status_code=503,
+            detail="Class verification service unavailable. Please try again later.",
+        ) from e
+
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Class code not found. Please check the code and try again.",
+        )
+
+    resolved_id = result.get("class_id")
+    resolved_code = result.get("class_code") or class_code.strip().upper()
+    if not resolved_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid class data. Please try again or contact your teacher.",
+        )
+
+    return resolved_id, resolved_code, "teacher_linked"
+
+
 @router.post("/complete-onboarding")
 def complete_onboarding(
     body: OnboardingData,
     current_user: Annotated[User, Depends(get_current_user)],
 ):
-    """Save profile from onboarding, set onboarding_complete=True. Scoped by user_id."""
+    """
+    Save profile from onboarding, set onboarding_complete=True. Scoped by user_id.
+    - If class_code provided: verifies via DynamoDB, resolves class_id, sets mode to teacher_linked.
+    - If no class_code: defaults to solo mode.
+    - Persists class_id so Sync Manager knows which payloads to pull.
+    """
     user_id = current_user.username
     existing = load_profile_for_user(user_id) or UserProfile()
+
+    class_id, class_code, profile_mode = _resolve_class_code(body.class_code)
+    if class_code is None:
+        # No class_code in request: preserve existing class if any, default to Solo Learner
+        class_code = existing.class_code
+        class_id = existing.class_id
+        profile_mode = "solo"
+
     merged = UserProfile(
         profile_name=body.profile_name,
-        profile_mode=body.mode,
-        class_code=body.class_code or existing.class_code,
-        class_id=body.class_id or existing.class_id,
+        profile_mode=profile_mode,
+        class_code=class_code,
+        class_id=class_id,
         user_role=body.role,
         onboarding_complete=True,
     )

@@ -21,11 +21,7 @@ SMTP_HOST = os.environ.get("STUDAXIS_SMTP_HOST") or os.environ.get("SMTP_HOST", 
 SMTP_PORT = int(os.environ.get("STUDAXIS_SMTP_PORT") or os.environ.get("SMTP_PORT", "587"))
 SMTP_USER = os.environ.get("STUDAXIS_SMTP_USER") or os.environ.get("SMTP_USER", "")
 # Gmail app passwords may be copied with spaces; strip for login
-_raw = (
-    os.environ.get("STUDAXIS_SMTP_PASSWORD")
-    or os.environ.get("STUDAXIS_SMTP_PASS")
-    or os.environ.get("SMTP_PASS", "")
-)
+_raw = os.environ.get("STUDAXIS_SMTP_PASSWORD") or os.environ.get("SMTP_PASS", "")
 SMTP_PASSWORD = _raw.replace(" ", "") if _raw else ""
 SMTP_FROM = os.environ.get("STUDAXIS_SMTP_FROM", SMTP_USER or "noreply@studaxis.local")
 SMTP_TIMEOUT = int(os.environ.get("STUDAXIS_SMTP_TIMEOUT", "15"))
