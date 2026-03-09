@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 type NotificationStatus = 'read' | 'unread';
 type NotificationPriority = 'low' | 'medium' | 'high';
@@ -85,6 +86,7 @@ const PLACEHOLDER_TEACHER_NOTIFICATIONS: NotificationItem[] = [
 ];
 
 export function NotificationBell() {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>(PLACEHOLDER_TEACHER_NOTIFICATIONS);
   const panelId = useId();
@@ -203,7 +205,17 @@ export function NotificationBell() {
                 Teacher Notifications
               </h2>
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="notification-panel__clear-btn"
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate('/notifications');
+                }}
+              >
+                View all
+              </button>
               <button
                 type="button"
                 className="notification-panel__clear-btn"

@@ -46,6 +46,7 @@ export interface Profile {
   profile_name: string | null;
   profile_mode: "solo" | "teacher_linked" | "teacher_linked_provisional" | null;
   class_code: string | null;
+  class_id: string | null;
   user_role: "student" | "teacher" | null;
   onboarding_complete: boolean;
 }
@@ -54,6 +55,7 @@ const defaultProfile: Profile = {
   profile_name: null,
   profile_mode: null,
   class_code: null,
+  class_id: null,
   user_role: null,
   onboarding_complete: false,
 };
@@ -67,6 +69,7 @@ function loadStoredProfile(): Profile {
         profile_name: o.profile_name ?? null,
         profile_mode: o.profile_mode ?? null,
         class_code: o.class_code ?? null,
+        class_id: o.class_id ?? null,
         user_role: o.user_role ?? null,
         onboarding_complete: o.onboarding_complete ?? false,
       };
@@ -187,6 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           profile_name: backend.profile_name ?? null,
           profile_mode: backend.profile_mode ?? null,
           class_code: backend.class_code ?? null,
+          class_id: (backend as { class_id?: string }).class_id ?? null,
           user_role: backend.user_role ?? null,
           onboarding_complete: backend.onboarding_complete ?? false,
         };

@@ -16,6 +16,7 @@ import {
   postSignup,
   postVerifyOtp,
   updateUserStats,
+  verifyClassCode,
 } from "../services/api";
 
 const TEACHER_DASHBOARD_URL =
@@ -248,6 +249,8 @@ export function OnboardingFlow({
     }
   }, [tab, signupSubStep]);
   const [error, setError] = useState("");
+  const [classVerifyError, setClassVerifyError] = useState("");
+  const [verifyingClass, setVerifyingClass] = useState(false);
   const [subjectTick, setSubjectTick] = useState(0);
   const [gradeTick, setGradeTick] = useState(0);
 
@@ -304,6 +307,7 @@ export function OnboardingFlow({
       role: (profile.user_role || "student") as "student" | "teacher",
       mode: (profile.profile_mode || "solo") as "solo" | "teacher_linked" | "teacher_linked_provisional",
       class_code: profile.class_code || null,
+      class_id: profile.class_id || null,
       subjects: f.subjects.length > 0 ? f.subjects.join(",") : null,
       grade: f.grade || null,
     };
@@ -312,6 +316,7 @@ export function OnboardingFlow({
       profile_name: profileData.profile_name,
       profile_mode: profileData.mode,
       class_code: profileData.class_code,
+      class_id: profileData.class_id,
       user_role: profileData.role,
       onboarding_complete: true,
     });
@@ -699,7 +704,7 @@ export function OnboardingFlow({
       }
       setRequestingOtp(true);
       try {
-        await postRequestOtp({ email: e.trim() });
+        await postRequestOtp({ email: e.trim(), password: p });
         setStep("otp");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to send OTP.");
@@ -1223,7 +1228,13 @@ export function OnboardingFlow({
                     <CheckIcon />
                   </div>
                 )}
-                <div style={{ fontSize: "32px", marginBottom: "10px" }}>{r.emoji}</div>
+                <div style={{ fontSize: "32px", marginBottom: "10px", display: "flex", justifyContent: "center" }}>
+                  {r.id === "student" ? (
+                    <img src="/studaxis-logo.png" alt="" className="circular-logo" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} aria-hidden />
+                  ) : (
+                    r.emoji
+                  )}
+                </div>
                 <div style={{ fontSize: "15px", fontWeight: 800, color: "var(--text-primary, #0d1b2a)", marginBottom: "5px" }}>
                   {r.title}
                 </div>
@@ -1329,10 +1340,18 @@ export function OnboardingFlow({
                 <Label>Class Code</Label>
                 <Input
                   icon={<CodeIcon />}
-                  placeholder="Enter class code from your teacher"
+                  placeholder="Enter 6-character code from your teacher (e.g. ABC123)"
                   defaultValue={formRef.current.classCode || profile.class_code || ""}
-                  onChange={(e) => { formRef.current.classCode = e.target.value.toUpperCase(); }}
+                  onChange={(e) => {
+                    formRef.current.classCode = e.target.value.toUpperCase();
+                    setClassVerifyError("");
+                  }}
                 />
+                {classVerifyError && (
+                  <p style={{ fontSize: "12px", color: "var(--error, #ef4444)", marginTop: "6px" }} role="alert">
+                    {classVerifyError}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -1341,17 +1360,43 @@ export function OnboardingFlow({
             disabled={
               !(formRef.current.name || profile.profile_name)?.trim() ||
               !mode ||
-              (mode === "linked" && (formRef.current.classCode || profile.class_code || "").length < 4)
+              (mode === "linked" && (formRef.current.classCode || profile.class_code || "").length < 4) ||
+              verifyingClass
             }
-            onClick={() => {
+            loading={verifyingClass}
+            onClick={async () => {
               const n = (formRef.current.name || profile.profile_name || "").trim();
-              const cc = mode === "linked" ? (formRef.current.classCode || profile.class_code || "").trim() : null;
-              setProfile({
-                profile_name: n || null,
-                profile_mode: mode === "solo" ? "solo" : "teacher_linked_provisional",
-                class_code: cc || null,
-              });
-              setStep("setup");
+              const cc = mode === "linked" ? (formRef.current.classCode || profile.class_code || "").trim().toUpperCase() : null;
+              setClassVerifyError("");
+              if (mode === "linked" && cc) {
+                setVerifyingClass(true);
+                try {
+                  const verified = await verifyClassCode(cc);
+                  if (verified) {
+                    setProfile({
+                      profile_name: n || null,
+                      profile_mode: "teacher_linked_provisional",
+                      class_code: verified.class_code,
+                      class_id: verified.class_id,
+                    });
+                    setStep("setup");
+                  } else {
+                    setClassVerifyError("Class code not found. Check the code and try again.");
+                  }
+                } catch {
+                  setClassVerifyError("Could not verify class code. Check your connection or try again.");
+                } finally {
+                  setVerifyingClass(false);
+                }
+              } else {
+                setProfile({
+                  profile_name: n || null,
+                  profile_mode: mode === "solo" ? "solo" : "teacher_linked_provisional",
+                  class_code: cc || null,
+                  class_id: null,
+                });
+                setStep("setup");
+              }
             }}
           >
             Continue →
@@ -1529,9 +1574,11 @@ export function OnboardingFlow({
                     justifyContent: "center",
                     boxShadow: "0 6px 24px rgba(250,92,92,0.4)",
                     fontSize: "28px",
+                    padding: 0,
+                    overflow: "hidden",
                   }}
                 >
-                  🎓
+                  <img src="/studaxis-logo.png" alt="" className="circular-logo" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover" }} aria-hidden />
                 </div>
               </div>
               <h2 style={{ ...headStyle, textAlign: "center", fontSize: "22px" }}>

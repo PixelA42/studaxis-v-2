@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/icons/Icon';
 import { useTeacher } from '../context/TeacherContext';
+import { useClass } from '../context/ClassContext';
 import { GlassCard } from '../components/dashboard/GlassCard';
 import { EmptyState } from '../components/shared/EmptyState';
 import { exportToDocx } from '../lib/quizToDocx';
@@ -9,6 +11,8 @@ const API_URL = import.meta.env.VITE_API_GATEWAY_URL || '';
 
 export function QuizGenerator() {
   const { teacher } = useTeacher();
+  const { activeClass, classes } = useClass();
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     textbookId: '',
     topic: '',
@@ -222,10 +226,10 @@ export function QuizGenerator() {
               <div>
                 <label className="label">Assign To</label>
                 <select className="select" value={form.assignTo} onChange={(e) => upd('assignTo', e.target.value)}>
-                  <option value="all">All Classes</option>
-                  {teacher?.className && (
-                    <option value={teacher.classCode}>{teacher.className}</option>
-                  )}
+                  <option value="all">{activeClass ? activeClass.class_name : 'Select class'}</option>
+                  {(classes.length > 0 ? classes : activeClass ? [activeClass] : []).map((c) => (
+                    <option key={c.class_id} value={c.class_code}>{c.class_name}</option>
+                  ))}
                 </select>
               </div>
 
@@ -278,6 +282,13 @@ export function QuizGenerator() {
                 </div>
               </div>
               <div className="quiz-result-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => navigate('/assignments')}
+                >
+                  <Icon name="send" size={14} /> Assign to Class
+                </button>
                 <button
                   type="button"
                   className="btn btn-primary"

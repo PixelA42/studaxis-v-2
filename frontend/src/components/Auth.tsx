@@ -7,7 +7,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { postSignup } from "../services/api";
+import { postSignup, postRequestOtp, RequiresOTPError } from "../services/api";
 
 const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
 
@@ -161,7 +161,16 @@ export function Auth() {
       await loginWithCredentials(usernameOrEmail.trim(), loginPassword);
       navigate(profile.onboarding_complete ? "/dashboard" : "/onboarding", { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Invalid credentials. Please try again.");
+      if (err instanceof RequiresOTPError) {
+        try {
+          await postRequestOtp({ email: err.email, password: loginPassword });
+          navigate("/verify-otp", { replace: true, state: { email: err.email } });
+        } catch (otpErr) {
+          setError(otpErr instanceof Error ? otpErr.message : "Failed to send OTP.");
+        }
+      } else {
+        setError(err instanceof Error ? err.message : "Invalid credentials. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -190,8 +199,8 @@ export function Auth() {
       <div className="ambient-glow" aria-hidden />
       <div className="relative z-10 w-full max-w-md">
         <div className="solid-card rounded-2xl p-8 text-center shadow-soft">
-          <div className="text-4xl mb-4" aria-hidden>
-            🎓
+          <div className="logo-container">
+            <img src="/studaxis-logo.png" alt="" className="circular-logo" aria-hidden />
           </div>
 
           {mode === "signup" ? (

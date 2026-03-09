@@ -96,7 +96,7 @@ export function Login({ onComplete }: LoginProps) {
                 ) : (
                   <>
                     <Icon name="arrow_right" size={15} />
-                    Sign In →
+                    Sign In
                   </>
                 )}
               </button>

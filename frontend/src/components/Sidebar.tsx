@@ -98,9 +98,7 @@ export function Sidebar() {
 
       <div className={`flex-shrink-0 p-5 border-b border-glass-border ${collapsed ? "flex justify-center" : ""}`}>
         <div className="flex items-center gap-3 w-full">
-          <div className="w-8 h-8 rounded-lg bg-accent-blue flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-            S
-          </div>
+          <img src="/studaxis-logo.png" alt="" className="circular-logo circular-logo--sm flex-shrink-0" aria-hidden />
           {!collapsed && (
             <span className="font-bold text-heading-dark truncate flex-1">Studaxis</span>
           )}

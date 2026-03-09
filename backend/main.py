@@ -100,17 +100,24 @@ def _flashcards_file(user_id: str) -> Path:
     return _user_dir(user_id) / "flashcards.json"
 
 
-# New deck-based flashcard storage: data/flashcards/{user_id}.json
-def _flashcard_decks_file(user_id: str) -> Path:
-    """Return path to per-user flashcard decks JSON."""
+# New deck-based flashcard storage: data/flashcards/{user_id}.json or {user_id}_{class_id}.json
+# Partition by class_id so changing class does not mix flashcards from old and new class (ghost data fix).
+def _flashcard_decks_file(user_id: str, class_id: str | None = None) -> Path:
+    """Return path to per-user flashcard decks. When class_id set, partition by class to avoid ghost data."""
     d = DATA_DIR / "flashcards"
     d.mkdir(parents=True, exist_ok=True)
+    if class_id and str(class_id).strip():
+        safe = re.sub(r"[^a-zA-Z0-9_-]", "_", class_id.strip())[:64]
+        return d / f"{user_id}_{safe}.json"
     return d / f"{user_id}.json"
 
 
-def _load_flashcard_decks(user_id: str) -> list[dict[str, Any]]:
-    """Load decks from new structure. Migrates from legacy if needed."""
-    decks_path = _flashcard_decks_file(user_id)
+def _load_flashcard_decks(user_id: str, class_id: str | None = None) -> list[dict[str, Any]]:
+    """Load decks from new structure. Partitioned by class_id when set (ghost data fix)."""
+    if class_id is None:
+        p = load_profile_for_user(user_id)
+        class_id = getattr(p, "class_id", None) if p else None
+    decks_path = _flashcard_decks_file(user_id, class_id)
     legacy_path = _flashcards_file(user_id)
 
     # Migrate legacy flat cards to deck format if new file missing
@@ -171,10 +178,13 @@ def _normalize_card_for_deck(c: dict[str, Any]) -> dict[str, Any]:
     return base
 
 
-def _save_flashcard_decks(decks: list[dict[str, Any]], user_id: str) -> None:
-    """Save decks to new structure."""
+def _save_flashcard_decks(decks: list[dict[str, Any]], user_id: str, class_id: str | None = None) -> None:
+    """Save decks to new structure. Partitioned by class_id when set (ghost data fix)."""
+    if class_id is None:
+        p = load_profile_for_user(user_id)
+        class_id = getattr(p, "class_id", None) if p else None
     try:
-        path = _flashcard_decks_file(user_id)
+        path = _flashcard_decks_file(user_id, class_id)
         path.write_text(
             json.dumps({"decks": decks}, indent=2, ensure_ascii=False),
             encoding="utf-8",
@@ -3858,6 +3868,7 @@ def data_clear(user_id: str = Depends(get_user_id)):
         profile_name=existing.profile_name if existing else user_id,
         profile_mode="solo",
         class_code=None,
+        class_id=None,
         user_role="student",
         onboarding_complete=True,
     )
@@ -3875,6 +3886,7 @@ class ProfileRequest(BaseModel):
     profile_name: Optional[str] = None
     profile_mode: Optional[str] = None  # solo | teacher_linked | teacher_linked_provisional
     class_code: Optional[str] = None
+    class_id: Optional[str] = None
     user_role: Optional[str] = None  # student | teacher
     onboarding_complete: Optional[bool] = None
 
@@ -3882,11 +3894,12 @@ class ProfileRequest(BaseModel):
 def _profile_to_dict(p: Optional[UserProfile]) -> dict[str, Any]:
     """Convert UserProfile to JSON-serializable dict."""
     if p is None:
-        return {"profile_name": None, "profile_mode": None, "class_code": None, "user_role": None, "onboarding_complete": False}
+        return {"profile_name": None, "profile_mode": None, "class_code": None, "class_id": None, "user_role": None, "onboarding_complete": False}
     return {
         "profile_name": p.profile_name,
         "profile_mode": p.profile_mode,
         "class_code": p.class_code,
+        "class_id": getattr(p, "class_id", None),
         "user_role": p.user_role,
         "onboarding_complete": getattr(p, "onboarding_complete", False),
     }
@@ -3914,6 +3927,7 @@ def user_profile_post(
         profile_name=req.profile_name if req.profile_name is not None else existing.profile_name,
         profile_mode=req.profile_mode if req.profile_mode is not None else existing.profile_mode,
         class_code=req.class_code if req.class_code is not None else existing.class_code,
+        class_id=req.class_id if req.class_id is not None else getattr(existing, "class_id", None),
         user_role=req.user_role if req.user_role is not None else existing.user_role,
         onboarding_complete=req.onboarding_complete if req.onboarding_complete is not None else getattr(existing, "onboarding_complete", False),
     )

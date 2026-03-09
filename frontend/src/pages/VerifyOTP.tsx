@@ -15,7 +15,7 @@ const RESEND_COOLDOWN_SEC = 30;
 export function VerifyOTP() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { afterOTPVerified } = useAuth();
+  const { afterOTPVerified, setProfile } = useAuth();
   const email = (location.state as { email?: string } | null)?.email ?? "";
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [error, setError] = useState("");
@@ -85,7 +85,8 @@ export function VerifyOTP() {
     try {
       const res = await postVerifyOtp({ email: email.trim().toLowerCase(), otp: otpString });
       afterOTPVerified(res.access_token);
-      navigate("/onboarding", { replace: true });
+      setProfile({ onboarding_complete: res.onboarding_complete ?? false });
+      navigate(res.onboarding_complete ? "/dashboard" : "/onboarding", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed.");
     } finally {
@@ -122,8 +123,8 @@ export function VerifyOTP() {
       <div className="ambient-glow" aria-hidden />
       <div className="relative z-10 w-full max-w-md">
         <div className="solid-card rounded-2xl p-8 text-center shadow-soft">
-          <div className="text-4xl mb-4" aria-hidden>
-            🎓
+          <div className="logo-container">
+            <img src="/studaxis-logo.png" alt="" className="circular-logo" aria-hidden />
           </div>
           <h1 className="text-xl font-semibold text-primary">Verify your email</h1>
           <p className="text-sm text-muted mt-1">

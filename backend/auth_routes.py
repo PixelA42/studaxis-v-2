@@ -36,9 +36,10 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_HOURS = 24 * 7  # 7 days
 VERIFICATION_EXPIRY_HOURS = 24  # Email verification token
 
-# OTP storage: email -> { code, expires_at }
+# OTP storage: email -> { code, expires_at, attempts }
 _otp_store: dict = {}
 OTP_EXPIRY_MINUTES = 5
+OTP_MAX_ATTEMPTS = 5
 
 # Validation patterns
 USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9_]{3,20}$")
@@ -80,6 +81,7 @@ class AuthResponse(BaseModel):
 
 class RequestOTPRequest(BaseModel):
     email: EmailStr
+    password: str | None = None  # Required for login flow; omit for resend when OTP already sent
 
 
 class OTPVerify(BaseModel):
@@ -96,6 +98,7 @@ class OnboardingData(BaseModel):
     role: str = Field(..., pattern="^(student|teacher)$")
     mode: str = Field(default="solo", pattern="^(solo|teacher_linked|teacher_linked_provisional)$")
     class_code: str | None = None
+    class_id: str | None = None
     subjects: str | None = None
     grade: str | None = None
 
@@ -106,6 +109,8 @@ class OnboardingData(BaseModel):
 _RATE_WINDOW_SEC = 60
 _RATE_MAX_REQUESTS = 10
 _rate_store: dict[str, list[float]] = defaultdict(list)
+_otp_request_per_email: dict[str, list[float]] = defaultdict(list)
+_OTP_REQUEST_COOLDOWN_SEC = 30  # Min 1 OTP request per email per 30 seconds
 
 
 def _check_rate_limit(request: Request) -> None:
@@ -120,6 +125,20 @@ def _check_rate_limit(request: Request) -> None:
             detail="Too many requests. Please try again in a minute.",
         )
     _rate_store[client_ip].append(now)
+
+
+def _check_otp_request_cooldown(email: str) -> None:
+    """Prevent OTP bombing: max 1 request per email per minute."""
+    key = email.strip().lower()
+    now = time.time()
+    window_start = now - _OTP_REQUEST_COOLDOWN_SEC
+    _otp_request_per_email[key] = [t for t in _otp_request_per_email[key] if t > window_start]
+    if _otp_request_per_email[key]:
+        raise HTTPException(
+            status_code=429,
+            detail="Please wait before requesting another OTP. Check your email or try again in a minute.",
+        )
+    _otp_request_per_email[key].append(now)
 
 
 # ---------------------------------------------------------------------------
@@ -188,7 +207,7 @@ def _generate_and_send_otp(email: str) -> None:
     """Generate secure 6-digit OTP, store with 5 min expiry, send via email."""
     code = str(secrets.randbelow(900000) + 100000)
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRY_MINUTES)
-    _otp_store[email.strip().lower()] = {"code": code, "expires_at": expires_at}
+    _otp_store[email.strip().lower()] = {"code": code, "expires_at": expires_at, "attempts": 0}
     _send_otp_email(email, code)
 
 
@@ -253,7 +272,7 @@ def signup(
     )
 
 
-@router.post("/login", response_model=AuthResponse)
+@router.post("/login")
 def login(
     request: Request,
     req: LoginRequest,
@@ -261,6 +280,7 @@ def login(
 ):
     """
     Authenticate by username or email + password. Returns JWT on success.
+    If account is not verified, returns 403 with requires_otp and email for OTP flow.
     """
     _check_rate_limit(request)
     identifier = req.username_or_email.strip()
@@ -275,6 +295,16 @@ def login(
         raise HTTPException(
             status_code=401,
             detail="Invalid username/email or password.",
+        )
+
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "message": "Email not verified. Please verify with the OTP sent to your email.",
+                "requires_otp": True,
+                "email": user.email,
+            },
         )
 
     token = _create_jwt(user.id, user.username)
@@ -309,32 +339,63 @@ def request_otp(
     body: RequestOTPRequest,
     db: Annotated[Session, Depends(get_db)],
 ):
-    """Request OTP for existing user. Checks email exists, generates and sends OTP via email."""
+    """
+    Request OTP for existing user.
+    - Login flow: pass password to verify before sending OTP.
+    - Resend flow: omit password when OTP already sent (active OTP must exist).
+    """
     _check_rate_limit(request)
     email = body.email.strip().lower()
     user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(status_code=404, detail="No user found with this email.")
+    stored = _otp_store.get(email)
+    has_active_otp = stored and datetime.now(timezone.utc) <= stored.get("expires_at", datetime.min.replace(tzinfo=timezone.utc))
+    if body.password is not None:
+        if not verify_password(body.password, user.hashed_password):
+            raise HTTPException(status_code=401, detail="Invalid password.")
+    elif not has_active_otp:
+        raise HTTPException(
+            status_code=400,
+            detail="Password required for first OTP request. For resend, use the OTP screen (OTP must be active).",
+        )
+    _check_otp_request_cooldown(email)
     _generate_and_send_otp(email)
     return {"message": "OTP sent"}
 
 
 @router.post("/verify-otp")
 def verify_otp(
+    request: Request,
     body: OTPVerify,
     db: Annotated[Session, Depends(get_db)],
 ):
-    """Verify OTP, mark user as verified, return access_token."""
+    """Verify OTP, mark user as verified, return access_token. Limited attempts to prevent brute force."""
+    _check_rate_limit(request)
     email = body.email.strip().lower()
     stored = _otp_store.get(email)
     if not stored:
-        raise HTTPException(status_code=400, detail="No OTP found for this email.")
+        raise HTTPException(status_code=400, detail="No OTP found for this email. Request a new one.")
     if datetime.now(timezone.utc) > stored["expires_at"]:
-        raise HTTPException(status_code=410, detail="OTP expired.")
+        del _otp_store[email]
+        raise HTTPException(status_code=410, detail="OTP expired. Please request a new one.")
+    attempts = stored.get("attempts", 0)
+    if attempts >= OTP_MAX_ATTEMPTS:
+        del _otp_store[email]
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many failed attempts. Please request a new OTP.",
+        )
+    otp_clean = body.otp.replace(" ", "").strip()
     DEV_BYPASS = os.getenv("ENV", "dev") == "dev"
-    if stored["code"] != body.otp:
-        if not (DEV_BYPASS and body.otp == "000000"):
-            raise HTTPException(status_code=400, detail="Incorrect OTP.")
+    if stored["code"] != otp_clean:
+        if not (DEV_BYPASS and otp_clean == "000000"):
+            stored["attempts"] = attempts + 1
+            remaining = OTP_MAX_ATTEMPTS - stored["attempts"]
+            raise HTTPException(
+                status_code=400,
+                detail=f"Incorrect OTP. {remaining} attempt(s) remaining.",
+            )
     # Remove OTP after successful use (one-time)
     del _otp_store[email]
     user = db.query(User).filter(User.email == email).first()
@@ -343,7 +404,9 @@ def verify_otp(
     user.is_verified = True
     db.commit()
     token = _create_jwt(user.id, user.username)
-    p = load_profile()
+    p = load_profile_for_user(user.username)
+    if not p:
+        p = load_profile()
     onboarding_complete = p.onboarding_complete if p else False
     return {
         "access_token": token,
@@ -399,6 +462,7 @@ def complete_onboarding(
         profile_name=body.profile_name,
         profile_mode=body.mode,
         class_code=body.class_code or existing.class_code,
+        class_id=body.class_id or existing.class_id,
         user_role=body.role,
         onboarding_complete=True,
     )

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { GlassCard } from '../components/dashboard/GlassCard';
 import { EmptyState } from '../components/shared/EmptyState';
-import { useTeacher } from '../context/TeacherContext';
+import { useClass } from '../context/ClassContext';
 import { checkAppSyncConnectivity } from '../lib/appsync';
 
 type ServiceStatus = 'checking' | 'connected' | 'error' | 'pending';
@@ -24,8 +24,8 @@ const INITIAL_STATUS_ITEMS: StatusItem[] = [
 ];
 
 export function SyncStatus() {
-  const { teacher } = useTeacher();
-  const classCode = teacher?.classCode ?? '';
+  const { activeClass } = useClass();
+  const classCode = activeClass?.class_code ?? '';
   const [statusItems, setStatusItems] = useState<StatusItem[]>(INITIAL_STATUS_ITEMS);
 
   useEffect(() => {

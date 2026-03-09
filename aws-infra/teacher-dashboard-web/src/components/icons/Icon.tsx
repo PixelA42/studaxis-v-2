@@ -20,6 +20,8 @@ const ICONS: Record<string, string> = {
   x: 'M18 6L6 18 M6 6l12 12',
   arrow_right: 'M5 12h14 M12 5l7 7-7 7',
   arrow_left: 'M19 12H5 M12 19l-7-7 7-7',
+  arrow_down: 'M12 5v14 M19 12l-7 7-7-7',
+  arrow_up: 'M12 19V5 M5 12l7-7 7 7',
   logout: 'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4 M16 17l5-5-5-5 M21 12H9',
   sync: 'M1 4v6h6 M23 20v-6h-6 M20.49 9A9 9 0 005.64 5.64L1 10 M23 14l-4.64 4.36A9 9 0 013.51 15',
   alert: 'M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z M12 9v4 M12 17h.01',
@@ -30,6 +32,10 @@ const ICONS: Record<string, string> = {
   menu: 'M4 6h16 M4 12h16 M4 18h16',
   sun: 'M12 3v1 M12 20v1 M4.22 4.22l.71.71 M18.36 18.36l.71.71 M3 12h1 M20 12h1 M4.22 19.78l.71-.71 M18.36 5.64l.71-.71 M18 12a6 6 0 11-12 0 6 6 0 0112 0z',
   moon: 'M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z',
+  note: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8',
+  copy: 'M8 17H5a2 2 0 01-2-2V5a2 2 0 012-2h8a2 2 0 012 2v3 M11 21h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
+  download: 'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4 M7 10l5 5 5-5 M12 15V3',
+  send: 'M22 2L11 13 M22 2L15 22l-4-9-9-4 22-7z',
 };
 
 export function Icon({ name, size = 18, color = 'currentColor' }: IconProps) {

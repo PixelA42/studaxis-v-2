@@ -12,7 +12,7 @@
       "completedAtLocal": "2026-03-08T06:43:27.624844+00:00"
     },
     "queued_at": "2026-03-08T06:43:27.624844+00:00",
-    "retry_count": 1,
+    "retry_count": 2,
     "last_error": "GraphQL error: ValidationError: totalQuestions must be > 0"
   },
   {
@@ -28,7 +28,7 @@
     "created_at": "2026-03-08T11:21:02.377334+00:00",
     "queued_at": "2026-03-08T11:21:02.377334+00:00",
     "retries": 0,
-    "retry_count": 1,
+    "retry_count": 2,
     "last_error": "AWS sync not configured for this type"
   },
   {
@@ -44,7 +44,7 @@
     "created_at": "2026-03-08T11:26:53.534037+00:00",
     "queued_at": "2026-03-08T11:26:53.534037+00:00",
     "retries": 0,
-    "retry_count": 1,
+    "retry_count": 2,
     "last_error": "AWS sync not configured for this type"
   },
   {
@@ -60,7 +60,7 @@
     "created_at": "2026-03-08T11:28:52.521070+00:00",
     "queued_at": "2026-03-08T11:28:52.521070+00:00",
     "retries": 0,
-    "retry_count": 1,
+    "retry_count": 2,
     "last_error": "AWS sync not configured for this type"
   },
   {
@@ -76,7 +76,7 @@
     "created_at": "2026-03-08T12:30:19.184898+00:00",
     "queued_at": "2026-03-08T12:30:19.184898+00:00",
     "retries": 0,
-    "retry_count": 1,
+    "retry_count": 2,
     "last_error": "AWS sync not configured for this type"
   },
   {
@@ -93,7 +93,7 @@
     "created_at": "2026-03-08T12:31:58.897333+00:00",
     "queued_at": "2026-03-08T12:31:58.897333+00:00",
     "retries": 0,
-    "retry_count": 1,
+    "retry_count": 2,
     "last_error": "AWS sync not configured for this type"
   },
   {
@@ -109,7 +109,7 @@
     "created_at": "2026-03-08T13:06:41.811348+00:00",
     "queued_at": "2026-03-08T13:06:41.811348+00:00",
     "retries": 0,
-    "retry_count": 1,
+    "retry_count": 2,
     "last_error": "AWS sync not configured for this type"
   },
   {
@@ -125,7 +125,7 @@
     "created_at": "2026-03-08T13:06:41.968933+00:00",
     "queued_at": "2026-03-08T13:06:41.968933+00:00",
     "retries": 0,
-    "retry_count": 1,
+    "retry_count": 2,
     "last_error": "AWS sync not configured for this type"
   }
 ]

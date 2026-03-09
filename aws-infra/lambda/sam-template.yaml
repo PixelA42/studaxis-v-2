@@ -131,6 +131,7 @@ Resources:
                 Resource:
                   - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/studaxis-student-sync
                   - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/studaxis-quiz-index
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/studaxis-content-distribution
                   - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*/index/*
         - PolicyName: S3PresignedOnly
           PolicyDocument:
@@ -170,6 +171,7 @@ Resources:
         Variables:
           DYNAMODB_TABLE_NAME: studaxis-student-sync
           QUIZ_INDEX_TABLE: studaxis-quiz-index
+          CONTENT_DISTRIBUTION_TABLE: studaxis-content-distribution
           S3_BUCKET_NAME: studaxis-payloads
           LOG_LEVEL: DEBUG
           DYNAMODB_ENDPOINT: !If [IsLocalDev, !Ref LocalDynamoEndpoint, !Ref AWS::NoValue]
@@ -255,6 +257,161 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/studaxis-quiz-generation-${Environment}
       RetentionInDays: 7
+
+  # ═════════════════════════════════════════════════════════════════════════
+  # TEACHER GENERATE NOTES LAMBDA (API Gateway → Bedrock → S3 → DynamoDB)
+  # ═════════════════════════════════════════════════════════════════════════
+
+  TeacherGenerateNotesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub studaxis-teacher-generate-notes-${Environment}
+      Description: Generate study notes via Bedrock, store in S3, assign to class via DynamoDB
+      Handler: handler.lambda_handler
+      Runtime: python3.11
+      MemorySize: 512
+      Timeout: 60
+      CodeUri: teacher_generate_notes/
+      Events:
+        GenerateNotesTeacher:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TeacherApi
+            Path: /teacher/generateNotes
+            Method: POST
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: studaxis-payloads
+          CONTENT_DISTRIBUTION_TABLE: studaxis-content-distribution
+          BEDROCK_REGION: ap-south-1
+          BEDROCK_MODEL_ID: arn:aws:bedrock:ap-south-1:718980965213:inference-profile/global.amazon.nova-2-lite-v1:0
+          LOG_LEVEL: DEBUG
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+                - s3:HeadObject
+              Resource: !Sub arn:aws:s3:::studaxis-payloads/*
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt ContentDistributionTable.Arn
+
+  TeacherGenerateNotesLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/studaxis-teacher-generate-notes-${Environment}
+      RetentionInDays: 7
+
+  # ═════════════════════════════════════════════════════════════════════════
+  # CLASSES TABLE (multi-class management)
+  # ═════════════════════════════════════════════════════════════════════════
+
+  ClassesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: studaxis-classes
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: class_id
+          AttributeType: S
+        - AttributeName: teacher_id
+          AttributeType: S
+        - AttributeName: class_code
+          AttributeType: S
+      KeySchema:
+        - AttributeName: class_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: teacher_id-index
+          KeySchema:
+            - AttributeName: teacher_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: class_code-index
+          KeySchema:
+            - AttributeName: class_code
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  # ═════════════════════════════════════════════════════════════════════════
+  # CLASS MANAGER LAMBDA (create_class, get_classes, verify_class_code)
+  # ═════════════════════════════════════════════════════════════════════════
+
+  ClassManagerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub studaxis-class-manager-${Environment}
+      Description: Multi-class management - create, list, verify class codes
+      Handler: handler.lambda_handler
+      Runtime: python3.11
+      MemorySize: 256
+      Timeout: 15
+      CodeUri: class_manager/
+      Events:
+        CreateClass:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TeacherApi
+            Path: /classes
+            Method: POST
+        GetClasses:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TeacherApi
+            Path: /classes
+            Method: GET
+        VerifyClassCode:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TeacherApi
+            Path: /classes/verify
+            Method: GET
+      Environment:
+        Variables:
+          CLASSES_TABLE_NAME: studaxis-classes
+          LOG_LEVEL: DEBUG
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+                - dynamodb:Scan
+                - dynamodb:Query
+              Resource:
+                - !GetAtt ClassesTable.Arn
+                - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/studaxis-classes/index/*'
+
+  # ═════════════════════════════════════════════════════════════════════════
+  # CONTENT DISTRIBUTION TABLE (notes/assignments for student sync)
+  # ═════════════════════════════════════════════════════════════════════════
+
+  ContentDistributionTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: studaxis-content-distribution
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: class_id
+          AttributeType: S
+        - AttributeName: content_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: class_id
+          KeyType: HASH
+        - AttributeName: content_id
+          KeyType: RANGE
 
   # ═════════════════════════════════════════════════════════════════════════
   # TEACHERS DYNAMODB TABLE (for Lambda auth)
@@ -375,3 +532,7 @@ Outputs:
   QuizGenerationFunctionName:
     Description: Name of the Quiz Generation Lambda
     Value: !Ref QuizGenerationFunction
+
+  TeacherGenerateNotesFunctionArn:
+    Description: ARN of Teacher Generate Notes Lambda
+    Value: !GetAtt TeacherGenerateNotesFunction.Arn

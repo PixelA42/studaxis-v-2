@@ -1,6 +1,6 @@
 {
   "user_id": "",
-  "last_sync_timestamp": "2026-03-08T14:53:20.255149+00:00",
+  "last_sync_timestamp": "2026-03-09T09:33:30.022605+00:00",
   "streak": {
     "current": 2,
     "longest": 2,
@@ -67,8 +67,8 @@
     "theme": "light",
     "language": "English",
     "sync_enabled": true,
-    "subject": "physics",
-    "grade": "Grade 11"
+    "subject": "chemistry",
+    "grade": "Grade 10"
   },
   "hardware_info": {}
 }

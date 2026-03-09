@@ -15,6 +15,7 @@ class UserProfile:
     profile_name: Optional[str] = None
     profile_mode: Optional[str] = None  # "solo" | "teacher_linked" | "teacher_linked_provisional"
     class_code: Optional[str] = None
+    class_id: Optional[str] = None
     user_role: Optional[str] = None  # "student" | "teacher"
     onboarding_complete: bool = False
 
@@ -41,6 +42,7 @@ def load_profile() -> Optional[UserProfile]:
             profile_name=data.get("profile_name"),
             profile_mode=data.get("profile_mode"),
             class_code=data.get("class_code"),
+            class_id=data.get("class_id"),
             user_role=data.get("user_role"),
             onboarding_complete=data.get("onboarding_complete", False),
         )
@@ -105,6 +107,7 @@ def load_profile_for_user(user_id: str) -> Optional[UserProfile]:
             profile_name=data.get("profile_name"),
             profile_mode=data.get("profile_mode"),
             class_code=data.get("class_code"),
+            class_id=data.get("class_id"),
             user_role=data.get("user_role"),
             onboarding_complete=data.get("onboarding_complete", False),
         )

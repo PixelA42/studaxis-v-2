@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Icon } from '../icons/Icon';
@@ -5,15 +6,18 @@ import { Sidebar } from './Sidebar';
 import { NotificationBell } from './NotificationBell';
 import { useTeacher } from '../../context/TeacherContext';
 import { useTheme } from '../../context/ThemeContext';
+import { ClassSelector } from './ClassSelector';
 
 const NAV_LABELS: Record<string, string> = {
   '/': 'Overview',
   '/classes': 'Classes',
   '/students': 'Students',
   '/quiz': 'Quiz Generator',
+  '/notes': 'Notes Generator',
   '/assignments': 'Assignments',
   '/sync': 'Sync Status',
   '/analytics': 'Analytics',
+  '/notifications': 'Notifications',
   '/settings': 'Settings',
 };
 
@@ -70,6 +74,7 @@ export function MainLayout() {
         overflow: 'hidden',
       }}
     >
+      
       {/* Floating sidebar */}
       <aside
         className={`app-sidebar app-sidebar--floating ${!sideOpen ? 'app-sidebar--collapsed' : ''} ${!sidebarVisible ? 'app-sidebar--hidden' : ''}`}
@@ -144,7 +149,8 @@ export function MainLayout() {
             transition: 'margin-left 0.3s cubic-bezier(0.16,1,0.3,1)',
           }}
         >
-          <div className="dashboard-header-left">
+          <div className="dashboard-header-left" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <ClassSelector />
             {isMobile && (
               <button
                 type="button"

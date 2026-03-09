@@ -27,13 +27,14 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 import boto3
-from boto3.dynamodb.conditions import Attr
+from boto3.dynamodb.conditions import Attr, Key
 from botocore.exceptions import ClientError
 
 # ── Config ──────────────────────────────────────────────────────────────────
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 SYNC_TABLE_NAME = os.environ.get("DYNAMODB_TABLE_NAME", "studaxis-student-sync")
 QUIZ_INDEX_TABLE = os.environ.get("QUIZ_INDEX_TABLE", "studaxis-quiz-index")
+CONTENT_TABLE_NAME = os.environ.get("CONTENT_DISTRIBUTION_TABLE", "studaxis-content-distribution")
 BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "studaxis-payloads")
 PRESIGNED_EXPIRY = int(os.environ.get("PRESIGNED_URL_EXPIRY_SECONDS", "3600"))  # 1 hour
 
@@ -42,8 +43,9 @@ logger.setLevel(LOG_LEVEL)
 
 # Initialise outside handler for connection reuse across warm invocations
 dynamodb = boto3.resource("dynamodb")
-sync_table = dynamodb.Table(SYNC_TABLE_NAME)
-quiz_index = dynamodb.Table(QUIZ_INDEX_TABLE)
+sync_table = dynamodb.Table(SYNC_TABLE_NAME)  # type: ignore
+quiz_index = dynamodb.Table(QUIZ_INDEX_TABLE)  # type: ignore
+content_table = dynamodb.Table(CONTENT_TABLE_NAME)  # type: ignore
 s3_client = boto3.client("s3")
 
 
@@ -127,7 +129,7 @@ def _get_last_sync_timestamp(user_id: str, cid: str) -> str | None:
 
 # ── Core: DynamoDB-Based Quiz Discovery ────────────────────────────────────
 
-def _fetch_quizzes(subject: str, cid: str) -> list:
+def _fetch_quizzes(subject: str, cid: str, class_id: str | None = None, class_code: str | None = None) -> list:
     """
     Query the quiz index table.  Filters by subject at the DB layer
     so we never pull unnecessary data.
@@ -173,24 +175,80 @@ def _enrich_with_urls(quizzes: list, cid: str) -> list:
     return enriched
 
 
-def _build_manifest(quizzes: list, user_id: str, cid: str) -> dict:
+def _fetch_notes_for_class(class_id_or_code: str | None, cid: str) -> list:
+    """
+    Query studaxis-content-distribution for notes assigned to this class.
+    Uses class_id (or class_code for legacy) as partition key.
+    """
+    if not class_id_or_code or not str(class_id_or_code).strip():
+        return []
+    key = str(class_id_or_code).strip()
+    try:
+        resp = content_table.query(KeyConditionExpression=Key("class_id").eq(key))
+        items = resp.get("Items", [])
+        while "LastEvaluatedKey" in resp:
+            resp = content_table.query(
+                KeyConditionExpression=Key("class_id").eq(key),
+                ExclusiveStartKey=resp["LastEvaluatedKey"],
+            )
+            items.extend(resp.get("Items", []))
+        out = []
+        for it in items:
+            s3_uri = it.get("s3_uri", "")
+            if s3_uri:
+                try:
+                    # s3_uri may be s3://bucket/key or full URL
+                    if s3_uri.startswith("s3://"):
+                        parts = s3_uri.replace("s3://", "").split("/", 1)
+                        bucket = parts[0] if len(parts) > 0 else BUCKET_NAME
+                        key_path = parts[1] if len(parts) > 1 else ""
+                    else:
+                        bucket, key_path = BUCKET_NAME, s3_uri
+                    presigned = s3_client.generate_presigned_url(
+                        "get_object",
+                        Params={"Bucket": bucket, "Key": key_path},
+                        ExpiresIn=PRESIGNED_EXPIRY,
+                    )
+                except ClientError:
+                    presigned = None
+            else:
+                presigned = None
+            out.append(_decimal_to_native({
+                "content_id": it.get("content_id"),
+                "content_type": it.get("content_type", "notes"),
+                "topic": it.get("topic"),
+                "subject": it.get("subject"),
+                "s3_uri": s3_uri,
+                "presigned_url": presigned,
+            }))
+        logger.info("[%s] Found %d notes for class %s", cid, len(out), key)
+        return out
+    except ClientError as e:
+        logger.warning("[%s] Content-distribution query failed: %s", cid, e)
+        return []
+
+
+def _build_manifest(quizzes: list, user_id: str, cid: str, notes: list | None = None) -> dict:
     """
     Build a lightweight content manifest the student app caches locally.
     Heavy payloads are referenced by pre-signed URL, not inlined.
     """
+    notes_list = notes if notes is not None else []
     manifest = {
         "manifestId": uuid.uuid4().hex[:16],
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "userId": user_id,
-        "totalItems": len(quizzes),
+        "totalItems": len(quizzes) + len(notes_list),
         "presignedUrlExpirySeconds": PRESIGNED_EXPIRY,
         "quizzes": quizzes,
+        "notes": notes_list,
     }
 
     logger.info(
-        "[%s] Manifest built — %d items, ~%.1f KB",
+        "[%s] Manifest built — %d quizzes, %d notes, ~%.1f KB",
         cid,
         len(quizzes),
+        len(notes_list),
         len(json.dumps(manifest, default=str)) / 1024,
     )
     return manifest
@@ -210,7 +268,9 @@ def lambda_handler(event, context):
       "info": { "fieldName": "fetchOfflineContent" },
       "arguments": {
         "userId":  "student_001",
-        "subject": "Mathematics"   // optional, defaults to "All"
+        "subject": "Mathematics",   // optional, defaults to "All"
+        "class_id": "uuid-...",     // optional, filters content for student's class
+        "class_code": "ABC123"      // optional, fallback when class_id not set (legacy)
       }
     }
     """
@@ -223,6 +283,8 @@ def lambda_handler(event, context):
         args = event.get("arguments", {})
         user_id = str(args.get("userId", "anonymous")).strip()
         subject = str(args.get("subject", "All")).strip()
+        class_id = (args.get("class_id") or "").strip() or None
+        class_code = (args.get("class_code") or args.get("classCode") or "").strip() or None
 
         if field == "fetchOfflineContent":
             # Check last sync to log delta info
@@ -231,9 +293,12 @@ def lambda_handler(event, context):
                 logger.info("[%s] Last sync for %s: %s", cid, user_id, last_sync)
 
             # Query DynamoDB index (fast, filtered) then pre-sign URLs
-            quizzes = _fetch_quizzes(subject, cid)
+            # class_id/class_code passed for future per-class filtering; quiz index may not have class yet
+            quizzes = _fetch_quizzes(subject, cid, class_id=class_id, class_code=class_code)
+            # Fetch notes for this class from content-distribution table
+            notes = _fetch_notes_for_class(class_id or class_code, cid)
             enriched = _enrich_with_urls(quizzes, cid)
-            manifest = _build_manifest(enriched, user_id, cid)
+            manifest = _build_manifest(enriched, user_id, cid, notes=notes)
 
         elif field == "getQuizPresignedUrl":
             # Single quiz presigned URL lookup

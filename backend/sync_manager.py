@@ -71,33 +71,31 @@ class SyncManager:
     # PUBLIC API — Queue Mutations
     # ═══════════════════════════════════════════════════════════════════════
 
-    def _get_class_code(self) -> Optional[str]:
+    def _get_class_profile(self) -> tuple[Optional[str], Optional[str]]:
         """
-        Fetch class_code from local profile. Solo learners return "SOLO".
-        Returns None if profile not found (will default to SOLO in Lambda).
+        Fetch class_code and class_id from local profile. Solo learners return ("SOLO", None).
+        Returns (class_code, class_id). Used for AppSync mutations and S3 payload metadata.
         """
         try:
-            # Per-user profile: data/users/{user_id}/profile.json
             profile_path = self.base_path / "data" / "users" / self.user_id / "profile.json"
+            if not profile_path.exists():
+                profile_path = self.base_path / "data" / "profile.json"
             if profile_path.exists():
                 with open(profile_path, encoding="utf-8") as f:
                     data = json.load(f)
                 cc = data.get("class_code")
+                cid = data.get("class_id")
                 if cc and str(cc).strip():
-                    return str(cc).strip()
-                return "SOLO"  # Independent/Solo learner
-            # Fallback: single-user profile.json
-            fallback = self.base_path / "data" / "profile.json"
-            if fallback.exists():
-                with open(fallback, encoding="utf-8") as f:
-                    data = json.load(f)
-                cc = data.get("class_code")
-                if cc and str(cc).strip():
-                    return str(cc).strip()
-                return "SOLO"
+                    return str(cc).strip(), (str(cid).strip() if cid else None)
+                return "SOLO", None
         except (OSError, json.JSONDecodeError, KeyError):
             pass
-        return "SOLO"  # Default: Solo mode (private, not visible to teachers)
+        return "SOLO", None
+
+    def _get_class_code(self) -> Optional[str]:
+        """Fetch class_code from profile. Solo learners return "SOLO"."""
+        cc, _ = self._get_class_profile()
+        return cc
 
     def enqueue_quiz_sync(
         self,

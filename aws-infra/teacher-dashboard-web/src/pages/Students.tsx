@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { GlassCard } from '../components/dashboard/GlassCard';
-import { useTeacher } from '../context/TeacherContext';
+import { useClass } from '../context/ClassContext';
 import { listStudentProgresses, type StudentProgress } from '../lib/appsync';
 
 function formatSyncStatus(lastSync: string | null): string {
@@ -26,8 +26,8 @@ function formatLastSync(ts: string | null): string {
 }
 
 export function Students() {
-  const { teacher } = useTeacher();
-  const classCode = teacher?.classCode ?? '';
+  const { activeClass } = useClass();
+  const classCode = activeClass?.class_code ?? '';
   const [students, setStudents] = useState<StudentProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

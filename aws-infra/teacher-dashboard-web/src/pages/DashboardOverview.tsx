@@ -4,14 +4,17 @@ import { CloudSyncStatus } from '../components/dashboard/CloudSyncStatus';
 import { StaleDataWarning } from '../components/sync/StaleDataWarning';
 import { SkeletonCard } from '../components/shared/Skeleton';
 import { useTeacher } from '../context/TeacherContext';
+import { useClass } from '../context/ClassContext';
 import { checkAppSyncConnectivity, listStudentProgresses, triggerBackendSyncIfConfigured, type StudentProgress } from '../lib/appsync';
 import type { SyncState } from '../types';
 
 export function DashboardOverview() {
   const { teacher } = useTeacher();
-  const classCode = teacher?.classCode ?? '';
+  const { activeClass, classes } = useClass();
+  const classCode = activeClass?.class_code ?? '';
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<StudentProgress[]>([]);
+  const [staleWarningDismissed, setStaleWarningDismissed] = useState(false);
   const [syncState, setSyncState] = useState<SyncState>({
     status: 'connected',
     lastSyncTimestamp: null,
@@ -71,13 +74,14 @@ export function DashboardOverview() {
 
   const STATS = useMemo(() => {
     const active24h = studentSync.filter((s) => s.status === 'connected').length;
+    const totalClasses = classes.length || (classCode ? 1 : 0);
     return [
-      { icon: '🏫', label: 'Total Classes', value: classCode ? '1' : '—', sub: 'Active this term', color: 'rgba(250,92,92,0.1)' },
+      { icon: '🏫', label: 'Total Classes', value: String(totalClasses || '—'), sub: 'Active this term', color: 'rgba(250,92,92,0.1)' },
       { icon: '👥', label: 'Active Students', value: String(students.length), sub: 'Synced in last 24h', color: 'rgba(0,168,232,0.1)' },
       { icon: '📝', label: 'Assignment Completion', value: '—%', sub: 'Class average', color: 'rgba(16,185,129,0.1)' },
       { icon: '📊', label: 'Recent Activity', value: String(active24h), sub: 'Last 24 hours', color: 'rgba(253,138,107,0.1)' },
     ];
-  }, [classCode, students.length, studentSync]);
+  }, [classes.length, classCode, students.length, studentSync]);
 
   const staleStudents = useMemo(
     () =>
@@ -109,11 +113,13 @@ export function DashboardOverview() {
           <div className="overview-welcome-sub">
             {teacher?.school || 'Your School'} · {teacher?.subject || 'Subject'} · Class Code:{' '}
             <strong style={{ fontFamily: 'monospace', letterSpacing: 2 }}>
-              {teacher?.classCode || '——'}
+              {activeClass?.class_code || '——'}
             </strong>
           </div>
         </div>
-        <div className="overview-welcome-emoji">🎓</div>
+        <div className="logo-container">
+            <img src="/studaxis-logo.png" alt="" className="circular-logo overview-welcome-emoji" aria-hidden="true" />
+          </div>
       </div>
 
       {/* Stat cards */}
@@ -149,14 +155,16 @@ export function DashboardOverview() {
           <div className="notif-banner-text">
             Share your class code{' '}  
             <strong style={{ fontFamily: 'monospace', color: 'var(--sd-dark)' }}>
-              {teacher?.classCode}
+              {activeClass?.class_code}
             </strong>{' '}
             to students to start syncing their activity and performance.
           </div>
         </div>
       </div>
 
-      {staleStudents.length > 0 && <StaleDataWarning studentNames={staleStudents} />}
+      {staleStudents.length > 0 && !staleWarningDismissed && (
+        <StaleDataWarning studentNames={staleStudents} onDismiss={() => setStaleWarningDismissed(true)} />
+      )}
 
       {/* Bottom grid */}
       <section className="bento-section bento-section--row" aria-label="Sync overview">

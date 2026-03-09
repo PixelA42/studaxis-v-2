@@ -15,6 +15,7 @@ type Mutation {
 type OfflineContent {
   generatedAt: String!
   manifestId: String!
+  notes: [AWSJSON]
   presignedUrlExpirySeconds: Int!
   quizzes: [AWSJSON!]!
   totalItems: Int!
@@ -22,7 +23,7 @@ type OfflineContent {
 }
 
 type Query {
-  fetchOfflineContent(subject: String, userId: String!): OfflineContent
+  fetchOfflineContent(class_id: String, class_code: String, subject: String, userId: String!): OfflineContent
   getQuizPresignedUrl(quiz_id: String!): PresignedUrlResponse
   listQuizzes: [QuizMeta]
   getStudentProgress(user_id: ID!): StudentProgress

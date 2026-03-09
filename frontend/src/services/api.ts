@@ -35,22 +35,42 @@ async function apiFetch(path: string, options: RequestInit = {}): Promise<Respon
   return res;
 }
 
+/** Error thrown when login requires OTP verification (403). Carries email for OTP flow. */
+export class RequiresOTPError extends Error {
+  constructor(
+    message: string,
+    public readonly email: string,
+  ) {
+    super(message);
+    this.name = "RequiresOTPError";
+  }
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await apiFetch(path, options);
   if (!res.ok) {
     const raw = await res.text();
     let message = raw || `API error ${res.status}`;
     try {
-      const json = JSON.parse(raw) as { detail?: string | Array<{ loc?: (string | number)[]; msg?: string }> };
+      const json = JSON.parse(raw) as {
+        detail?: string | Array<{ loc?: (string | number)[]; msg?: string }> | { message?: string; requires_otp?: boolean; email?: string };
+      };
       if (typeof json.detail === "string") {
         message = json.detail;
       } else if (Array.isArray(json.detail) && json.detail.length > 0) {
         const first = json.detail[0];
         const msg = first?.msg ?? first?.loc?.join(" ") ?? JSON.stringify(json.detail);
         message = typeof msg === "string" ? msg : JSON.stringify(msg);
+      } else if (json.detail && typeof json.detail === "object" && "requires_otp" in json.detail) {
+        const d = json.detail as { message?: string; requires_otp?: boolean; email?: string };
+        message = d.message ?? message;
+        if (d.requires_otp && d.email) {
+          throw new RequiresOTPError(message, d.email);
+        }
       }
-    } catch {
-      // keep raw message
+    } catch (e) {
+      if (e instanceof RequiresOTPError) throw e;
+      // keep raw message on parse error
     }
     throw new Error(message);
   }
@@ -457,10 +477,17 @@ export async function verifyEmail(token: string): Promise<{ message: string }> {
 }
 
 /** Request OTP for existing user. POST /api/auth/request-otp */
-export async function postRequestOtp(params: { email: string }): Promise<{ message: string }> {
+export async function postRequestOtp(params: {
+  email: string;
+  password?: string;
+}): Promise<{ message: string }> {
+  const body: { email: string; password?: string } = {
+    email: params.email.trim().toLowerCase(),
+  };
+  if (params.password !== undefined) body.password = params.password;
   return request<{ message: string }>("/api/auth/request-otp", {
     method: "POST",
-    body: JSON.stringify({ email: params.email.trim().toLowerCase() }),
+    body: JSON.stringify(body),
   });
 }
 
@@ -490,6 +517,7 @@ export interface CompleteOnboardingRequest {
   role: "student" | "teacher";
   mode?: "solo" | "teacher_linked" | "teacher_linked_provisional";
   class_code?: string | null;
+  class_id?: string | null;
   subjects?: string | null;
   grade?: string | null;
 }
@@ -1228,6 +1256,29 @@ export async function postFlashcardsFromQuiz(params: {
     method: "POST",
     body: JSON.stringify(params),
   });
+}
+
+/**
+ * Verify class code (student join). Calls Teacher API class manager.
+ * Uses VITE_API_GATEWAY_URL when set.
+ * @returns Verified class or null (invalid/not found). When API not configured, returns
+ *   a passthrough object so onboarding can proceed (no verification).
+ */
+export async function verifyClassCode(
+  classCode: string
+): Promise<{ class_id: string; class_name: string; class_code: string } | null> {
+  const code = (classCode || "").trim().toUpperCase();
+  if (code.length < 4) return null;
+  const base = (import.meta.env.VITE_API_GATEWAY_URL as string || "").replace(/\/$/, "");
+  if (!base) {
+    // API not configured: allow passthrough so offline/local dev works
+    return { class_id: code, class_name: "Unknown", class_code: code };
+  }
+  const url = `${base}/classes/verify?code=${encodeURIComponent(code)}`;
+  const res = await fetch(url);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("Class code verification failed");
+  return res.json();
 }
 
 /** Get assignments for class (teacher_linked students) */

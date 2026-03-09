@@ -5,7 +5,7 @@ interface NavItem {
   id: string;
   label: string;
   path: string;
-  icon: 'home' | 'chart' | 'users' | 'book' | 'quiz' | 'check' | 'sync' | 'settings' | 'class';
+  icon: 'home' | 'chart' | 'users' | 'book' | 'quiz' | 'note' | 'check' | 'sync' | 'settings' | 'class' | 'bell';
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -13,9 +13,11 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'classes', label: 'Classes', path: '/classes', icon: 'class' },
   { id: 'students', label: 'Students', path: '/students', icon: 'users' },
   { id: 'quiz', label: 'Quiz Generator', path: '/quiz', icon: 'quiz' },
+  { id: 'notes', label: 'Notes Generator', path: '/notes', icon: 'note' },
   { id: 'assignments', label: 'Assignments', path: '/assignments', icon: 'check' },
   { id: 'sync', label: 'Sync Status', path: '/sync', icon: 'sync' },
   { id: 'analytics', label: 'Analytics', path: '/analytics', icon: 'chart' },
+  { id: 'notifications', label: 'Notifications', path: '/notifications', icon: 'bell' },
   { id: 'settings', label: 'Settings', path: '/settings', icon: 'settings' },
 ];
 
@@ -29,7 +31,16 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
   return (
     <nav className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`} aria-label="Main navigation">
       <div className={`sidebar__brand ${collapsed ? 'sidebar__brand--collapsed' : ''}`}>
-        <span className="sidebar__logo">📐</span>
+          <span className="sidebar__logo">
+            {/* Studaxis logo PNG */}
+            <img
+              src={require("../../assets/studaxis-logo.png")}
+              alt="Studaxis Logo"
+              width={32}
+              height={32}
+              style={{ display: "block" }}
+            />
+          </span>
         {!collapsed && (
           <div>
             <span className="sidebar__title">Studaxis</span>

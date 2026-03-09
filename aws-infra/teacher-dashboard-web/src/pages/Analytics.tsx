@@ -28,8 +28,20 @@ export function Analytics() {
   }, []);
 
   const handleExport = () => {
-    // UI only — no data logic
-    alert('Export — integration pending');
+    const headers = ['Class', 'Date Range Start', 'Date Range End', 'Metric', 'Value'];
+    const rows = [
+      [selectedClass || 'all', dateRange.start, dateRange.end, 'Score Distribution', '—'],
+      [selectedClass || 'all', dateRange.start, dateRange.end, 'Assignment Completion', '—'],
+      [selectedClass || 'all', dateRange.start, dateRange.end, 'Student Engagement', '—'],
+    ];
+    const csvContent = [headers.join(','), ...rows.map((r) => r.map((c) => `"${c}"`).join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `analytics-${dateRange.start}-${dateRange.end}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (

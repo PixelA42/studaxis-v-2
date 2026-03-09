@@ -103,7 +103,26 @@ def upload_heavy_payload_to_s3(
     except Exception:
         pass
 
-    # Lambda-compatible payload for S3 trigger
+    # Class context from profile (SyncManager uses same path)
+    class_code = "SOLO"
+    class_id = None
+    try:
+        profile_path = base_path / "data" / "users" / user_id / "profile.json"
+        if not profile_path.exists():
+            profile_path = base_path / "data" / "profile.json"
+        if profile_path.exists():
+            with open(profile_path, encoding="utf-8") as pf:
+                prof = json.load(pf)
+            cc = prof.get("class_code")
+            if cc and str(cc).strip():
+                class_code = str(cc).strip()
+            cid = prof.get("class_id")
+            if cid and str(cid).strip():
+                class_id = str(cid).strip()
+    except (OSError, json.JSONDecodeError, KeyError):
+        pass
+
+    # Lambda-compatible payload for S3 trigger (offline_sync expects class_code)
     lambda_payload = {
         "student_id": user_id,
         "device_id": device_id or "unknown",
@@ -111,7 +130,10 @@ def upload_heavy_payload_to_s3(
         "total_score": total_score,
         "streak": streak,
         "last_sync": now.isoformat(),
+        "class_code": class_code,
     }
+    if class_id:
+        lambda_payload["class_id"] = class_id
     # Also include full user_stats for downstream use (chat logs, etc.)
     lambda_payload["_full_user_stats"] = stats
 

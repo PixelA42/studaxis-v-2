@@ -39,7 +39,7 @@ export function TopNav({ teacherName, syncStatus, lastSyncTimestamp }: TopNavPro
       </a>
       <div className="top-nav__inner">
         <div className="top-nav__brand">
-          <span className="top-nav__logo" aria-hidden="true">🎓</span>
+          <img src="/studaxis-logo.png" alt="" className="circular-logo top-nav__logo" aria-hidden="true" />
           <span className="top-nav__app-name">Studaxis</span>
         </div>
 

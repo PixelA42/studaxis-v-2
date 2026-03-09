@@ -37,8 +37,8 @@ export function LoginPage() {
       <div className="ambient-glow" aria-hidden />
       <div className="relative z-10 w-full max-w-md">
         <div className="glass-panel rounded-2xl border border-glass-border p-8 text-center">
-          <div className="text-4xl mb-4" aria-hidden>
-            🎓
+          <div className="logo-container">
+            <img src="/studaxis-logo.png" alt="" className="circular-logo" aria-hidden />
           </div>
           <h1 className="text-xl font-semibold text-primary">Welcome back</h1>
           <p className="text-sm text-primary/70 mt-1">

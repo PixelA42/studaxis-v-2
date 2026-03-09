@@ -91,6 +91,63 @@ export async function getTeacherByClassCode(classCode: string): Promise<Teacher 
   } as Teacher;
 }
 
+// ═════════════════════════════════════════════════════════════════════════
+// Class Manager API (multi-class management via Lambda)
+// Uses VITE_API_GATEWAY_URL — POST/GET /classes, GET /classes/verify
+// ═════════════════════════════════════════════════════════════════════════
+
+const getApiGatewayBase = () => (import.meta.env.VITE_API_GATEWAY_URL || '').replace(/\/$/, '');
+
+export interface StudaxisClass {
+  class_id: string;
+  teacher_id: string;
+  class_name: string;
+  class_code: string;
+  created_at?: string;
+}
+
+export async function createClass(teacherId: string, className: string): Promise<StudaxisClass> {
+  const base = getApiGatewayBase();
+  if (!base?.trim()) throw new Error('VITE_API_GATEWAY_URL not configured');
+  const url = `${base}/classes`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify({ teacher_id: teacherId, class_name: className }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || `Create class failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function getClassesForTeacher(teacherId: string): Promise<StudaxisClass[]> {
+  const base = getApiGatewayBase();
+  if (!base?.trim()) return [];
+  const url = `${base}/classes?teacher_id=${encodeURIComponent(teacherId)}`;
+  const res = await fetch(url, { headers: getAuthHeaders() });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.classes ?? [];
+}
+
+export async function verifyClassCode(classCode: string): Promise<{ class_id: string; class_name: string; class_code: string } | null> {
+  const base = getApiGatewayBase();
+  if (!base?.trim()) return null;
+  const code = (classCode || '').trim().toUpperCase();
+  if (code.length < 4) return null;
+  const url = `${base}/classes/verify?code=${encodeURIComponent(code)}`;
+  const res = await fetch(url);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Verify failed: ${res.status}`);
+  return res.json();
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// Onboarding
+// ═════════════════════════════════════════════════════════════════════════
+
 /**
  * POST /api/teacher/onboard — register teacher + create first class.
  * Persists to backend data/teachers/{class_code}.json.
