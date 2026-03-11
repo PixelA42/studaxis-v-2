@@ -7,7 +7,7 @@ from ai_integration_layer import AIConfig, AIEngine, AIState, AITaskType
 
 
 def _mock_ollama_success(*args, **kwargs):
-    """Return a valid response string for testing without real Ollama."""
+    """Return a valid response string for this test module only; real app uses real Ollama."""
     return "Test response for momentum."
 
 

@@ -296,30 +296,31 @@ class TestSyncOrchestratorIntegration(unittest.TestCase):
     
     def test_full_sync_flow_offline(self):
         """Test full sync flow when offline (no AWS)."""
-        # Orchestrator should initialize in IDLE state
-        self.assertEqual(self.orchestrator.get_state(), "IDLE")
-        
-        # Check connectivity (should be offline since no AWS endpoint)
-        self.assertFalse(self.orchestrator.is_online())
-        
-        # Enqueue a change
-        with patch.object(self.orchestrator.sync_manager, 'enqueue_quiz_sync', return_value=True):
-            with patch.object(SyncManager, 'queue_size', new_callable=PropertyMock, return_value=1):
-                success = self.orchestrator.enqueue_change(
-                    change_type="recordQuizAttempt",
-                    payload={
-                        "userId": "test_user",
-                        "quizId": "quiz_001",
-                        "score": 8,
-                        "totalQuestions": 10
-                    }
-                )
-                
-                self.assertTrue(success)
-                self.assertEqual(self.orchestrator.get_state(), "QUEUED")
-        
-        # Try to sync (should fail offline)
-        with patch.object(self.orchestrator.sync_manager, 'check_connectivity', return_value=False):
+        # Mock connectivity so we are treated as offline (env may have APPSYNC set)
+        with patch.object(self.orchestrator.sync_manager, "check_connectivity", return_value=False):
+            # Orchestrator should initialize in IDLE state
+            self.assertEqual(self.orchestrator.get_state(), "IDLE")
+
+            # Check connectivity (should be offline)
+            self.assertFalse(self.orchestrator.is_online())
+
+            # Enqueue a change
+            with patch.object(self.orchestrator.sync_manager, 'enqueue_quiz_sync', return_value=True):
+                with patch.object(SyncManager, 'queue_size', new_callable=PropertyMock, return_value=1):
+                    success = self.orchestrator.enqueue_change(
+                        change_type="recordQuizAttempt",
+                        payload={
+                            "userId": "test_user",
+                            "quizId": "quiz_001",
+                            "score": 8,
+                            "totalQuestions": 10
+                        }
+                    )
+
+                    self.assertTrue(success)
+                    self.assertEqual(self.orchestrator.get_state(), "QUEUED")
+
+            # Try to sync (should fail offline)
             with patch.object(self.orchestrator.sync_manager, 'try_sync', return_value={
                 "synced": 0,
                 "failed": 0,
@@ -328,7 +329,7 @@ class TestSyncOrchestratorIntegration(unittest.TestCase):
                 "online": False
             }):
                 result = self.orchestrator.execute_sync()
-                
+
                 # Should remain in QUEUED or transition to OFFLINE
                 self.assertIn(self.orchestrator.get_state(), ["QUEUED", "OFFLINE"])
 

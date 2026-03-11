@@ -634,7 +634,9 @@ class AIEngine:
                 }:
                     continue
 
-                sanitized[key] = stripped[:2000]
+                # Allow source_content to carry full textbook/URL content for generation prompts
+                max_len = 12000 if key == "source_content" else 2000
+                sanitized[key] = stripped[:max_len]
                 continue
 
             sanitized[key] = value
@@ -722,7 +724,7 @@ class AIEngine:
             content_preview = ""
             if source_content:
                 sc = str(source_content).strip()
-                content_preview = f"\n\nExtracted content to base questions on:\n{sc[:6000]}\n\n"
+                content_preview = f"\n\nExtracted content to base questions on:\n{sc[:12000]}\n\n"
             if question_format == "mcq":
                 return (
                     f"Using the extracted content below, generate exactly {count} multiple choice questions "
@@ -958,6 +960,12 @@ class AIEngine:
         if options:
             payload["options"] = options
         try:
+            import logging
+            log = logging.getLogger(__name__)
+            log.info(
+                "[ollama] request model=%s prompt_len=%d stream=false",
+                model_name, len(prompt or ""),
+            )
             resp = requests.post(
                 OLLAMA_API_URL,
                 json=payload,
@@ -965,7 +973,9 @@ class AIEngine:
             )
             resp.raise_for_status()
             data = resp.json()
-            return data.get("response", "").strip() or ""
+            out = data.get("response", "").strip() or ""
+            log.info("[ollama] response len=%d", len(out))
+            return out
         except requests.exceptions.ConnectionError:
             raise ConnectionError(OLLAMA_CONNECTION_FALLBACK)
         except requests.exceptions.Timeout:

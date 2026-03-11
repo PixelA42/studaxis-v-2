@@ -52,6 +52,7 @@ export function FlashcardSourceSelector({
   const [textbookMode, setTextbookMode] = useState<"existing" | "upload">("existing");
   const [selectedTextbook, setSelectedTextbook] = useState("");
   const [chapterInput, setChapterInput] = useState("");
+  const [focusQuery, setFocusQuery] = useState("");
   const [weblinkUrl, setWeblinkUrl] = useState("");
   const [pasteText, setPasteText] = useState("");
   const [subject, setSubject] = useState("General");
@@ -147,6 +148,7 @@ export function FlashcardSourceSelector({
       const res = await generateFlashcardsFromTextbook({
         textbook_id: selectedTextbook,
         chapter: chapterInput.trim() || undefined,
+        query: focusQuery.trim() || chapterInput.trim() || undefined,
         count: numCards,
       });
       onGenerate(res.cards.map((c) => ({ ...c, sourceType: ["textbook"] })), ["textbook"]);
@@ -391,6 +393,21 @@ export function FlashcardSourceSelector({
               placeholder="e.g. Chapter 5 – Cell Biology"
               className="w-full max-w-md px-4 py-2 rounded-lg border border-glass-border bg-surface-light text-primary placeholder:text-primary/50"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-primary/90 mb-2">
+              Focus / topic for search (optional)
+            </label>
+            <input
+              type="text"
+              value={focusQuery}
+              onChange={(e) => setFocusQuery(e.target.value)}
+              placeholder="e.g. feature selection, mitosis"
+              className="w-full max-w-md px-4 py-2 rounded-lg border border-glass-border bg-surface-light text-primary placeholder:text-primary/50"
+            />
+            <p className="mt-1 text-xs text-primary/60">
+              Used to find the most relevant sections in the textbook. Leave blank to use chapter or key concepts.
+            </p>
           </div>
           <div className="flex flex-wrap gap-4">
             <div>

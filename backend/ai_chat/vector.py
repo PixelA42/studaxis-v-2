@@ -289,6 +289,82 @@ def build_vector_store(rebuild: bool = False) -> Chroma:
     return vector_store
 
 
+def add_textbook_to_vector_store(file_path: Path) -> None:
+    """
+    Load one textbook file, chunk it, and add to ChromaDB (replacing any existing chunks for this source).
+    Supports .pdf, .txt, .pptx. Used after upload so the book is searchable for flashcard generation.
+    """
+    import hashlib
+
+    log = logging.getLogger("studaxis.vector")
+    suffix = file_path.suffix.lower()
+    if suffix not in (".pdf", ".txt", ".text", ".pptx", ".ppt"):
+        log.warning("[add_textbook] Unsupported file type: %s", file_path.name)
+        return
+
+    loader = None
+    if suffix == ".pdf":
+        loader = PyPDFLoader(str(file_path))
+    elif suffix in (".txt", ".text"):
+        loader = TextLoader(str(file_path), encoding="utf-8")
+    elif suffix in (".pptx", ".ppt") and UnstructuredPowerPointLoader is not None:
+        loader = UnstructuredPowerPointLoader(str(file_path))
+    else:
+        log.warning("[add_textbook] No loader for %s", file_path.name)
+        return
+
+    try:
+        docs: list[Any] = loader.load()
+    except Exception as e:
+        log.exception("[add_textbook] Failed to load %s: %s", file_path.name, e)
+        raise
+
+    if not docs:
+        log.warning("[add_textbook] No content loaded from %s", file_path.name)
+        return
+
+    subject = file_path.stem.split("_")[0].lower() if "_" in file_path.stem else file_path.stem.lower()
+    for doc in docs:
+        doc.metadata["subject"] = subject
+        doc.metadata["source"] = file_path.name
+        doc.metadata["file_type"] = suffix
+        doc.metadata["dominant_topics"] = "[]"
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=600,
+        chunk_overlap=100,
+        separators=["\n\n", "\n", ". ", " ", ""],
+    )
+    split_docs = splitter.split_documents(docs)
+
+    doc_ids = []
+    for i, doc in enumerate(split_docs):
+        content_hash = hashlib.sha256(doc.page_content.encode("utf-8")).hexdigest()[:16]
+        doc_ids.append(f"{file_path.name}_{i}_{content_hash}")
+
+    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
+    vector_store = Chroma(
+        collection_name=COLLECTION_NAME,
+        persist_directory=str(CHROMA_DIR),
+        embedding_function=embeddings,
+    )
+
+    try:
+        existing = vector_store._collection.count()
+        if existing > 0:
+            vector_store._collection.delete(where={"source": file_path.name})
+            log.info("[add_textbook] Replaced existing chunks for source=%s", file_path.name)
+    except Exception as e:
+        log.debug("[add_textbook] Delete by source skipped (no match or error): %s", e)
+
+    try:
+        vector_store.add_documents(split_docs, ids=doc_ids)
+        log.info("[add_textbook] Added %d chunks for %s", len(split_docs), file_path.name)
+    except Exception as e:
+        log.exception("[add_textbook] Failed to add documents: %s", e)
+        raise
+
+
 if __name__ == "__main__":
     import sys
     

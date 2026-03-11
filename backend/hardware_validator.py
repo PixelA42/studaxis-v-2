@@ -1,12 +1,115 @@
 """
 Hardware Validation Module
-Checks system resources (RAM, CPU, disk) on app launch
+Checks system resources (RAM, CPU, disk) on app launch.
+Also ensures Ollama is running and the required model is pulled at startup.
 """
+
+import json
+import os
+import subprocess
+import sys
+import time
+import urllib.request
+import urllib.error
 
 import psutil
 import platform
-import os
 from typing import Dict, Tuple
+
+
+def _ollama_base_url() -> str:
+    return os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
+
+
+def _ollama_ping(timeout: float = 2.0) -> bool:
+    """Return True if Ollama API is reachable."""
+    base = _ollama_base_url()
+    url = f"{base}/api/tags"
+    try:
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=timeout) as _:
+            return True
+    except Exception:
+        return False
+
+
+def ensure_ollama_serve(max_wait_seconds: float = 15.0) -> bool:
+    """
+    Ensure Ollama server is running. If not reachable, start `ollama serve`
+    in the background and wait until the API responds (or max_wait_seconds).
+    Returns True if Ollama is reachable at the end, False otherwise.
+    """
+    if _ollama_ping():
+        return True
+    try:
+        if sys.platform == "win32":
+            subprocess.Popen(
+                ["ollama", "serve"],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000),
+            )
+        else:
+            subprocess.Popen(
+                ["ollama", "serve"],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+    except FileNotFoundError:
+        return False
+    deadline = time.monotonic() + max_wait_seconds
+    while time.monotonic() < deadline:
+        time.sleep(2.0)
+        if _ollama_ping():
+            return True
+    return False
+
+
+def _model_in_list(model_name: str, names: list) -> bool:
+    """Check if model_name is present in Ollama model names (exact or alias)."""
+    if model_name in names:
+        return True
+    for n in names:
+        if n == model_name or n.startswith(model_name + ":") or model_name.startswith(n):
+            return True
+    return False
+
+
+def ensure_ollama_model(model_name: str, timeout_pull_seconds: int = 3600) -> bool:
+    """
+    Ensure the required Ollama model is pulled. If not present, run
+    `ollama pull <model_name>` and wait for completion.
+    Returns True if the model is available (already present or pulled), False otherwise.
+    """
+    base = _ollama_base_url()
+    url = f"{base}/api/tags"
+    try:
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        return False
+    models = data.get("models", [])
+    names = [m.get("name", "") for m in models if m.get("name")]
+    if _model_in_list(model_name, names):
+        return True
+    try:
+        result = subprocess.run(
+            ["ollama", "pull", model_name],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout_pull_seconds,
+        )
+        if result.returncode != 0:
+            return False
+        return True
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
 
 
 class HardwareValidator:

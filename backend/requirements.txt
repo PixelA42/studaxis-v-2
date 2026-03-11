@@ -1,6 +1,5 @@
-# Studaxis backend — install from repo root: pip install -r requirements.txt
-# Pinned versions for reproducibility (see project_docs/final-checklists).
-# Canonical backend list: backend/requirements.txt
+# Studaxis backend — pinned for reproducible builds (see project_docs/final-checklists)
+# Install: pip install -r backend/requirements.txt (from repo root or backend/)
 
 # Core API Backend
 fastapi==0.115.6

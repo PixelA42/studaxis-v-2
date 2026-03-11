@@ -1,5 +1,55 @@
 [
   {
+    "id": "1773221480589",
+    "title": "Quiz me on: force",
+    "messages": [
+      {
+        "role": "assistant",
+        "content": "Hi! I'm your AI tutor powered by Llama 3.2 with RAG grounding from your textbooks. Ask me anything — I work fully offline. 🎓",
+        "timestamp": "2026-03-09T18:14:30.763Z"
+      },
+      {
+        "role": "user",
+        "content": "Quiz me on: force",
+        "timestamp": "2026-03-09T18:21:12.510Z",
+        "is_clarification": false
+      },
+      {
+        "role": "assistant",
+        "content": "I couldn't complete that request. Please check that Ollama is running and try again.",
+        "timestamp": "2026-03-09T18:21:37.839Z",
+        "is_clarification": false
+      }
+    ],
+    "timestamp": "2026-03-11T09:31:20.589Z",
+    "subject": "Computer Science"
+  },
+  {
+    "id": "1773203633372",
+    "title": "Quiz me on: force",
+    "messages": [
+      {
+        "role": "assistant",
+        "content": "Hi! I'm your AI tutor powered by Llama 3.2 with RAG grounding from your textbooks. Ask me anything — I work fully offline. 🎓",
+        "timestamp": "2026-03-09T18:14:30.763Z"
+      },
+      {
+        "role": "user",
+        "content": "Quiz me on: force",
+        "timestamp": "2026-03-09T18:21:12.510Z",
+        "is_clarification": false
+      },
+      {
+        "role": "assistant",
+        "content": "I couldn't complete that request. Please check that Ollama is running and try again.",
+        "timestamp": "2026-03-09T18:21:37.839Z",
+        "is_clarification": false
+      }
+    ],
+    "timestamp": "2026-03-11T04:33:53.372Z",
+    "subject": "Computer Science"
+  },
+  {
     "id": "1773080455331",
     "title": "New chat",
     "messages": [

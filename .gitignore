@@ -114,6 +114,17 @@ local-app/data/ai_request_log.jsonl
 !local-app/data/backups/.gitkeep
 !data/chromadb/.gitkeep
 
+# Backend data (user DB, sync, logs, per-user files — do not commit)
+backend/data/users.db
+backend/data/sync_queue.json
+backend/data/ai_request_log.jsonl
+backend/data/users/
+backend/data/flashcards/
+backend/data/quizzes/
+backend/data/chromadb/
+!backend/data/.gitkeep
+!backend/data/sample_textbooks/.gitkeep
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Testing
 # ─────────────────────────────────────────────────────────────────────────────
@@ -136,5 +147,9 @@ htmlcov/
 *.temp
 imported-ui/
 imported-ui-one/
-.kiro/specs/aws-infrastructure-elevation/.config
 docs/
+# ─────────────────────────────────────────────────────────────────────────────
+# Kiro (specs/steering — optional: remove if you want to track .kiro in repo)
+# ─────────────────────────────────────────────────────────────────────────────
+.kiro/
+.kiro/specs/aws-infrastructure-elevation/.config

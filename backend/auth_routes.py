@@ -163,11 +163,19 @@ def _send_otp_email(email: str, code: str) -> None:
 
 
 def _generate_and_send_otp(email: str) -> None:
-    """Generate secure 6-digit OTP, store with 5 min expiry, send via email."""
+    """Generate secure 6-digit OTP, store with 5 min expiry, send via email (blocking)."""
     code = str(secrets.randbelow(900000) + 100000)
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRY_MINUTES)
     _otp_store[email.strip().lower()] = {"code": code, "expires_at": expires_at}
     _send_otp_email(email, code)
+
+
+def _generate_otp_for_email(email: str) -> str:
+    """Generate OTP, store in _otp_store, return code. Caller can send email in background."""
+    code = str(secrets.randbelow(900000) + 100000)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRY_MINUTES)
+    _otp_store[email.strip().lower()] = {"code": code, "expires_at": expires_at}
+    return code
 
 
 # ---------------------------------------------------------------------------
@@ -217,8 +225,9 @@ def signup(
     verification_token = _create_verification_token(user.email)
     background_tasks.add_task(send_verification_email, user.email, verification_token)
 
-    # OTP: generate and send (signup triggers OTP)
-    _generate_and_send_otp(user.email)
+    # OTP: generate and store immediately, send email in background so signup response returns quickly
+    otp_code = _generate_otp_for_email(user.email)
+    background_tasks.add_task(_send_otp_email, user.email, otp_code)
 
     token = _create_jwt(user.id, user.username)
     return AuthResponse(

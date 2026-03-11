@@ -321,17 +321,21 @@ export interface AuthResponse {
  * Turn-based chat with local LLM. Supports clarification follow-ups.
  */
 export async function postChat(params: ChatRequest): Promise<ChatResponse> {
-  return request<ChatResponse>("/api/chat", {
-    method: "POST",
-    body: JSON.stringify({
-      message: params.message,
-      is_clarification: params.is_clarification ?? false,
-      task_type: params.task_type ?? "chat",
-      subject: params.subject ?? undefined,
-      textbook_id: params.textbook_id ?? undefined,
-      context: params.context ?? undefined,
-    }),
-  });
+  return request<ChatResponse>(
+    "/api/chat",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        message: params.message,
+        is_clarification: params.is_clarification ?? false,
+        task_type: params.task_type ?? "chat",
+        subject: params.subject ?? undefined,
+        textbook_id: params.textbook_id ?? undefined,
+        context: params.context ?? undefined,
+      }),
+    },
+    API_TIMEOUT_LONG_MS
+  );
 }
 
 /** Chat history session (Layer 2 persistence) */
@@ -801,10 +805,12 @@ export async function generateFlashcardsFromFiles(params: {
 /**
  * Generate flashcards from a textbook by id (filename in sample_textbooks).
  * Falls back to topic-based generation if textbook content cannot be loaded.
+ * Optional query/focus (e.g. "feature selection") is used for ChromaDB semantic retrieval.
  */
 export async function generateFlashcardsFromTextbook(params: {
   textbook_id: string;
   chapter?: string;
+  query?: string;
   count: number;
 }): Promise<FlashcardGenerateResponse> {
   return request<FlashcardGenerateResponse>("/api/flashcards/generate/textbook", {
@@ -812,6 +818,7 @@ export async function generateFlashcardsFromTextbook(params: {
     body: JSON.stringify({
       textbook_id: params.textbook_id,
       chapter: params.chapter ?? null,
+      query: params.query ?? null,
       count: params.count,
     }),
   });

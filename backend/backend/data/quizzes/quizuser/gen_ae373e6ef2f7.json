@@ -1,0 +1,69 @@
+{
+  "id": "gen_ae373e6ef2f7",
+  "title": "Quiz — Physics",
+  "subject": "Physics",
+  "difficulty": "medium",
+  "question_type": "mcq",
+  "items": [
+    {
+      "id": "q1",
+      "text": "What is question 1?",
+      "options": [
+        "A. One",
+        "B. Two",
+        "C. Three",
+        "D. Four"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "id": "q2",
+      "text": "What is question 2?",
+      "options": [
+        "A. One",
+        "B. Two",
+        "C. Three",
+        "D. Four"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "id": "q3",
+      "text": "What is question 3?",
+      "options": [
+        "A. One",
+        "B. Two",
+        "C. Three",
+        "D. Four"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "id": "q4",
+      "text": "What is question 4?",
+      "options": [
+        "A. One",
+        "B. Two",
+        "C. Three",
+        "D. Four"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "id": "q5",
+      "text": "What is question 5?",
+      "options": [
+        "A. One",
+        "B. Two",
+        "C. Three",
+        "D. Four"
+      ],
+      "correct": 0,
+      "explanation": ""
+    }
+  ]
+}

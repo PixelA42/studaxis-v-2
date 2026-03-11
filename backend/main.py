@@ -47,7 +47,8 @@ except ImportError:
     pass
 
 from ai_integration_layer import AIEngine, AIState, AITaskType
-from model_config import get_best_model
+from model_config import get_best_model, get_config_path_for_log
+from hardware_validator import ensure_ollama_serve, ensure_ollama_model
 from grading.grader import Grader
 from grading.red_pen_feedback import RedPenFeedback
 from auth_routes import router as auth_router
@@ -294,11 +295,18 @@ app.include_router(auth_router)
 
 @app.on_event("startup")
 def _startup():
-    """Ensure auth DB tables exist on startup. Select hardware-aware model."""
+    """Ensure auth DB tables exist on startup. Select hardware-aware model. Ensure Ollama is running and model is pulled."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
     init_db()
     model = get_best_model()
-    logger.info("Studaxis started; hardware-aware model selected: %s", model)
+    logger.info("Studaxis started; hardware-aware model selected: %s (config: %s)", model, get_config_path_for_log())
+    if ensure_ollama_serve():
+        if ensure_ollama_model(model):
+            logger.info("Ollama ready; model %s available.", model)
+        else:
+            logger.warning("Ollama running but model %s could not be pulled. Run manually: ollama pull %s", model, model)
+    else:
+        logger.warning("Ollama not reachable. Install from https://ollama.com and ensure 'ollama serve' is running.")
 
 
 # CORS: allow local React (Vite 5173), same-origin (8000 default, 6782, 6783)
@@ -1102,7 +1110,14 @@ def textbooks_upload(file: UploadFile = File(...)):
         content = file.file.read()
         dest.write_bytes(content)
         log.info("[upload] OK: %s -> %s (%d bytes)", file.filename, dest, len(content))
-        return {"id": file.filename, "name": Path(file.filename).stem}
+        indexed = True
+        try:
+            from ai_chat.vector import add_textbook_to_vector_store
+            add_textbook_to_vector_store(dest)
+        except Exception as idx_err:
+            log.warning("[upload] ChromaDB indexing failed for %s: %s", file.filename, idx_err)
+            indexed = False
+        return {"id": file.filename, "name": Path(file.filename).stem, "indexed": indexed}
     except OSError as e:
         log.error("[upload] FAIL (filesystem): %s: %s", file.filename, e)
         raise HTTPException(status_code=500, detail=f"Could not save file: {e}")
@@ -1382,63 +1397,65 @@ def _generate_cards_from_content(
             user_id=None,
         )
     except (ConnectionError, TimeoutError) as e:
-        print(f"[flashcards] AI unavailable ({e}), returning fallback cards")
-        return _fallback_flashcards_response(subject, count, source_type)
+        raise HTTPException(
+            status_code=503,
+            detail=str(e) or "AI is unavailable. Ensure Ollama is running (ollama serve).",
+        ) from e
     if response.state in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
-        print(f"[flashcards] AI returned {response.state}, returning fallback cards")
-        return _fallback_flashcards_response(subject, count, source_type)
+        raise HTTPException(
+            status_code=503,
+            detail=getattr(response, "text", None) or "AI returned no valid response. Ensure Ollama is running.",
+        )
     raw_text = _extract_json_array(response.text)
     try:
         parsed = json.loads(raw_text)
-    except json.JSONDecodeError:
-        return _fallback_flashcards_response(subject, count, source_type)
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"AI returned invalid JSON: {e}. Try again or use a different model.",
+        )
     if not isinstance(parsed, list) or not parsed:
-        return _fallback_flashcards_response(subject, count, source_type)
+        raise HTTPException(status_code=503, detail="AI returned no valid flashcards. Try again.")
     cards = _normalize_cards(parsed)
     if not cards:
-        return _fallback_flashcards_response(subject, count, source_type)
+        raise HTTPException(status_code=503, detail="AI returned no valid flashcards. Try again.")
     for c in cards:
         c["sourceType"] = source_type
     return FlashcardGenerateResponse(cards=[FlashcardItem(**c) for c in cards], topic="Content-based")
 
 
-def _generate_mcq_questions_via_ai(topic: str, subject: str, difficulty: str, count: int) -> list[dict[str, Any]]:
-    """Generate MCQ questions via AI. Returns list of {id, text, options, correct, explanation}."""
+def _generate_mcq_questions_via_ai(content_or_topic: str, subject: str, difficulty: str, count: int) -> list[dict[str, Any]]:
+    """Generate MCQ questions via AI from content or topic. Pass content in context_data so the LLM sees it.
+    Raises HTTPException 503 if Ollama is unavailable."""
     engine = get_ai_engine()
-    prompt = f"""Generate {count} multiple choice questions about "{topic[:2000]}" for {subject} at {difficulty} level.
-
-Respond ONLY with this exact JSON. No markdown. No explanation. No extra text. Raw JSON only:
-{{
-  "questions": [
-    {{
-      "question": "question text here",
-      "options": ["A. option1", "B. option2", "C. option3", "D. option4"],
-      "correct": "A",
-      "explanation": "brief explanation"
-    }}
-  ]
-}}
-
-Output the JSON only. Use "questions" array; each item has "question", "options" (4 strings with A. B. C. D.), "correct" (letter A-D), "explanation".
-
-CRITICAL: Your response must start with {{ and end with }}.
-Do NOT include any text before {{ or after }}.
-Do NOT use markdown. Do NOT use code blocks.
-Raw JSON only. Nothing else."""
+    context_data: dict[str, Any] = {
+        "subject": subject,
+        "count": count,
+        "difficulty": difficulty,
+        "question_format": "mcq",
+        "source_content": (content_or_topic or "").strip()[:12000],
+    }
+    user_input = "Generate multiple choice questions from the provided content below."
     try:
         response = engine.request(
             task_type=AITaskType.QUIZ_GENERATION,
-            user_input=prompt,
-            context_data={"subject": subject, "count": count, "difficulty": difficulty},
+            user_input=user_input,
+            context_data=context_data,
             offline_mode=True,
             privacy_sensitive=True,
             user_id=None,
         )
     except (ConnectionError, TimeoutError) as e:
-        return _get_fallback_panic_items(subject, count, "mcq")
+        raise HTTPException(
+            status_code=503,
+            detail=str(e) or "AI is unavailable. Ensure Ollama is running (ollama serve).",
+        ) from e
     raw = (response.text or "").strip()
     if not raw or getattr(response, "state", None) in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
-        return _get_fallback_panic_items(subject, count, "mcq")
+        raise HTTPException(
+            status_code=503,
+            detail=getattr(response, "text", None) or "AI returned no valid response. Ensure Ollama is running.",
+        )
     parsed = None
     for attempt in range(2):
         try:
@@ -1447,7 +1464,10 @@ Raw JSON only. Nothing else."""
         except (ValueError, json.JSONDecodeError):
             raw = _clean_json(raw)
             if attempt == 1:
-                return _get_fallback_panic_items(subject, count, "mcq")
+                raise HTTPException(
+                    status_code=503,
+                    detail="AI returned invalid JSON. Try again or use a different model.",
+                )
     if parsed is None:
         parsed = []
     out: list[dict[str, Any]] = []
@@ -1481,60 +1501,42 @@ Raw JSON only. Nothing else."""
             "explanation": explanation,
         })
     if not out:
-        return _get_fallback_panic_items(subject, count, "mcq")
+        raise HTTPException(status_code=503, detail="AI returned no valid questions. Try again.")
     return out[:count]
 
 
-def _generate_open_ended_questions_via_ai(topic: str, subject: str, difficulty: str, count: int) -> list[dict[str, Any]]:
-    """Generate open-ended questions via AI. Returns list of {id, text, sample_answer, rubric}."""
+def _generate_open_ended_questions_via_ai(content_or_topic: str, subject: str, difficulty: str, count: int) -> list[dict[str, Any]]:
+    """Generate open-ended questions via AI from content or topic. Pass content in context_data so the LLM sees it.
+    Raises HTTPException 503 if Ollama is unavailable."""
     engine = get_ai_engine()
-    prompt = f"""Generate {count} open-ended questions about "{topic}" for {subject} at {difficulty} level.
-
-Respond ONLY with raw JSON. No markdown. No extra text:
-{{
-  "questions": [
-    {{
-      "question": "question text here",
-      "model_answer": "detailed answer here",
-      "keywords": ["key1", "key2", "key3"]
-    }}
-  ]
-}}
-
-Output the JSON only. Use "questions" array; each item has "question", "model_answer", "keywords" (array of strings).
-
-CRITICAL: Your response must start with {{ and end with }}.
-Do NOT include any text before {{ or after }}.
-Do NOT use markdown. Do NOT use code blocks.
-Raw JSON only. Nothing else."""
+    context_data: dict[str, Any] = {
+        "subject": subject,
+        "count": count,
+        "difficulty": difficulty,
+        "question_format": "open_ended",
+        "source_content": (content_or_topic or "").strip()[:12000],
+    }
+    user_input = "Generate open-ended exam questions from the provided content below."
     try:
         response = engine.request(
             task_type=AITaskType.QUIZ_GENERATION,
-            user_input=prompt,
-            context_data={"subject": subject, "count": count, "difficulty": difficulty},
+            user_input=user_input,
+            context_data=context_data,
             offline_mode=True,
             privacy_sensitive=True,
             user_id=None,
         )
     except (ConnectionError, TimeoutError) as e:
-        return [
-            {
-                "id": "q1_fallback",
-                "text": "AI could not generate valid questions. Try again or use paste/URL source.",
-                "sample_answer": "N/A",
-                "rubric": "Assess comprehension.",
-            }
-        ]
+        raise HTTPException(
+            status_code=503,
+            detail=str(e) or "AI is unavailable. Ensure Ollama is running (ollama serve).",
+        ) from e
     raw = (response.text or "").strip()
     if not raw or getattr(response, "state", None) in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
-        return [
-            {
-                "id": "q1_fallback",
-                "text": "AI could not generate valid questions. Try again or use paste/URL source.",
-                "sample_answer": "N/A",
-                "rubric": "Assess comprehension.",
-            }
-        ]
+        raise HTTPException(
+            status_code=503,
+            detail=getattr(response, "text", None) or "AI returned no valid response. Ensure Ollama is running.",
+        )
     try:
         parsed = _parse_ai_json(raw)
     except (ValueError, json.JSONDecodeError):
@@ -1542,14 +1544,10 @@ Raw JSON only. Nothing else."""
         try:
             parsed = _parse_ai_json(raw)
         except (ValueError, json.JSONDecodeError):
-            return [
-                {
-                    "id": "q1_fallback",
-                    "text": "AI could not generate valid questions. Try again or use paste/URL source.",
-                    "sample_answer": "N/A",
-                    "rubric": "Assess comprehension.",
-                }
-            ]
+            raise HTTPException(
+                status_code=503,
+                detail="AI returned invalid JSON. Try again or use a different model.",
+            )
     out: list[dict[str, Any]] = []
     for i, item in enumerate(parsed) if isinstance(parsed, list) else []:
         if not isinstance(item, dict):
@@ -1564,6 +1562,8 @@ Raw JSON only. Nothing else."""
             "sample_answer": sample,
             "rubric": rubric,
         })
+    if not out:
+        raise HTTPException(status_code=503, detail="AI returned no valid questions. Try again.")
     return out[:count]
 
 
@@ -1587,7 +1587,7 @@ def _generate_quiz_from_content(
     try:
         response = engine.request(
             task_type=AITaskType.QUIZ_GENERATION,
-            user_input=f"Generate {count} open-ended exam questions for {subject}.",
+            user_input="Generate open-ended exam questions from the provided content below.",
             context_data={
                 "subject": subject,
                 "count": count,
@@ -1598,53 +1598,63 @@ def _generate_quiz_from_content(
             user_id=None,
         )
     except (ConnectionError, TimeoutError) as e:
-        return _get_fallback_panic_items(subject, count, "open_ended")
+        raise HTTPException(
+            status_code=503,
+            detail=str(e) or "AI is unavailable. Ensure Ollama is running (ollama serve).",
+        ) from e
     if response.state in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
-        try:
-            parsed = _parse_ai_json(response.text or "[]")
-            if isinstance(parsed, list) and len(parsed) > 0:
-                return _normalize_quiz_items(parsed, subject)
-        except (ValueError, json.JSONDecodeError):
-            pass
-        return _get_fallback_panic_items(subject, count, "open_ended")
+        raise HTTPException(
+            status_code=503,
+            detail=getattr(response, "text", None) or "AI returned no valid response. Ensure Ollama is running.",
+        )
     try:
         parsed = _parse_ai_json(response.text)
     except (ValueError, json.JSONDecodeError) as e:
-        print(f"[FALLBACK] JSON parse failed: {e}")
-        return _get_fallback_panic_items(subject, count, "open_ended")
+        raise HTTPException(
+            status_code=503,
+            detail=f"AI returned invalid JSON: {e}. Try again or use a different model.",
+        )
     if not isinstance(parsed, list):
-        return _get_fallback_panic_items(subject, count, "open_ended")
+        raise HTTPException(status_code=503, detail="AI returned invalid format. Try again.")
     return _normalize_quiz_items(parsed, subject)
 
 
 def _generate_mcq_from_content(content: str, subject: str, count: int) -> list[dict[str, Any]]:
-    """Generate MCQ questions from extracted content via AI. Returns {id, text, options, correct, explanation}."""
+    """Generate MCQ questions from extracted content via AI. Raises HTTPException 503 if AI is unavailable."""
     engine = get_ai_engine()
     try:
         response = engine.request(
             task_type=AITaskType.QUIZ_GENERATION,
-            user_input=f"Generate {count} MCQ questions for {subject} from the content below.",
+            user_input="Generate multiple choice questions from the provided content below.",
             context_data={
                 "subject": subject,
                 "count": count,
                 "question_format": "mcq",
-                "source_content": content[:6000],
+                "source_content": content[:12000],
             },
             offline_mode=True,
             privacy_sensitive=True,
             user_id=None,
         )
     except (ConnectionError, TimeoutError) as e:
-        return _get_fallback_panic_items(subject, count, "mcq")
+        raise HTTPException(
+            status_code=503,
+            detail=str(e) or "AI is unavailable. Ensure Ollama is running (ollama serve).",
+        ) from e
     if not (response.text or "").strip() or getattr(response, "state", None) in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
-        return _get_fallback_panic_items(subject, count, "mcq")
+        raise HTTPException(
+            status_code=503,
+            detail=getattr(response, "text", None) or "AI returned no valid response. Ensure Ollama is running.",
+        )
     try:
         parsed = _parse_ai_json(response.text)
     except (ValueError, json.JSONDecodeError) as e:
-        print(f"[FALLBACK] JSON parse failed: {e}")
-        return _get_fallback_panic_items(subject, count, "mcq")
+        raise HTTPException(
+            status_code=503,
+            detail=f"AI returned invalid JSON: {e}. Try again or use a different model.",
+        )
     if not isinstance(parsed, list):
-        return _get_fallback_panic_items(subject, count, "mcq")
+        raise HTTPException(status_code=503, detail="AI returned invalid format. Try again.")
     out: list[dict[str, Any]] = []
     for i, item in enumerate(parsed[:count]):
         if not isinstance(item, dict):
@@ -1678,39 +1688,59 @@ def _generate_mcq_from_content(content: str, subject: str, count: int) -> list[d
             "explanation": explanation,
         })
     if not out:
-        return _get_fallback_panic_items(subject, count, "mcq")
+        raise HTTPException(status_code=503, detail="AI returned no valid questions. Try again.")
     return out[:count]
 
 
 class TextbookGenerateRequest(BaseModel):
     textbook_id: str = Field(..., description="Filename in sample_textbooks")
     chapter: Optional[str] = Field(default=None)
+    query: Optional[str] = Field(
+        default=None,
+        description="Topic or focus, e.g. 'feature selection'. If provided, only relevant chunks from ChromaDB are used as context.",
+    )
     count: int = Field(default=10, ge=5, le=35)
 
 
 @app.post("/api/flashcards/generate/textbook", response_model=FlashcardGenerateResponse)
 def flashcards_generate_textbook(req: TextbookGenerateRequest):
-    """Generate flashcards from a textbook file. Uses topic-aware extraction when possible."""
+    """Generate flashcards from a textbook file. Uses ChromaDB semantic search when possible;
+    falls back to file-based extraction if ChromaDB is unavailable or returns no chunks."""
     path = SAMPLE_TEXTBOOKS_DIR / req.textbook_id
     if not path.is_file():
         raise HTTPException(status_code=404, detail=f"Textbook '{req.textbook_id}' not found")
+
+    query = (req.query or req.chapter or "key concepts and definitions").strip()
+    retrieved = _get_relevant_chunks_from_chromadb(
+        query, k=5, source_filter=req.textbook_id
+    )
+    if retrieved:
+        subject = (
+            Path(req.textbook_id).stem.split("_")[0]
+            if "_" in Path(req.textbook_id).stem
+            else Path(req.textbook_id).stem
+        )
+        if not subject:
+            subject = "General"
+        return _generate_cards_from_content(
+            retrieved, req.count, "textbook", subject, "Beginner"
+        )
+
+    # ChromaDB unavailable or no hits: fall back to file-based flow
     try:
         content = _extract_text_from_file(path)
-        if not content.strip():
-            raise HTTPException(status_code=422, detail="Could not extract text from textbook")
-        return _generate_cards_from_textbook(content, req.count, req.textbook_id)
-    except HTTPException:
-        raise
+        if content.strip():
+            return _generate_cards_from_textbook(content, req.count, req.textbook_id)
     except Exception:
-        # Fallback to topic-based generation
-        topic = req.chapter or Path(req.textbook_id).stem
-        return flashcards_generate(FlashcardGenerateRequest(
-            topic_or_chapter=topic,
-            input_type="Textbook Chapter",
-            count=req.count,
-            offline_mode=True,
-            user_id=None,
-        ))
+        pass
+    topic = req.chapter or Path(req.textbook_id).stem
+    return flashcards_generate(FlashcardGenerateRequest(
+        topic_or_chapter=topic,
+        input_type="Textbook Chapter",
+        count=req.count,
+        offline_mode=True,
+        user_id=None,
+    ))
 
 
 class WeblinkGenerateRequest(BaseModel):
@@ -1844,8 +1874,10 @@ def flashcards_generate_from_text(req: GenerateFromTextRequest):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[flashcards] generate-from-text failed: {e}, returning fallback cards")
-        return _fallback_flashcards_response(req.subject, cnt, "paste")
+        raise HTTPException(
+            status_code=503,
+            detail=str(e) or "Flashcard generation failed. Ensure Ollama is running (ollama serve).",
+        ) from e
 
 
 @app.post("/api/flashcards/generate-from-file", response_model=FlashcardGenerateResponse)
@@ -1978,23 +2010,29 @@ def flashcards_generate(req: FlashcardGenerateRequest):
             user_id=req.user_id,
         )
     except (ConnectionError, TimeoutError) as e:
-        print(f"[flashcards] generate AI unavailable ({e}), returning fallback cards")
-        return _fallback_flashcards_response("General", count, "topic")
+        raise HTTPException(
+            status_code=503,
+            detail=str(e) or "AI is unavailable. Ensure Ollama is running (ollama serve).",
+        ) from e
 
     if response.state in (AIState.FALLBACK_RESPONSE, AIState.ERROR):
-        print(f"[flashcards] generate AI returned {response.state}, returning fallback cards")
-        return _fallback_flashcards_response("General", count, "topic")
-
+        raise HTTPException(
+            status_code=503,
+            detail=getattr(response, "text", None) or "AI returned no valid response. Ensure Ollama is running.",
+        )
     raw_text = _extract_json_array(response.text)
     try:
         parsed = json.loads(raw_text)
-    except json.JSONDecodeError:
-        return _fallback_flashcards_response("General", count, "topic")
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"AI returned invalid JSON: {e}. Try again or use a different model.",
+        )
     if not isinstance(parsed, list) or not parsed:
-        return _fallback_flashcards_response("General", count, "topic")
+        raise HTTPException(status_code=503, detail="AI returned no valid flashcards. Try again.")
     cards = _normalize_cards(parsed)
     if not cards:
-        return _fallback_flashcards_response("General", count, "topic")
+        raise HTTPException(status_code=503, detail="AI returned no valid flashcards. Try again.")
     for c in cards:
         c["sourceType"] = "topic"
     return FlashcardGenerateResponse(
@@ -2860,18 +2898,28 @@ def quiz_generate(
             detail="topic is required for Quick Topic source",
         )
     if req.source == "materials" and req.source_ids:
-        texts: list[str] = []
-        for tid in req.source_ids[:5]:
-            path = SAMPLE_TEXTBOOKS_DIR / tid
-            if path.is_file():
-                try:
-                    texts.append(_extract_text_from_file(path))
-                except Exception:
-                    pass
-        if texts:
-            topic = "\n\n".join(texts)[:15000]
-        if not topic.strip():
-            topic = req.subject
+        textbook_id = req.source_ids[0]
+        query = (
+            (req.topic_text or req.topic or req.query or req.subject) or "key concepts"
+        ).strip()
+        retrieved = _get_relevant_chunks_from_chromadb(
+            query, k=6, source_filter=textbook_id
+        )
+        if retrieved:
+            topic = retrieved
+        else:
+            texts = []
+            for tid in req.source_ids[:5]:
+                path = SAMPLE_TEXTBOOKS_DIR / tid
+                if path.is_file():
+                    try:
+                        texts.append(_extract_text_from_file(path))
+                    except Exception:
+                        pass
+            if texts:
+                topic = "\n\n".join(texts)[:15000]
+            if not topic.strip():
+                topic = req.subject
     if not topic.strip():
         topic = req.subject or "General Knowledge"
     count = max(1, min(20, req.num_questions))
@@ -2963,41 +3011,34 @@ class PanicGenerateWeblinkRequest(BaseModel):
 
 @app.post("/api/quiz/panic/generate/textbook")
 def panic_generate_textbook(req: PanicGenerateTextbookRequest):
-    """Generate panic-mode questions from a textbook. One subject only."""
+    """Generate panic-mode questions from a textbook. Uses ChromaDB when available; else file extraction."""
     path = SAMPLE_TEXTBOOKS_DIR / req.textbook_id
     if not path.is_file():
         raise HTTPException(status_code=404, detail=f"Textbook '{req.textbook_id}' not found")
-    try:
+    query = (req.chapter or req.subject or "key concepts for exam").strip()
+    retrieved = _get_relevant_chunks_from_chromadb(
+        query, k=5, source_filter=req.textbook_id
+    )
+    if retrieved:
+        content = retrieved
+    else:
         content = _extract_text_from_file(path)
         if not content.strip():
             raise HTTPException(status_code=422, detail="Could not extract text from textbook")
-        items = _generate_quiz_from_content(
-            content, req.subject, req.count, req.question_type
-        )
-        if not items:
-            items = _get_fallback_panic_items(req.subject, req.count, req.question_type)
-        return {
-            "id": "panic",
-            "title": f"Panic Mode — {req.subject}",
-            "items": items,
-            "question_type": req.question_type,
-        }
-    except HTTPException:
-        items = _get_fallback_panic_items(req.subject, req.count, req.question_type)
-        return {"id": "panic", "title": f"Panic Mode — {req.subject}", "items": items, "question_type": req.question_type}
-    except Exception:
-        items = _get_fallback_panic_items(req.subject, req.count, req.question_type)
-        return {
-            "id": "panic",
-            "title": f"Panic Mode — {req.subject}",
-            "items": items,
-            "question_type": req.question_type,
-        }
+    items = _generate_quiz_from_content(
+        content, req.subject, req.count, req.question_type
+    )
+    return {
+        "id": "panic",
+        "title": f"Panic Mode — {req.subject}",
+        "items": items,
+        "question_type": req.question_type,
+    }
 
 
 @app.post("/api/quiz/panic/generate/weblink")
 def panic_generate_weblink(req: PanicGenerateWeblinkRequest):
-    """Generate panic-mode questions from a web URL. One subject only. Uses Ollama for question generation. Returns fallback on any failure so exam always loads."""
+    """Generate panic-mode questions from a web URL. Uses Ollama. Raises 503 if AI is unavailable."""
     url = req.url.strip()
     text = ""
     try:
@@ -3052,17 +3093,8 @@ def panic_generate_weblink(req: PanicGenerateWeblinkRequest):
         items = _generate_quiz_from_content(
             text, req.subject, req.count, req.question_type
         )
-        if not items:
-            items = _get_fallback_panic_items(req.subject, req.count, req.question_type)
-    except HTTPException as e:
-        if e.status_code == 503:
-            items = _get_fallback_panic_items(req.subject, req.count, req.question_type)
-        elif e.status_code == 422:
-            items = _get_fallback_panic_items(req.subject, req.count, req.question_type)
-        else:
-            raise
-    except Exception:
-        items = _get_fallback_panic_items(req.subject, req.count, req.question_type)
+    except HTTPException:
+        raise
     return {
         "id": "panic",
         "title": f"Panic Mode — {req.subject}",
@@ -3378,22 +3410,30 @@ def notes_generate(req: NotesGenerateRequest, user_id: str = Depends(get_user_id
 
 @app.post("/api/notes/generate/textbook")
 def notes_generate_from_textbook(req: NotesGenerateFromTextbookRequest, user_id: str = Depends(get_user_id)):
-    """Generate notes from a textbook file."""
+    """Generate notes from a textbook file. Uses ChromaDB when available; else file extraction."""
     import requests as req_lib
     path = SAMPLE_TEXTBOOKS_DIR / req.textbook_id
     if not path.is_file():
         raise HTTPException(status_code=404, detail=f"Textbook '{req.textbook_id}' not found")
-    try:
-        content = _extract_text_from_file(path)
-    except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Could not extract text: {e}")
-    if not content or len(content.strip()) < 100:
-        raise HTTPException(status_code=422, detail="Textbook has insufficient text (min 100 chars)")
     subject = (req.subject or "General").strip()
     topic_hint = (req.topic or "").strip()
     style = req.style or "summary"
+    query = (req.topic or req.subject or "key concepts").strip()
+    retrieved = _get_relevant_chunks_from_chromadb(
+        query, k=5, source_filter=req.textbook_id
+    )
+    if retrieved:
+        content = retrieved
+    else:
+        try:
+            content = _extract_text_from_file(path)
+        except Exception as e:
+            raise HTTPException(status_code=422, detail=f"Could not extract text: {e}")
+        if not content or len(content.strip()) < 100:
+            raise HTTPException(status_code=422, detail="Textbook has insufficient text (min 100 chars)")
+        content = content.strip()[:8000]
     try:
-        return _generate_notes_impl(content.strip()[:8000], subject, topic_hint, style)
+        return _generate_notes_impl(content, subject, topic_hint, style)
     except req_lib.exceptions.RequestException as e:
         raise HTTPException(status_code=503, detail=str(e))
 
@@ -3435,12 +3475,7 @@ def panic_generate_files(
         raise HTTPException(status_code=422, detail="No extractable text from files")
     cnt = max(3, min(15, count))
     qt = question_type if question_type in ("mcq", "open_ended") else "open_ended"
-    try:
-        items = _generate_quiz_from_content(combined, subject, cnt, qt)
-        if not items:
-            items = _get_fallback_panic_items(subject, cnt, qt)
-    except (HTTPException, Exception):
-        items = _get_fallback_panic_items(subject, cnt, qt)
+    items = _generate_quiz_from_content(combined, subject, cnt, qt)
     return {
         "id": "panic",
         "title": f"Panic Mode — {subject}",
@@ -4605,6 +4640,41 @@ def _get_rag_vector_store():
         return None
     except Exception:
         return None
+
+
+def _get_relevant_chunks_from_chromadb(
+    query: str, k: int = 5, source_filter: Optional[str] = None, max_chars: int = 12_000
+) -> str:
+    """
+    Run semantic search over ChromaDB and return concatenated chunk text for use as source_content.
+    If source_filter is set, only chunks from that textbook (source metadata) are returned.
+    Returns empty string if store unavailable or on error (caller can fall back to file-based flow).
+    """
+    if not query or not query.strip():
+        return ""
+    store = _get_rag_vector_store()
+    if store is None:
+        return ""
+    search_kwargs: dict[str, Any] = {"k": k}
+    if source_filter:
+        search_kwargs["filter"] = {"source": source_filter}
+    try:
+        retriever = store.as_retriever(search_kwargs=search_kwargs)
+        docs = retriever.invoke(query.strip())
+    except Exception:
+        return ""
+    parts: list[str] = []
+    total = 0
+    for doc in docs or []:
+        content = (getattr(doc, "page_content", None) or str(doc)).strip()
+        if not content:
+            continue
+        if total + len(content) + 2 > max_chars:
+            parts.append(content[: max_chars - total - 2].rstrip())
+            break
+        parts.append(content)
+        total += len(content) + 2
+    return "\n\n".join(parts) if parts else ""
 
 
 def _rag_search(query: str, k: int = 5) -> tuple[list[dict[str, Any]], Optional[str]]:

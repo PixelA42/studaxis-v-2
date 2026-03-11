@@ -141,7 +141,12 @@ export function Auth() {
         state: { email: email.trim().toLowerCase() },
       });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Signup failed. Please try again.";
+      const msg =
+        err instanceof Error
+          ? err.name === "AbortError"
+            ? "Request timed out. Check your connection and try again."
+            : err.message
+          : "Signup failed. Please try again.";
       setError(msg);
       // Already registered → redirect to login
       if (typeof msg === "string" && /already (exists|registered)/i.test(msg)) {

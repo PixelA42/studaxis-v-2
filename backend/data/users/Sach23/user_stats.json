@@ -4,7 +4,7 @@
   "streak": {
     "current": 1,
     "longest": 1,
-    "last_active_date": "2026-03-09",
+    "last_active_date": "2026-03-11",
     "milestone_next": 7
   },
   "quiz_stats": {
@@ -38,7 +38,7 @@
   "flashcard_stats": {
     "total_reviewed": 0,
     "mastered": 0,
-    "due_for_review": 0,
+    "due_for_review": 16,
     "cards": {}
   },
   "chat_history": [
@@ -57,6 +57,18 @@
       "role": "assistant",
       "content": "I couldn't complete that request. Please check that Ollama is running and try again.",
       "timestamp": "2026-03-09T18:21:37.839Z",
+      "is_clarification": false
+    },
+    {
+      "role": "user",
+      "content": "Explain this concept: machine learning",
+      "timestamp": "2026-03-11T09:34:10.592Z",
+      "is_clarification": false
+    },
+    {
+      "role": "assistant",
+      "content": "AI is warming up. Please wait a moment and try again, or ensure Ollama is running (ollama serve).",
+      "timestamp": "2026-03-11T09:34:12.658Z",
       "is_clarification": false
     }
   ],

@@ -1,0 +1,353 @@
+[
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "panicuser",
+      "quizId": "panic",
+      "score": 90,
+      "totalQuestions": 2,
+      "subject": "Panic Mode",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-11T09:03:23.848933+00:00",
+      "classCode": "SOLO"
+    },
+    "queued_at": "2026-03-11T09:03:23.848944+00:00",
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "id": "sync_1773219803.971081",
+    "type": "quiz_result",
+    "mutation_type": "quiz_result",
+    "payload": {
+      "userId": "quizuser",
+      "quizId": "quick",
+      "result": {
+        "quiz_id": "quick",
+        "completed_at": "2026-03-11T09:03:23.955728+00:00",
+        "score": 0.0,
+        "max_score": 20.0,
+        "percent": 0,
+        "subject": "Physics",
+        "question_type": "open_ended",
+        "answers": [
+          {
+            "question_id": "q1",
+            "user_answer": "A",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "Force equals mass times acceleration. F = m * a.",
+            "explanation": ""
+          },
+          {
+            "question_id": "q2",
+            "user_answer": "B",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "Movement of water molecules from high concentration to low concentration through a semipermeable membrane.",
+            "explanation": ""
+          }
+        ]
+      }
+    },
+    "created_at": "2026-03-11T09:03:23.971093+00:00",
+    "queued_at": "2026-03-11T09:03:23.971101+00:00",
+    "retries": 0,
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "quizuser",
+      "quizId": "quick",
+      "score": 0,
+      "totalQuestions": 3,
+      "subject": "Physics",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-11T09:03:24.011924+00:00",
+      "classCode": "SOLO"
+    },
+    "queued_at": "2026-03-11T09:03:24.011950+00:00",
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "quizuser",
+      "quizId": "panic",
+      "score": 0,
+      "totalQuestions": 3,
+      "subject": "Panic Mode",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-11T09:03:24.039399+00:00",
+      "classCode": "SOLO"
+    },
+    "queued_at": "2026-03-11T09:03:24.039409+00:00",
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "panicuser",
+      "quizId": "panic",
+      "score": 90,
+      "totalQuestions": 2,
+      "subject": "Panic Mode",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-11T09:12:10.373414+00:00",
+      "classCode": "SOLO"
+    },
+    "queued_at": "2026-03-11T09:12:10.373414+00:00",
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "id": "sync_1773220330.468401",
+    "type": "quiz_result",
+    "mutation_type": "quiz_result",
+    "payload": {
+      "userId": "quizuser",
+      "quizId": "quick",
+      "result": {
+        "quiz_id": "quick",
+        "completed_at": "2026-03-11T09:12:10.458064+00:00",
+        "score": 0.0,
+        "max_score": 20.0,
+        "percent": 0,
+        "subject": "Physics",
+        "question_type": "open_ended",
+        "answers": [
+          {
+            "question_id": "q1",
+            "user_answer": "A",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "Force equals mass times acceleration. F = m * a.",
+            "explanation": ""
+          },
+          {
+            "question_id": "q2",
+            "user_answer": "B",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "Movement of water molecules from high concentration to low concentration through a semipermeable membrane.",
+            "explanation": ""
+          }
+        ]
+      }
+    },
+    "created_at": "2026-03-11T09:12:10.468401+00:00",
+    "queued_at": "2026-03-11T09:12:10.468401+00:00",
+    "retries": 0,
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "quizuser",
+      "quizId": "quick",
+      "score": 0,
+      "totalQuestions": 3,
+      "subject": "Physics",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-11T09:12:10.519467+00:00",
+      "classCode": "SOLO"
+    },
+    "queued_at": "2026-03-11T09:12:10.519467+00:00",
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "quizuser",
+      "quizId": "panic",
+      "score": 0,
+      "totalQuestions": 3,
+      "subject": "Panic Mode",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-11T09:12:10.549364+00:00",
+      "classCode": "SOLO"
+    },
+    "queued_at": "2026-03-11T09:12:10.549364+00:00",
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "id": "sync_1773220896.395688",
+    "type": "quiz_result",
+    "mutation_type": "quiz_result",
+    "payload": {
+      "userId": "quizuser",
+      "quizId": "quick",
+      "result": {
+        "quiz_id": "quick",
+        "completed_at": "2026-03-11T09:21:36.393436+00:00",
+        "score": 0.0,
+        "max_score": 20.0,
+        "percent": 0,
+        "subject": "Physics",
+        "question_type": "open_ended",
+        "answers": [
+          {
+            "question_id": "q1",
+            "user_answer": "A",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "Force equals mass times acceleration. F = m * a.",
+            "explanation": ""
+          },
+          {
+            "question_id": "q2",
+            "user_answer": "B",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "Movement of water molecules from high concentration to low concentration through a semipermeable membrane.",
+            "explanation": ""
+          }
+        ]
+      }
+    },
+    "created_at": "2026-03-11T09:21:36.395703+00:00",
+    "queued_at": "2026-03-11T09:21:36.395712+00:00",
+    "retries": 0,
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "quizuser",
+      "quizId": "quick",
+      "score": 0,
+      "totalQuestions": 3,
+      "subject": "Physics",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-11T09:21:36.427395+00:00",
+      "classCode": "SOLO"
+    },
+    "queued_at": "2026-03-11T09:21:36.427416+00:00",
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "quizuser",
+      "quizId": "panic",
+      "score": 0,
+      "totalQuestions": 3,
+      "subject": "Panic Mode",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-11T09:21:36.446226+00:00",
+      "classCode": "SOLO"
+    },
+    "queued_at": "2026-03-11T09:21:36.446240+00:00",
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "panicuser",
+      "quizId": "panic",
+      "score": 90,
+      "totalQuestions": 2,
+      "subject": "Panic Mode",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-11T09:25:34.350037+00:00",
+      "classCode": "SOLO"
+    },
+    "queued_at": "2026-03-11T09:25:34.350037+00:00",
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "id": "sync_1773221134.443363",
+    "type": "quiz_result",
+    "mutation_type": "quiz_result",
+    "payload": {
+      "userId": "quizuser",
+      "quizId": "quick",
+      "result": {
+        "quiz_id": "quick",
+        "completed_at": "2026-03-11T09:25:34.419949+00:00",
+        "score": 0.0,
+        "max_score": 20.0,
+        "percent": 0,
+        "subject": "Physics",
+        "question_type": "open_ended",
+        "answers": [
+          {
+            "question_id": "q1",
+            "user_answer": "A",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "Force equals mass times acceleration. F = m * a.",
+            "explanation": ""
+          },
+          {
+            "question_id": "q2",
+            "user_answer": "B",
+            "correct": false,
+            "score": 0.0,
+            "correct_answer": "Movement of water molecules from high concentration to low concentration through a semipermeable membrane.",
+            "explanation": ""
+          }
+        ]
+      }
+    },
+    "created_at": "2026-03-11T09:25:34.443363+00:00",
+    "queued_at": "2026-03-11T09:25:34.443363+00:00",
+    "retries": 0,
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "quizuser",
+      "quizId": "quick",
+      "score": 0,
+      "totalQuestions": 3,
+      "subject": "Physics",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-11T09:25:34.480915+00:00",
+      "classCode": "SOLO"
+    },
+    "queued_at": "2026-03-11T09:25:34.480915+00:00",
+    "retry_count": 0,
+    "last_error": ""
+  },
+  {
+    "mutation_type": "recordQuizAttempt",
+    "payload": {
+      "userId": "quizuser",
+      "quizId": "panic",
+      "score": 0,
+      "totalQuestions": 3,
+      "subject": "Panic Mode",
+      "difficulty": "Medium",
+      "deviceId": "cd7cc733-6da9-4abd-a521-044dc49fb9a9",
+      "completedAtLocal": "2026-03-11T09:25:34.510125+00:00",
+      "classCode": "SOLO"
+    },
+    "queued_at": "2026-03-11T09:25:34.510125+00:00",
+    "retry_count": 0,
+    "last_error": ""
+  }
+]
