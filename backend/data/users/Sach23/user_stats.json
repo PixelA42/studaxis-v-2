@@ -1,0 +1,70 @@
+{
+  "user_id": "",
+  "last_sync_timestamp": "2026-03-09T18:25:44.028588+00:00",
+  "streak": {
+    "current": 1,
+    "longest": 1,
+    "last_active_date": "2026-03-09",
+    "milestone_next": 7
+  },
+  "quiz_stats": {
+    "total_attempted": 6,
+    "total_correct": 0,
+    "average_score": 0.0,
+    "last_quiz_date": null,
+    "by_topic": {
+      "Physics": {
+        "attempts": 2,
+        "avg_score": 0.0
+      },
+      "Biology": {
+        "attempts": 1,
+        "avg_score": 0.0
+      },
+      "Mathematics": {
+        "attempts": 1,
+        "avg_score": 0.0
+      },
+      "Chemistry": {
+        "attempts": 1,
+        "avg_score": 0.0
+      }
+    },
+    "total_score_sum": 0.0,
+    "total_max_sum": 50.0,
+    "average_percent": 0,
+    "last_score": 0
+  },
+  "flashcard_stats": {
+    "total_reviewed": 0,
+    "mastered": 0,
+    "due_for_review": 0,
+    "cards": {}
+  },
+  "chat_history": [
+    {
+      "role": "assistant",
+      "content": "Hi! I'm your AI tutor powered by Llama 3.2 with RAG grounding from your textbooks. Ask me anything — I work fully offline. 🎓",
+      "timestamp": "2026-03-09T18:14:30.763Z"
+    },
+    {
+      "role": "user",
+      "content": "Quiz me on: force",
+      "timestamp": "2026-03-09T18:21:12.510Z",
+      "is_clarification": false
+    },
+    {
+      "role": "assistant",
+      "content": "I couldn't complete that request. Please check that Ollama is running and try again.",
+      "timestamp": "2026-03-09T18:21:37.839Z",
+      "is_clarification": false
+    }
+  ],
+  "preferences": {
+    "difficulty_level": "Beginner",
+    "theme": "light",
+    "language": "English",
+    "sync_enabled": true
+  },
+  "hardware_info": {}
+}
